@@ -1,0 +1,99 @@
+/* ── DemoPage ── */
+.demo-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+    text-align: left;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  
+  .sign-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  
+  .sign-btn {
+    border: 1.5px solid var(--c, #ddd);
+    border-radius: 12px;
+    padding: 14px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--c, #666);
+    background: transparent;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .sign-btn:hover  { transform: scale(1.06); background: color-mix(in srgb, var(--c) 10%, transparent); }
+  .sign-btn:active { transform: scale(0.95); }
+  .sign-emoji { font-size: 28px; }
+  .sign-label { font-size: 12px; font-weight: 700; }
+  
+  .result-box {
+    border: 2px solid #e8e8f0;
+    border-radius: 20px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 32px;
+    margin-bottom: 20px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  
+  .scanning {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: #666;
+    font-size: 14px;
+  }
+  .spin-ring {
+    width: 52px; height: 52px;
+    border: 3px solid #eee;
+    border-top-color: #7c6fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  .res-emoji { font-size: 68px; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  .res-label { font-size: 30px; font-weight: 900; animation: slideUp 0.3s ease; }
+  .res-desc  { font-size: 16px; color: #666; animation: slideUp 0.3s ease 0.05s both; }
+  .res-empty {
+    text-align: center;
+    color: #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+  }
+  
+  @keyframes popIn   { from{transform:scale(0.3);opacity:0} to{transform:scale(1);opacity:1} }
+  @keyframes slideUp { from{transform:translateY(12px);opacity:0} to{transform:translateY(0);opacity:1} }
+  
+  .history-box    { border: 1px solid #e8e8f0; border-radius: 14px; padding: 16px 20px; }
+  .history-title  { font-size: 13px; color: #666; font-weight: 700; margin-bottom: 12px; }
+  .history-empty  { font-size: 13px; color: #ccc; text-align: center; padding: 16px 0; }
+  .history-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid #e8e8f0;
+    animation: fadeIn 0.3s ease;
+  }
+  .history-row:last-child { border-bottom: none; }
+  @keyframes fadeIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+  
+  @media (max-width: 700px) {
+    .demo-layout { grid-template-columns: 1fr; }
+  }
