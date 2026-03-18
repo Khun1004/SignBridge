@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import './Demo.css'
+import './TranslatePage.css'
 
 // ── 수어 인식 샘플 (Teachable Machine 연결 전 시뮬레이션) ──
 const SIGN_LABELS = [
@@ -21,7 +21,7 @@ const AI_SIGNS = {
   '잠깐만요 ✋':         { sign: '✋', desc: '손바닥을 펼쳐요' },
 }
 
-export default function Demo() {
+export default function TranslatePage() {
   // ── 상태 ──
   const [cameraOn, setCameraOn]         = useState(false)
   const [listening, setListening]       = useState(false)
