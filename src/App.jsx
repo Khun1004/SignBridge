@@ -2,7 +2,7 @@ import { useState } from 'react'
 import './App.css'
 
 // ── 컴포넌트 import ──
-import Demo from './assets/components/Demo/Demo.jsx'
+import TranslatePage from './assets/components/TranslatePage/TranslatePage.jsx'
 import DemoPage from './assets/components/DemoPage/DemoPage.jsx'
 import DictPage from './assets/components/DictPage/DictPage.jsx'
 import Home from './assets/components/Home/Home.jsx'
@@ -33,7 +33,7 @@ export default function App() {
     switch (tab) {
       case 'home':  return <Home />
       case 'demo':  return <DemoPage />
-      case 'trans': return <Demo />
+      case 'trans': return <TranslatePage />
       case 'dict':  return <DictPage query={query} />
       case 'team':  return <TeamPage />
       case 'my':    return <MyPage />

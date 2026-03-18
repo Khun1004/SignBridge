@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import './Demo.css'
+import './TranslatePage.css'
 
 // ─────────────────────────────────────────────────────────────
 // ★ STEP 1: Teachable Machine 모델 URL 입력
@@ -64,7 +64,7 @@ const PRESET_RESPONSES = {
 const CONFIDENCE_THRESHOLD = 0.85
 const SIGN_COOLDOWN_MS      = 3000
 
-export default function Demo() {
+export default function TranslatePage() {
   const [modelLoaded, setModelLoaded] = useState(false)
   const [modelError,  setModelError]  = useState(null)
   const [cameraOn,    setCameraOn]    = useState(false)
