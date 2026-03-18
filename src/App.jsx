@@ -2,12 +2,12 @@ import { useState } from 'react'
 import './App.css'
 
 // ── 컴포넌트 import ──
-import Demo from './assets/components/Demo/Demo.jsx'
 import DemoPage from './assets/components/DemoPage/DemoPage.jsx'
 import DictPage from './assets/components/DictPage/DictPage.jsx'
 import Home from './assets/components/Home/Home.jsx'
 import MyPage from './assets/components/MyPage/MyPage.jsx'
 import TeamPage from './assets/components/TeamPage/TeamPage.jsx'
+import TranslatePage from './assets/components/TranslatePage/TranslatePage.jsx'
 
 // ── 메뉴 ──
 const MENUS = [
@@ -33,7 +33,7 @@ export default function App() {
     switch (tab) {
       case 'home':  return <Home />
       case 'demo':  return <DemoPage />
-      case 'trans': return <Demo />
+      case 'trans': return <TranslatePage />
       case 'dict':  return <DictPage query={query} />
       case 'team':  return <TeamPage />
       case 'my':    return <MyPage />
