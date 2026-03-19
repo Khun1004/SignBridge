@@ -89,6 +89,15 @@ const CASES = [
     },
 ]
 
+// ── 화살표 아이콘 ──
+function ArrowIcon() {
+    return (
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+    )
+}
+
 // ── 상세 화면 ──
 function CaseDetail({ caseData, onBack }) {
     const { applicant, officer, signs, voice } = caseData
@@ -105,7 +114,6 @@ function CaseDetail({ caseData, onBack }) {
             </div>
 
             <div className="ic-people-grid">
-                {/* 신청인 카드 */}
                 <div className="ic-person-card applicant-card">
                     <div className="ic-person-header">
                         <div className="ic-person-avatar">{applicant.avatar}</div>
@@ -129,7 +137,6 @@ function CaseDetail({ caseData, onBack }) {
                     </div>
                 </div>
 
-                {/* 심사관 카드 */}
                 <div className="ic-person-card officer-card">
                     <div className="ic-person-header">
                         <div className="ic-person-avatar">{officer.avatar}</div>
@@ -152,7 +159,6 @@ function CaseDetail({ caseData, onBack }) {
                 </div>
             </div>
 
-            {/* 신청 정보 */}
             <div className="ic-case-info">
                 <div className="ic-section-title">📋 신청 정보</div>
                 <div className="ic-info-grid">
@@ -169,7 +175,6 @@ function CaseDetail({ caseData, onBack }) {
                 </div>
             </div>
 
-            {/* 대화 기록 */}
             <div className="ic-conversation">
                 <div className="ic-section-title">💬 수어 통역 대화 기록</div>
                 <div className="ic-conv-list">
@@ -188,7 +193,6 @@ function CaseDetail({ caseData, onBack }) {
                 </div>
             </div>
 
-            {/* 액션 버튼 */}
             <div className="ic-actions">
                 <button className="ic-btn-primary">📄 공식 문서 출력</button>
                 <button className="ic-btn-secondary">📥 기록 저장</button>
@@ -234,7 +238,11 @@ export default function ImmigrationCasePage({ onBack }) {
 
             <div className="ic-list">
                 {filtered.map(c => (
-                    <button key={c.id} className={`ic-card ${c.flagged ? 'flagged' : ''}`} onClick={() => setSelected(c)}>
+                    <button
+                        key={c.id}
+                        className={`ic-card ${c.flagged ? 'flagged' : ''}`}
+                        onClick={() => setSelected(c)}
+                    >
                         <div className="ic-card-avatar">{c.applicant.avatar}</div>
                         <div className="ic-card-info">
                             <div className="ic-card-name">{c.applicant.name}</div>
@@ -243,13 +251,14 @@ export default function ImmigrationCasePage({ onBack }) {
                                 <span>📅 {c.date}</span>
                                 <span>📍 {c.location.split(' ').slice(0, 2).join(' ')}</span>
                             </div>
+                            <span className="ic-card-badge">IMMIGRATION</span>
                         </div>
                         <div className="ic-card-right">
                             <div className={`ic-status-badge ${c.flagged ? 'danger' : 'ok'}`}>
                                 {c.flagged ? '⚠️ ' + c.status : '✅ ' + c.status}
                             </div>
                             <div className="ic-card-officer">담당: {c.officer.name}</div>
-                            <div className="ic-card-arrow">→</div>
+                            <div className="ic-card-arrow"><ArrowIcon /></div>
                         </div>
                     </button>
                 ))}

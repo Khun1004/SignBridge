@@ -23,7 +23,7 @@
 .ic-page, .ic-detail {
     max-width: var(--max-w);
     margin: 0 auto;
-    padding: 32px 32px 80px;  /* 네비바와 동일한 32px */
+    padding: 32px 32px 80px;
     font-family: var(--body);
     display: flex;
     flex-direction: column;
@@ -61,43 +61,124 @@
     padding: 11px 16px; font-size: 13px; font-family: var(--body);
     color: var(--text); outline: none; transition: border-color 0.18s;
     background: var(--surface); width: 100%;
-    max-width: 680px;
 }
 .ic-search:focus { border-color: var(--ic); }
 
 /* ── 목록 ── */
-.ic-list { display: flex; flex-direction: column; gap: 10px; max-width: 680px; }
+.ic-list { display: flex; flex-direction: column; gap: 10px; }
 
+/* ── 카드 — 새 디자인 ── */
 .ic-card {
-    display: flex; align-items: center; gap: 14px;
-    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 68px 1fr auto;
+    align-items: center;
+    gap: 0;
     background: var(--surface);
-    border: 1.5px solid var(--border); border-radius: var(--radius);
-    cursor: pointer; text-align: left; font-family: var(--body);
-    transition: all 0.18s; width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--body);
+    transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.2s ease;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
 }
-.ic-card:hover { border-color: var(--ic); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+/* 왼쪽 컬러 액센트 바 */
+.ic-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 22%; bottom: 22%;
+    width: 3px;
+    background: var(--ic);
+    border-radius: 0 4px 4px 0;
+    opacity: 0;
+    transition: opacity 0.22s ease, top 0.22s ease, bottom 0.22s ease;
+}
+.ic-card:hover::before { opacity: 1; top: 14%; bottom: 14%; }
+
+.ic-card:hover {
+    border-color: var(--ic);
+    box-shadow:
+            0 0 0 3px rgba(124,58,237,0.10),
+            0 8px 28px rgba(0,0,0,0.09);
+    transform: translateY(-2px);
+}
+.ic-card:active { transform: translateY(0) scale(0.99); }
+
 .ic-card.flagged { border-color: #fca5a5; background: #fffafa; }
-.ic-card.flagged:hover { border-color: #ef4444; }
+.ic-card.flagged:hover { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.10), 0 8px 28px rgba(0,0,0,0.09); }
 
+/* 아이콘 패널 */
 .ic-card-avatar {
-    font-size: 36px; flex-shrink: 0;
-    width: 50px; height: 50px;
+    width: 68px;
+    align-self: stretch;
     display: flex; align-items: center; justify-content: center;
-    background: var(--ic-light); border-radius: 12px;
+    font-size: 26px;
+    background: var(--ic-light);
+    border-right: 1.5px solid var(--border);
+    flex-shrink: 0;
+    transition: background 0.22s ease;
+}
+.ic-card:hover .ic-card-avatar { background: rgba(124,58,237,0.14); }
+.ic-card.flagged .ic-card-avatar { background: rgba(239,68,68,0.07); }
+
+/* 본문 */
+.ic-card-info {
+    padding: 16px 18px;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
-.ic-card-info { flex: 1; min-width: 0; }
 .ic-card-name {
-    font-family: var(--display); font-size: 17px; font-weight: 900;
-    color: var(--text); margin-bottom: 5px;
+    font-family: var(--display); font-size: 16px; font-weight: 900;
+    color: var(--text);
 }
-.ic-card-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
 
-.ic-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.ic-card-meta {
+    display: flex; gap: 12px; font-size: 12px;
+    color: var(--text-muted); flex-wrap: wrap;
+}
+
+.ic-card-badge {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    padding: 2px 8px; border-radius: 20px;
+    background: var(--ic-light);
+    color: var(--ic);
+    align-self: flex-start;
+    transition: background 0.22s ease;
+}
+.ic-card:hover .ic-card-badge { background: rgba(124,58,237,0.16); }
+
+/* 오른쪽 영역 */
+.ic-card-right {
+    display: flex; flex-direction: column;
+    align-items: flex-end; gap: 5px;
+    flex-shrink: 0;
+    padding: 16px 18px 16px 10px;
+}
+
 .ic-card-officer { font-size: 11px; color: var(--text-muted); }
-.ic-card-arrow { font-size: 14px; color: var(--ic); opacity: 0.35; transition: all 0.18s; }
-.ic-card:hover .ic-card-arrow { opacity: 1; transform: translateX(3px); }
+
+/* 화살표 */
+.ic-card-arrow {
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 4px;
+}
+.ic-card-arrow svg {
+    width: 16px; height: 16px;
+    stroke: var(--ic); fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.ic-card:hover .ic-card-arrow svg { opacity: 1; transform: translateX(3px); }
 
 /* ── 상태 배지 ── */
 .ic-status-badge {
@@ -113,12 +194,11 @@
 ══════════════════════════════ */
 .ic-detail-header {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    max-width: 680px;
 }
 .ic-detail-id { font-family: var(--mono); font-size: 13px; color: var(--text-muted); }
 
 /* 인물 카드 그리드 */
-.ic-people-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 680px; }
+.ic-people-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
 .ic-person-card {
     border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px;
@@ -149,8 +229,8 @@
 
 /* 신청 정보 */
 .ic-case-info {
-    background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px;
-    max-width: 680px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
 }
 .ic-section-title {
     font-size: 13px; font-weight: 700; color: var(--text);
@@ -167,8 +247,8 @@
 
 /* 대화 기록 */
 .ic-conversation {
-    background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px;
-    max-width: 680px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
 }
 .ic-conv-list { display: flex; flex-direction: column; gap: 8px; }
 .ic-conv-msg {
@@ -181,7 +261,7 @@
 .ic-conv-text { color: var(--text); line-height: 1.5; }
 
 /* 액션 버튼 */
-.ic-actions { display: flex; gap: 10px; flex-wrap: wrap; max-width: 680px; }
+.ic-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .ic-btn-primary {
     background: var(--ic); color: #fff; border: none; border-radius: 10px;
@@ -212,7 +292,7 @@
     .ic-people-grid { grid-template-columns: 1fr; }
     .ic-info-grid   { grid-template-columns: 1fr; }
     .ic-actions     { flex-direction: column; }
-    .ic-search, .ic-list, .ic-people-grid,
-    .ic-case-info, .ic-conversation, .ic-actions,
-    .ic-detail-header { max-width: 100%; }
+    .ic-card { grid-template-columns: 56px 1fr auto; }
+    .ic-card-avatar { width: 56px; font-size: 22px; }
+    .ic-card-info   { padding: 14px 14px; }
 }
