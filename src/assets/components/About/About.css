@@ -1,0 +1,122 @@
+/* About.css */
+.about-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 80px 20px;
+  font-family: 'Pretendard', -apple-system, sans-serif;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* 히어로 섹션 */
+.about-hero {
+  text-align: center;
+  margin-bottom: 100px;
+  animation: fadeIn 1s ease-out;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+  line-height: 1.2;
+}
+
+.hero-title .highlight {
+  background: linear-gradient(120deg, #6366f1 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: #666;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* 미션 섹션 */
+.about-mission {
+  margin-bottom: 120px;
+}
+
+.mission-card {
+  background: #f8fafc;
+  padding: 60px;
+  border-radius: 30px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+}
+
+.mission-icon { font-size: 3rem; margin-bottom: 20px; }
+.mission-card h3 { font-size: 2rem; margin-bottom: 15px; color: #1e293b; }
+
+/* 특징 그리드 */
+.section-title {
+  text-align: center;
+  font-size: 2.2rem;
+  margin-bottom: 50px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  margin-bottom: 100px;
+}
+
+.feature-item {
+  padding: 40px;
+  border: 1px solid #f1f5f9;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.feature-item:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+  border-color: #6366f1;
+}
+
+.feature-emoji { font-size: 2rem; margin-bottom: 15px; }
+.feature-item h4 { font-size: 1.4rem; margin-bottom: 10px; color: #1e293b; }
+.feature-item p { color: #64748b; }
+
+/* 컨택트 섹션 */
+.about-contact {
+  text-align: center;
+  padding: 80px 0;
+  background: linear-gradient(120deg, #6366f1 0%, #a855f7 100%);
+  border-radius: 30px;
+  color: white;
+}
+
+.contact-btn {
+  margin-top: 25px;
+  padding: 15px 40px;
+  border-radius: 50px;
+  border: none;
+  background: white;
+  color: #6366f1;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.contact-btn:hover {
+  transform: scale(1.05);
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .hero-title { font-size: 2.2rem; }
+  .about-container { padding: 40px 20px; }
+}

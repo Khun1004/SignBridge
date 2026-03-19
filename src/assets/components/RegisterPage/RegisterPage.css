@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+:root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --border: #e4e2dc;
+    --text: #111111;
+    --text-dim: #666666;
+    --mono: 'Space Mono', monospace;
+    --display: 'Syne', 'Noto Sans KR', sans-serif;
+    --body: 'Noto Sans KR', sans-serif;
+}
+
+.reg-page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+    font-family: var(--body);
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* ── 헤더 ── */
+.reg-header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.reg-btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: #2563eb;
+    border: 1.5px solid rgba(37,99,235,0.25);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--body);
+    cursor: pointer;
+    transition: all 0.15s;
+    align-self: flex-start;
+}
+.reg-btn-back:hover {
+    background: rgba(37,99,235,0.06);
+    transform: translateX(-2px);
+}
+
+.reg-title-wrap { display: flex; flex-direction: column; gap: 6px; }
+
+.reg-title {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -1px;
+}
+
+.reg-subtitle {
+    font-size: 15px;
+    color: var(--text-dim);
+    margin: 0;
+}
+
+/* ── 카드 목록 ── */
+.reg-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.reg-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 28px 28px;
+    background: var(--card-bg, #f8f8ff);
+    border: 1.5px solid var(--card-border, #e0e0f0);
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-family: var(--body);
+    position: relative;
+    overflow: hidden;
+}
+
+.reg-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--card-color, #2563eb);
+    border-radius: 4px 0 0 4px;
+}
+
+.reg-card:hover {
+    transform: translateX(6px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    border-color: var(--card-color, #2563eb);
+}
+
+.reg-card-icon {
+    font-size: 44px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.reg-card-title {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--card-color, #2563eb);
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+}
+
+.reg-card-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+}
+
+.reg-card-arrow {
+    margin-left: auto;
+    font-size: 22px;
+    color: var(--card-color, #2563eb);
+    opacity: 0.4;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.reg-card:hover .reg-card-arrow {
+    opacity: 1;
+    transform: translateX(4px);
+}
+
+/* ── 하단 안내 ── */
+.reg-note {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 16px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+}
+
+@media (max-width: 640px) {
+    .reg-page { padding: 24px 16px 60px; }
+    .reg-card { padding: 20px 18px; gap: 14px; }
+    .reg-card-icon { font-size: 36px; }
+}

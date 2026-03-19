@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+:root { --accent: #2563eb; }
+
+.rp-page {
+    max-width: 720px; margin: 0 auto;
+    padding: 48px 40px 80px;
+    font-family: 'Noto Sans KR', sans-serif;
+    display: flex; flex-direction: column; gap: 28px;
+}
+
+/* 헤더 */
+.rp-btn-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; color: var(--accent);
+    border: 1.5px solid rgba(37,99,235,0.25); border-radius: 8px;
+    padding: 7px 16px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; align-self: flex-start;
+    font-family: inherit;
+}
+.rp-btn-back:hover { background: rgba(37,99,235,0.06); transform: translateX(-2px); }
+
+.rp-badge {
+    display: inline-block; padding: 4px 14px; border-radius: 100px;
+    font-size: 12px; font-weight: 700; align-self: flex-start;
+}
+
+.rp-header { display: flex; flex-direction: column; gap: 10px; }
+
+.rp-title {
+    font-family: 'Syne', 'Noto Sans KR', sans-serif;
+    font-size: 28px; font-weight: 900; color: #111; margin: 0; letter-spacing: -0.5px;
+}
+.rp-subtitle { font-size: 14px; color: #666; margin: 0; }
+
+/* 미리보기 */
+.rp-preview {
+    background: #fff; border: 1.5px solid #e4e2dc; border-radius: 16px; overflow: hidden;
+}
+.rp-preview-header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    padding: 14px 20px; background: #fafaf8; border-bottom: 1px solid #e4e2dc;
+}
+.rp-preview-title { font-size: 13px; font-weight: 700; color: #111; }
+.rp-preview-meta  { font-size: 12px; color: #888; display: flex; align-items: center; gap: 6px; }
+.rp-tag {
+    padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 700;
+}
+.rp-tag.blue  { background: rgba(37,99,235,0.08);  color: #2563eb; }
+.rp-tag.green { background: rgba(5,150,105,0.08);  color: #059669; }
+
+.rp-preview-list {
+    padding: 14px 20px; display: flex; flex-direction: column; gap: 10px;
+    max-height: 200px; overflow-y: auto;
+}
+.rp-empty { color: #bbb; font-size: 13px; text-align: center; padding: 20px 0; }
+
+.rp-msg { display: flex; align-items: baseline; gap: 10px; font-size: 13px; }
+.rp-msg-sign  { flex-direction: row; }
+.rp-msg-voice { flex-direction: row-reverse; }
+.rp-msg-who  { font-size: 11px; font-weight: 700; color: #888; white-space: nowrap; }
+.rp-msg-text { flex: 1; color: #111; line-height: 1.5; }
+.rp-msg-voice .rp-msg-text { text-align: right; }
+.rp-msg-time { font-size: 10px; color: #ccc; white-space: nowrap; }
+
+/* 폼 */
+.rp-form {
+    background: #fff; border: 1.5px solid #e4e2dc; border-radius: 16px;
+    padding: 28px; display: flex; flex-direction: column; gap: 18px;
+}
+.rp-field { display: flex; flex-direction: column; gap: 6px; }
+.rp-label { font-size: 13px; font-weight: 700; color: #111; }
+.rp-required { color: #ef4444; }
+.rp-input, .rp-textarea {
+    border: 1.5px solid #e4e2dc; border-radius: 10px;
+    padding: 10px 14px; font-size: 14px; font-family: inherit; color: #111;
+    outline: none; transition: border-color 0.18s; background: #fafaf8;
+}
+.rp-input:focus, .rp-textarea:focus { border-color: var(--accent); background: #fff; }
+.rp-textarea { resize: none; line-height: 1.6; }
+
+.rp-btn-primary {
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    padding: 14px; font-size: 15px; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.25);
+}
+.rp-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,0.35); }
+
+/* 성공 화면 */
+.rp-success {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; min-height: 60vh; text-align: center;
+}
+.rp-success-icon  { font-size: 64px; }
+.rp-success-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 900; color: #111; margin: 0; }
+.rp-success-desc  { font-size: 15px; color: #666; margin: 0; }
+
+@media (max-width: 640px) {
+    .rp-page { padding: 24px 16px 60px; }
+    .rp-form { padding: 20px 16px; }
+}
