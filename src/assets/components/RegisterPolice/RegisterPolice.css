@@ -3,8 +3,8 @@
 :root { --rpol-accent: #dc2626; }
 
 .rpol-page {
-    max-width: 760px; margin: 0 auto;
-    padding: 48px 40px 80px;
+    max-width: 1100px; margin: 0 auto;
+    padding: 32px 32px 80px;
     font-family: 'Noto Sans KR', sans-serif;
     display: flex; flex-direction: column; gap: 28px;
 }
@@ -109,7 +109,7 @@
 .rpol-success-desc  { font-size: 15px; color: #666; margin: 0; }
 
 @media (max-width: 640px) {
-    .rpol-page { padding: 24px 16px 60px; }
+    .rpol-page { padding: 20px 16px 60px; }
     .rpol-form-row { grid-template-columns: 1fr; }
     .rpol-form { padding: 20px 16px; }
 }
