@@ -41,7 +41,7 @@
 .select-inner {
   width: 100%;
   max-width: var(--max-w);
-  padding: 0 32px;          /* 네비바와 동일한 32px */
+  padding: 0 32px;
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -56,7 +56,7 @@
 .select-eyebrow {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
   color: var(--text-muted);
   text-transform: uppercase;
 }
@@ -82,82 +82,146 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 600px;
+  max-width: 100%;
 }
 
-/* ── 선택 카드 ── */
+/* ══════════════════════════════
+   선택 카드 — 새 디자인
+══════════════════════════════ */
 .sel-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 68px 1fr 40px;
   align-items: center;
-  gap: 16px;
-  padding: 20px 22px;
+  gap: 0;
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 16px;
   cursor: pointer;
   font-family: var(--body);
-  transition: all 0.18s ease;
   text-align: left;
   width: 100%;
-  position: relative;
   overflow: hidden;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.2s ease;
+  position: relative;
 }
 
-.sel-card::after {
+/* 왼쪽 컬러 액센트 바 */
+.sel-card::before {
   content: '';
   position: absolute;
-  left: 0; top: 0; bottom: 0;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
   width: 3px;
-  background: var(--card-color, #2563eb);
-  border-radius: 3px 0 0 3px;
+  background: var(--card-color, var(--personal));
+  border-radius: 0 4px 4px 0;
   opacity: 0;
-  transition: opacity 0.18s;
+  transition: opacity 0.22s ease, top 0.22s ease, bottom 0.22s ease;
 }
 
 .sel-card:hover {
-  border-color: var(--card-color, #2563eb);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  transform: translateX(4px);
+  border-color: var(--card-color, var(--personal));
+  box-shadow:
+          0 0 0 3px color-mix(in srgb, var(--card-color, var(--personal)) 10%, transparent),
+          0 8px 28px rgba(0, 0, 0, 0.09);
+  transform: translateY(-2px);
 }
 
-.sel-card:hover::after { opacity: 1; }
+.sel-card:hover::before {
+  opacity: 1;
+  top: 14%;
+  bottom: 14%;
+}
 
+.sel-card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* 아이콘 패널 */
 .sel-card-icon {
-  font-size: 36px;
-  flex-shrink: 0;
-  width: 52px;
-  height: 52px;
+  width: 68px;
+  align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--card-bg, rgba(37,99,235,0.06));
-  border-radius: 12px;
+  font-size: 26px;
+  background: color-mix(in srgb, var(--card-color, var(--personal)) 8%, transparent);
+  border-right: 1.5px solid var(--border);
+  flex-shrink: 0;
+  transition: background 0.22s ease;
 }
 
-.sel-card-body { flex: 1; }
+.sel-card:hover .sel-card-icon {
+  background: color-mix(in srgb, var(--card-color, var(--personal)) 15%, transparent);
+}
+
+/* 본문 */
+.sel-card-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .sel-card-label {
   font-family: var(--display);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 900;
   color: var(--text);
-  margin-bottom: 3px;
+  letter-spacing: -0.3px;
 }
 
 .sel-card-sub {
   font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
+  line-height: 1.5;
 }
 
-.sel-card-arrow {
-  font-size: 16px;
-  color: var(--card-color, #2563eb);
-  opacity: 0.35;
-  transition: all 0.18s;
-  flex-shrink: 0;
+.sel-card-badge {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--card-color, var(--personal)) 10%, transparent);
+  color: var(--card-color, var(--personal));
+  align-self: flex-start;
+  transition: background 0.22s ease;
 }
-.sel-card:hover .sel-card-arrow { opacity: 1; transform: translateX(3px); }
+
+.sel-card:hover .sel-card-badge {
+  background: color-mix(in srgb, var(--card-color, var(--personal)) 18%, transparent);
+}
+
+/* 화살표 */
+.sel-card-arrow {
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding-right: 6px;
+}
+
+.sel-card-arrow svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--card-color, var(--personal));
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.3;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sel-card:hover .sel-card-arrow svg {
+  opacity: 1;
+  transform: translateX(3px);
+}
 
 /* ══════════════════════════════
    뒤로 버튼
@@ -182,13 +246,13 @@
 .back-btn:hover { border-color: var(--text-dim); color: var(--text); transform: translateX(-2px); }
 
 /* ══════════════════════════════
-   뷰 래퍼 — 네비바와 동일 기준
+   뷰 래퍼
 ══════════════════════════════ */
 .view-wrap {
   width: 100%;
   max-width: var(--max-w);
   margin: 0 auto;
-  padding: 32px 32px 80px;  /* 네비바와 동일한 32px */
+  padding: 32px 32px 80px;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -520,13 +584,18 @@
    반응형
 ══════════════════════════════ */
 @media (max-width: 700px) {
-  .select-inner { padding: 0 16px; }
-  .select-cards { max-width: 100%; }
-  .select-title { font-size: 28px; }
-  .view-wrap    { padding: 20px 16px 60px; }
-  .profile-grid { grid-template-columns: 1fr; }
-  .my-stats     { grid-template-columns: repeat(2, 1fr); }
-  .fav-grid     { grid-template-columns: repeat(2, 1fr); }
-  .record-info  { flex-direction: column; gap: 3px; }
-  .modal        { padding: 20px; }
+  .select-inner  { padding: 0 16px; }
+  .select-cards  { max-width: 100%; }
+  .select-title  { font-size: 28px; }
+  .view-wrap     { padding: 20px 16px 60px; }
+  .profile-grid  { grid-template-columns: 1fr; }
+  .my-stats      { grid-template-columns: repeat(2, 1fr); }
+  .fav-grid      { grid-template-columns: repeat(2, 1fr); }
+  .record-info   { flex-direction: column; gap: 3px; }
+  .modal         { padding: 20px; }
+
+  .sel-card { grid-template-columns: 56px 1fr 36px; }
+  .sel-card-icon { width: 56px; font-size: 22px; }
+  .sel-card-body { padding: 14px 16px; }
+  .sel-card-label { font-size: 15px; }
 }
