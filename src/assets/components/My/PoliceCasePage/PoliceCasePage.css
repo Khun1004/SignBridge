@@ -23,7 +23,7 @@
 .pc-page, .pc-detail {
     max-width: var(--max-w);
     margin: 0 auto;
-    padding: 32px 32px 80px;  /* 네비바와 동일한 32px */
+    padding: 32px 32px 80px;
     font-family: var(--body);
     display: flex;
     flex-direction: column;
@@ -61,49 +61,132 @@
     padding: 11px 16px; font-size: 13px; font-family: var(--body);
     color: var(--text); outline: none; transition: border-color 0.18s;
     background: var(--surface); width: 100%;
-    max-width: 680px;
 }
 .pc-search:focus { border-color: var(--pc); }
 
 /* ── 목록 ── */
-.pc-list { display: flex; flex-direction: column; gap: 10px; max-width: 680px; }
+.pc-list { display: flex; flex-direction: column; gap: 10px; }
 
+/* ── 카드 — 새 디자인 ── */
 .pc-card {
-    display: flex; align-items: center; gap: 14px;
-    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 68px 1fr auto;
+    align-items: center;
+    gap: 0;
     background: var(--surface);
-    border: 1.5px solid var(--border); border-radius: var(--radius);
-    cursor: pointer; text-align: left; font-family: var(--body);
-    transition: all 0.18s; width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--body);
+    transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.2s ease;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
 }
-.pc-card:hover { border-color: var(--pc); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+/* 왼쪽 컬러 액센트 바 */
+.pc-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 22%; bottom: 22%;
+    width: 3px;
+    background: var(--pc);
+    border-radius: 0 4px 4px 0;
+    opacity: 0;
+    transition: opacity 0.22s ease, top 0.22s ease, bottom 0.22s ease;
+}
+.pc-card:hover::before { opacity: 1; top: 14%; bottom: 14%; }
+
+.pc-card:hover {
+    border-color: var(--pc);
+    box-shadow:
+            0 0 0 3px rgba(220,38,38,0.10),
+            0 8px 28px rgba(0,0,0,0.09);
+    transform: translateY(-2px);
+}
+.pc-card:active { transform: translateY(0) scale(0.99); }
+
 .pc-card.flagged { border-color: #fca5a5; background: #fffafa; }
-.pc-card.flagged:hover { border-color: #ef4444; }
+.pc-card.flagged:hover { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.10), 0 8px 28px rgba(0,0,0,0.09); }
 
+/* 아이콘 패널 */
 .pc-card-avatar {
-    font-size: 36px; flex-shrink: 0;
-    width: 50px; height: 50px;
+    width: 68px;
+    align-self: stretch;
     display: flex; align-items: center; justify-content: center;
-    background: var(--pc-light); border-radius: 12px;
+    font-size: 26px;
+    background: var(--pc-light);
+    border-right: 1.5px solid var(--border);
+    flex-shrink: 0;
+    transition: background 0.22s ease;
+}
+.pc-card:hover .pc-card-avatar { background: rgba(220,38,38,0.13); }
+.pc-card.flagged .pc-card-avatar { background: rgba(239,68,68,0.10); }
+
+/* 본문 */
+.pc-card-info {
+    padding: 16px 18px;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
-.pc-card-info { flex: 1; min-width: 0; }
 .pc-card-name {
-    font-family: var(--display); font-size: 17px; font-weight: 900;
-    color: var(--text); margin-bottom: 5px;
+    font-family: var(--display); font-size: 16px; font-weight: 900;
+    color: var(--text);
     display: flex; align-items: center; gap: 7px;
 }
+
 .pc-role-tag {
     font-size: 10px; font-weight: 700; padding: 2px 7px;
-    border-radius: 100px; background: var(--pc-light); color: var(--pc);
+    border-radius: 100px;
+    background: var(--pc-light); color: var(--pc);
     border: 1px solid var(--pc-border); flex-shrink: 0;
 }
-.pc-card-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
 
-.pc-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.pc-card-meta {
+    display: flex; gap: 12px; font-size: 12px;
+    color: var(--text-muted); flex-wrap: wrap;
+}
+
+.pc-card-badge {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    padding: 2px 8px; border-radius: 20px;
+    background: var(--pc-light);
+    color: var(--pc);
+    align-self: flex-start;
+    transition: background 0.22s ease;
+}
+.pc-card:hover .pc-card-badge { background: rgba(220,38,38,0.14); }
+
+/* 오른쪽 영역 */
+.pc-card-right {
+    display: flex; flex-direction: column;
+    align-items: flex-end; gap: 5px;
+    flex-shrink: 0;
+    padding: 16px 18px 16px 10px;
+}
+
 .pc-card-officer { font-size: 11px; color: var(--text-muted); }
-.pc-card-arrow { font-size: 14px; color: var(--pc); opacity: 0.35; transition: all 0.18s; }
-.pc-card:hover .pc-card-arrow { opacity: 1; transform: translateX(3px); }
+
+/* 화살표 */
+.pc-card-arrow {
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 4px;
+}
+.pc-card-arrow svg {
+    width: 16px; height: 16px;
+    stroke: var(--pc); fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.pc-card:hover .pc-card-arrow svg { opacity: 1; transform: translateX(3px); }
 
 /* ── 상태 배지 ── */
 .pc-status-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
@@ -117,13 +200,12 @@
 ══════════════════════════════ */
 .pc-detail-header {
     display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    max-width: 680px;
 }
 .pc-detail-id   { font-family: var(--mono); font-size: 13px; color: var(--text-muted); }
 .pc-case-num    { font-size: 12px; font-weight: 700; color: var(--pc); margin-top: 3px; }
 
 /* 인물 카드 */
-.pc-people-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 680px; }
+.pc-people-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
 .pc-person-card { border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; background: var(--surface); }
 .subject-card   { border-color: var(--pc-border); background: var(--pc-light); }
@@ -150,7 +232,10 @@
 .pc-person-row span:last-child  { font-weight: 700; color: var(--text); text-align: right; max-width: 60%; }
 
 /* 사건 정보 */
-.pc-case-info { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; max-width: 680px; }
+.pc-case-info {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+}
 .pc-section-title {
     font-size: 13px; font-weight: 700; color: var(--text);
     margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
@@ -164,7 +249,10 @@
 .pc-info-row span:last-child  { font-weight: 700; color: var(--text); }
 
 /* 대화 기록 */
-.pc-conversation { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; max-width: 680px; }
+.pc-conversation {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+}
 .pc-conv-list { display: flex; flex-direction: column; gap: 8px; }
 .pc-conv-msg {
     display: flex; align-items: baseline; gap: 10px;
@@ -176,7 +264,7 @@
 .pc-conv-text { color: var(--text); line-height: 1.5; }
 
 /* 액션 버튼 */
-.pc-actions { display: flex; gap: 10px; flex-wrap: wrap; max-width: 680px; }
+.pc-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .pc-btn-primary {
     background: var(--pc); color: #fff; border: none; border-radius: 10px;
@@ -207,7 +295,7 @@
     .pc-people-grid { grid-template-columns: 1fr; }
     .pc-info-grid   { grid-template-columns: 1fr; }
     .pc-actions     { flex-direction: column; }
-    .pc-search, .pc-list, .pc-people-grid,
-    .pc-case-info, .pc-conversation, .pc-actions,
-    .pc-detail-header { max-width: 100%; }
+    .pc-card { grid-template-columns: 56px 1fr auto; }
+    .pc-card-avatar { width: 56px; font-size: 22px; }
+    .pc-card-info   { padding: 14px 14px; }
 }

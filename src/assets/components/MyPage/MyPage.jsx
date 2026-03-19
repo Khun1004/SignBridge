@@ -12,25 +12,25 @@ const USAGE_TYPES = [
     id: 'personal',
     icon: '👤',
     label: '개인용',
+    badge: 'PERSONAL',
     sub: '내 대화 기록 및 프로필 관리',
     color: '#2563eb',
-    bg: 'rgba(37,99,235,0.06)',
   },
   {
     id: 'immigration',
     icon: '🛂',
     label: '출입국외국인사무소',
+    badge: 'IMMIGRATION',
     sub: '청각장애인 신청인 목록 조회',
     color: '#7c3aed',
-    bg: 'rgba(124,58,237,0.06)',
   },
   {
     id: 'police',
     icon: '👮',
     label: '경찰서',
+    badge: 'POLICE',
     sub: '청각장애인 당사자 목록 조회',
     color: '#dc2626',
-    bg: 'rgba(220,38,38,0.06)',
   },
 ]
 
@@ -297,12 +297,24 @@ function PersonalMyPage() {
 }
 
 // ══════════════════════════════════════════
+//  화살표 아이콘 컴포넌트
+// ══════════════════════════════════════════
+
+function ArrowIcon() {
+  return (
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 12h14M12 5l7 7-7 7" />
+      </svg>
+  )
+}
+
+// ══════════════════════════════════════════
 //  메인 MyPage — 기관 선택 → 바로 목록으로
 // ══════════════════════════════════════════
 
 export default function MyPage() {
-  const [step,      setStep]      = useState('type')   // 'type' | 'view'
-  const [usageType, setUsageType] = useState(null)     // 'personal' | 'immigration' | 'police'
+  const [step,      setStep]      = useState('type')
+  const [usageType, setUsageType] = useState(null)
 
   const handleSelectType = (typeId) => {
     setUsageType(typeId)
@@ -330,15 +342,18 @@ export default function MyPage() {
                     <button
                         key={type.id}
                         className="sel-card"
-                        style={{ '--card-color': type.color, '--card-bg': type.bg }}
+                        style={{ '--card-color': type.color }}
                         onClick={() => handleSelectType(type.id)}
                     >
                       <div className="sel-card-icon">{type.icon}</div>
                       <div className="sel-card-body">
                         <div className="sel-card-label">{type.label}</div>
                         <div className="sel-card-sub">{type.sub}</div>
+                        <span className="sel-card-badge">{type.badge}</span>
                       </div>
-                      <div className="sel-card-arrow">→</div>
+                      <div className="sel-card-arrow">
+                        <ArrowIcon />
+                      </div>
                     </button>
                 ))}
               </div>
