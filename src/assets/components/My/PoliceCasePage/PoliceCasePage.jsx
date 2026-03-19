@@ -98,6 +98,15 @@ const CASES = [
     },
 ]
 
+// ── 화살표 아이콘 ──
+function ArrowIcon() {
+    return (
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+    )
+}
+
 // ── 상세 화면 ──
 function CaseDetail({ caseData, onBack }) {
     const { subject, officer, signs, voice } = caseData
@@ -117,7 +126,6 @@ function CaseDetail({ caseData, onBack }) {
             </div>
 
             <div className="pc-people-grid">
-                {/* 당사자 카드 */}
                 <div className="pc-person-card subject-card">
                     <div className="pc-person-header">
                         <div className="pc-person-avatar">{subject.avatar}</div>
@@ -141,7 +149,6 @@ function CaseDetail({ caseData, onBack }) {
                     </div>
                 </div>
 
-                {/* 담당 경찰관 카드 */}
                 <div className="pc-person-card officer-card">
                     <div className="pc-person-header">
                         <div className="pc-person-avatar">{officer.avatar}</div>
@@ -165,7 +172,6 @@ function CaseDetail({ caseData, onBack }) {
                 </div>
             </div>
 
-            {/* 사건 정보 */}
             <div className="pc-case-info">
                 <div className="pc-section-title">📁 사건 정보</div>
                 <div className="pc-info-grid">
@@ -183,7 +189,6 @@ function CaseDetail({ caseData, onBack }) {
                 </div>
             </div>
 
-            {/* 대화 기록 */}
             <div className="pc-conversation">
                 <div className="pc-section-title">💬 수어 통역 대화 기록</div>
                 <div className="pc-conv-list">
@@ -202,7 +207,6 @@ function CaseDetail({ caseData, onBack }) {
                 </div>
             </div>
 
-            {/* 액션 버튼 */}
             <div className="pc-actions">
                 <button className="pc-btn-primary">📄 수어 통역 조서 출력</button>
                 <button className="pc-btn-secondary">🔏 디지털 서명 적용</button>
@@ -250,7 +254,11 @@ export default function PoliceCasePage({ onBack }) {
 
             <div className="pc-list">
                 {filtered.map(c => (
-                    <button key={c.id} className={`pc-card ${c.flagged ? 'flagged' : ''}`} onClick={() => setSelected(c)}>
+                    <button
+                        key={c.id}
+                        className={`pc-card ${c.flagged ? 'flagged' : ''}`}
+                        onClick={() => setSelected(c)}
+                    >
                         <div className="pc-card-avatar">{c.subject.avatar}</div>
                         <div className="pc-card-info">
                             <div className="pc-card-name">
@@ -263,13 +271,14 @@ export default function PoliceCasePage({ onBack }) {
                                 <span>📅 {c.date}</span>
                                 <span>📍 {c.officer.station}</span>
                             </div>
+                            <span className="pc-card-badge">POLICE</span>
                         </div>
                         <div className="pc-card-right">
                             <div className={`pc-status-badge ${c.flagged ? 'danger' : 'ok'}`}>
                                 {c.flagged ? '⚠️ ' + c.status : '✅ ' + c.status}
                             </div>
                             <div className="pc-card-officer">담당: {c.officer.name} {c.officer.rank}</div>
-                            <div className="pc-card-arrow">→</div>
+                            <div className="pc-card-arrow"><ArrowIcon /></div>
                         </div>
                     </button>
                 ))}
