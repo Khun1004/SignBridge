@@ -1,0 +1,161 @@
+/* ════════════════════════════════════════
+   ConversationPage — 대화 기록 전체 화면
+   ════════════════════════════════════════ */
+
+.conv-page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 36px 48px;
+    font-family: inherit;
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* 헤더 */
+.conv-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.conv-header-left { display: flex; flex-direction: column; gap: 8px; }
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f0f0f8;
+    color: #5b45e0;
+    border: 1.5px solid #e0e0f8;
+    border-radius: 9px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+    align-self: flex-start;
+}
+.btn-back:hover { background: #e8e8ff; transform: translateX(-2px); }
+
+.conv-title-wrap { display: flex; flex-direction: column; gap: 3px; }
+.conv-title { font-size: 24px; font-weight: 800; color: #1a1a2e; margin: 0; }
+.conv-subtitle { font-size: 13px; color: #aaa; margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.conv-stats { color: #aaa; }
+.stat-sign  { background: #f0f0ff; color: #5b45e0; font-weight: 700; padding: 1px 7px; border-radius: 12px; font-size: 12px; }
+.stat-voice { background: #ede9fe; color: #7c3aed; font-weight: 700; padding: 1px 7px; border-radius: 12px; font-size: 12px; }
+
+/* 저장 버튼 */
+.conv-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+.btn-save {
+    border: none; border-radius: 10px;
+    padding: 10px 18px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    white-space: nowrap;
+}
+.btn-save:disabled { opacity: 0.35; cursor: default; }
+.btn-save-txt {
+    background: linear-gradient(135deg, #7c6fff, #5b45e0);
+    color: #fff; box-shadow: 0 3px 12px rgba(124,111,255,0.3);
+}
+.btn-save-txt:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(124,111,255,0.4); }
+.btn-save-print {
+    background: #fff; color: #444;
+    border: 1.5px solid #e0e0ee; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.btn-save-print:hover:not(:disabled) { background: #fafafa; transform: translateY(-1px); }
+
+/* 본문 */
+.conv-body {
+    flex: 1; background: #fff;
+    border: 1.5px solid #e8e8f0; border-radius: 16px;
+    overflow: hidden; display: flex; flex-direction: column;
+}
+
+.conv-empty {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 60px 24px; color: #ccc; font-size: 15px; text-align: center;
+}
+.btn-back-center {
+    background: #f0f0f8; color: #5b45e0;
+    border: 1.5px solid #e0e0f8; border-radius: 10px;
+    padding: 10px 22px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px;
+}
+.btn-back-center:hover { background: #e8e8ff; }
+
+/* 메시지 목록 */
+.conv-list {
+    padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 18px;
+    overflow-y: auto; max-height: 70vh;
+}
+.conv-list::-webkit-scrollbar { width: 5px; }
+.conv-list::-webkit-scrollbar-thumb { background: #e0e0f0; border-radius: 4px; }
+
+/* 개별 메시지 */
+.conv-msg {
+    display: flex; align-items: flex-start; gap: 12px;
+    animation: msgSlide 0.35s ease; position: relative;
+}
+@keyframes msgSlide { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.conv-msg-sign  { flex-direction: row; }
+.conv-msg-voice { flex-direction: row-reverse; }
+
+.conv-avatar {
+    font-size: 26px; width: 42px; height: 42px;
+    border-radius: 50%; background: #f4f4ff;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; border: 1.5px solid #e8e8f8;
+}
+
+.conv-bubble-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 72%; }
+.conv-msg-name { font-size: 11px; color: #aaa; font-weight: 600; }
+.conv-msg-voice .conv-msg-name { text-align: right; }
+
+.conv-bubble {
+    padding: 11px 15px; border-radius: 14px;
+    font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+}
+.conv-msg-sign  .conv-bubble { background: #f0f0ff; color: #1a1a2e; border-radius: 4px 14px 14px 14px; border: 1px solid #e4e4f8; }
+.conv-msg-voice .conv-bubble { background: linear-gradient(135deg, #7c6fff, #5b45e0); color: #fff; border-radius: 14px 4px 14px 14px; }
+
+.conv-msg-time { font-size: 10px; color: #ccc; }
+.conv-msg-voice .conv-msg-time { text-align: right; }
+
+.conv-index {
+    position: absolute; top: 0;
+    font-size: 10px; color: #ddd; font-weight: 700; letter-spacing: 0.5px;
+}
+.conv-msg-sign  .conv-index { right: 0; }
+.conv-msg-voice .conv-index { left: 0; }
+
+/* 하단 푸터 */
+.conv-footer {
+    display: flex; justify-content: center; gap: 12px; padding: 16px 0 0; flex-wrap: wrap;
+}
+
+/* 인쇄 */
+@media print {
+    .btn-back, .conv-actions, .conv-footer { display: none !important; }
+    .conv-page { padding: 20px; }
+    .conv-list { max-height: none; overflow: visible; }
+}
+
+/* 반응형 */
+@media (max-width: 640px) {
+    .conv-page { padding: 20px 16px; }
+    .conv-header { flex-direction: column; }
+    .conv-actions { width: 100%; justify-content: flex-start; }
+    .conv-bubble-wrap { max-width: 85%; }
+}
+.btn-register {
+    background: #059669;
+    color: #fff;
+    box-shadow: 0 3px 12px rgba(5,150,105,0.25);
+    border-color: transparent;
+}
+.btn-register:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(5,150,105,0.35);
+}
