@@ -1,162 +1,314 @@
 import { useState } from 'react'
 import './SignupPage.css'
 
-const USER_TYPES = [
-    { id: 'deaf',       label: '청각장애인',    icon: '🧏' },
-    { id: 'officer',    label: '관련 기관 직원', icon: '👔' },
-    { id: 'general',    label: '일반 사용자',    icon: '👤' },
+// ══════════════════════════════════════════
+//  기관 유형 정의
+// ══════════════════════════════════════════
+const ORG_TYPES = [
+    { id: 'personal',    icon: '👤', label: '개인',              desc: '청각장애인 개인 사용자',       color: '#2563eb' },
+    { id: 'immigration', icon: '🛂', label: '출입국외국인사무소', desc: '출입국 심사 및 외국인 업무',    color: '#7c3aed' },
+    { id: 'airport',     icon: '✈️', label: '공항',              desc: '공항 안내 및 탑승 서비스',     color: '#0891b2' },
+    { id: 'hospital',    icon: '🏥', label: '병원',              desc: '의료 기관 및 응급실',          color: '#059669' },
+    { id: 'police',      icon: '👮', label: '경찰서',            desc: '경찰 업무 및 민원 처리',       color: '#dc2626' },
 ]
 
+// ── 기관별 3단계 필드 ──
+// 기관 유형: 기관명 + 주소만 (필수) — 나머지는 이후 협의
+// 개인: 선택 정보만
+const ORG_FIELDS = {
+    personal: [
+        { id: 'disabilityGrade', label: '장애 등급',        placeholder: '예: 청각장애 1급',  required: false },
+        { id: 'region',          label: '거주 지역',         placeholder: '예: 서울시 강남구', required: false },
+        { id: 'preferredSign',   label: '주로 사용하는 수어', required: false, type: 'select',
+            options: ['한국수어', '미국수어(ASL)', '국제수어(ISL)', '기타'] },
+    ],
+    immigration: [
+        { id: 'officeName', label: '사무소명', placeholder: '예: 인천출입국·외국인사무소',       required: true },
+        { id: 'address',    label: '주소',     placeholder: '예: 인천광역시 중구 공항로 272',    required: true },
+    ],
+    airport: [
+        { id: 'officeName', label: '공항명', placeholder: '예: 인천국제공항',                   required: true },
+        { id: 'address',    label: '주소',   placeholder: '예: 인천광역시 중구 공항로 272',      required: true },
+    ],
+    hospital: [
+        { id: 'officeName', label: '병원명', placeholder: '예: 서울아산병원',                   required: true },
+        { id: 'address',    label: '주소',   placeholder: '예: 서울시 송파구 올림픽로 43길 88', required: true },
+    ],
+    police: [
+        { id: 'officeName', label: '경찰서명', placeholder: '예: 서울 강남경찰서',               required: true },
+        { id: 'address',    label: '주소',     placeholder: '예: 서울시 강남구 테헤란로 114길 11', required: true },
+    ],
+}
+
+function isOrgType(orgType) {
+    return orgType && orgType !== 'personal'
+}
+
+// ══════════════════════════════════════════
+//  메인 SignupPage
+// onSignup(displayName, orgType) 형태로 호출
+//   - 개인: displayName = 이름
+//   - 기관: displayName = officeName
+// ══════════════════════════════════════════
 export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
-    const [step, setStep]     = useState(1)   // 1: 기본정보, 2: 추가정보
-    const [form, setForm]     = useState({
+    const [step,    setStep]    = useState(1)
+    const [form,    setForm]    = useState({
         name: '', email: '', password: '', passwordConfirm: '',
-        userType: '', phone: '', agreeTerms: false, agreePrivacy: false,
+        orgType: '', officeName: '', address: '',
+        agreeTerms: false, agreePrivacy: false,
     })
-    const [errors, setErrors]  = useState({})
+    const [errors,  setErrors]  = useState({})
     const [loading, setLoading] = useState(false)
 
     const update = (key, val) => setForm(f => ({ ...f, [key]: val }))
+    const STEP_LABELS = ['기관 선택', '기본 정보', '상세 입력']
 
-    /* ── 1단계 유효성 검사 ── */
     const validateStep1 = () => {
         const e = {}
-        if (!form.name.trim())          e.name     = '이름을 입력해주세요.'
-        if (!form.email.includes('@'))  e.email    = '올바른 이메일을 입력해주세요.'
-        if (form.password.length < 6)  e.password = '비밀번호는 6자 이상이어야 합니다.'
-        if (form.password !== form.passwordConfirm) e.passwordConfirm = '비밀번호가 일치하지 않습니다.'
-        setErrors(e)
-        return Object.keys(e).length === 0
+        if (!form.orgType) e.orgType = '기관을 선택해주세요.'
+        setErrors(e); return Object.keys(e).length === 0
     }
 
-    /* ── 2단계 유효성 검사 ── */
     const validateStep2 = () => {
         const e = {}
-        if (!form.userType)        e.userType    = '사용자 유형을 선택해주세요.'
-        if (!form.agreeTerms)      e.agreeTerms  = '이용약관에 동의해주세요.'
-        if (!form.agreePrivacy)    e.agreePrivacy = '개인정보 처리방침에 동의해주세요.'
-        setErrors(e)
-        return Object.keys(e).length === 0
+        if (!isOrgType(form.orgType) && !form.name.trim()) e.name = '이름을 입력해주세요.'
+        if (!form.email.includes('@'))               e.email           = '올바른 이메일을 입력해주세요.'
+        if (form.password.length < 6)               e.password        = '비밀번호는 6자 이상이어야 합니다.'
+        if (form.password !== form.passwordConfirm) e.passwordConfirm = '비밀번호가 일치하지 않습니다.'
+        setErrors(e); return Object.keys(e).length === 0
+    }
+
+    const validateStep3 = () => {
+        const e = {}
+        ;(ORG_FIELDS[form.orgType] || []).forEach(f => {
+            if (f.required && !form[f.id]?.trim()) e[f.id] = `${f.label}을(를) 입력해주세요.`
+        })
+        if (!form.agreeTerms)   e.agreeTerms  = '이용약관에 동의해주세요.'
+        if (!form.agreePrivacy) e.agreePrivacy = '개인정보 처리방침에 동의해주세요.'
+        setErrors(e); return Object.keys(e).length === 0
     }
 
     const handleNext = () => {
-        if (validateStep1()) setStep(2)
+        if (step === 1 && validateStep1()) { setErrors({}); setStep(2) }
+        if (step === 2 && validateStep2()) { setErrors({}); setStep(3) }
     }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-        if (!validateStep2()) return
+    const handleBack = () => { setErrors({}); setStep(s => s - 1) }
 
+    const handleSubmit = async () => {
+        if (!validateStep3()) return
         setLoading(true)
         await new Promise(r => setTimeout(r, 700))
         setLoading(false)
+        setStep(4)
+    }
 
-        onSignup(form.name)
-        onClose()
+    const handleGoLogin = () => {
+        const displayName = isOrgType(form.orgType) ? form.officeName : form.name
+        onSignup?.(displayName, form.orgType)
+        onSwitchToLogin()
+    }
+
+    const orgInfo   = ORG_TYPES.find(o => o.id === form.orgType)
+    const orgFields = ORG_FIELDS[form.orgType] || []
+    const isOrg     = isOrgType(form.orgType)
+
+    // ══ 가입 완료 화면 ══
+    if (step === 4) {
+        const displayName = isOrg ? form.officeName : form.name
+        return (
+            <div className="sp-overlay" onClick={onClose}>
+                <div className="sp-modal sp-done-modal" onClick={e => e.stopPropagation()}>
+                    <button className="sp-close" onClick={onClose} aria-label="닫기">✕</button>
+                    <div className="sp-done-body">
+                        <div className="sp-done-icon">🎉</div>
+                        <h2 className="sp-done-title">가입이 완료되었습니다!</h2>
+                        <p className="sp-done-desc">
+                            {isOrg
+                                ? <><strong>{displayName}</strong> 계정이 생성되었습니다.<br />로그인 후 서비스를 이용해주세요.</>
+                                : <><strong>{displayName}</strong>님, SignBridge에 오신 것을 환영합니다!<br />로그인 후 서비스를 이용해주세요.</>
+                            }
+                        </p>
+                        {orgInfo && (
+                            <div className="sp-done-org-badge" style={{ '--org-color': orgInfo.color }}>
+                                <span>{orgInfo.icon}</span>
+                                <span>{orgInfo.label}</span>
+                            </div>
+                        )}
+                        <button className="sp-btn-next sp-done-login-btn" onClick={handleGoLogin}>
+                            로그인하러 가기 →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
         <div className="sp-overlay" onClick={onClose}>
             <div className="sp-modal" onClick={e => e.stopPropagation()}>
 
-                {/* 닫기 */}
                 <button className="sp-close" onClick={onClose} aria-label="닫기">✕</button>
 
-                {/* 헤더 */}
                 <div className="sp-header">
                     <div className="sp-logo">🤟</div>
                     <h2 className="sp-title">회원가입</h2>
                     <p className="sp-subtitle">새 계정을 만들어 SignBridge를 시작하세요.</p>
                 </div>
 
-                {/* 스텝 인디케이터 */}
                 <div className="sp-steps">
-                    <div className={`sp-step ${step >= 1 ? 'active' : ''}`}>
-                        <div className="sp-step-dot">{step > 1 ? '✓' : '1'}</div>
-                        <span>기본 정보</span>
-                    </div>
-                    <div className="sp-step-line" />
-                    <div className={`sp-step ${step >= 2 ? 'active' : ''}`}>
-                        <div className="sp-step-dot">2</div>
-                        <span>추가 정보</span>
-                    </div>
+                    {STEP_LABELS.map((label, i) => {
+                        const num    = i + 1
+                        const isDone = step > num
+                        const isNow  = step === num
+                        return (
+                            <div key={num} className="sp-step-wrap">
+                                <div className={`sp-step ${isNow || isDone ? 'active' : ''}`}>
+                                    <div className="sp-step-dot">
+                                        {isDone
+                                            ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="13" height="13"><path d="M20 6L9 17l-5-5"/></svg>
+                                            : num}
+                                    </div>
+                                    <span>{label}</span>
+                                </div>
+                                {i < STEP_LABELS.length - 1 && (
+                                    <div className={`sp-step-line ${isDone ? 'done' : ''}`} />
+                                )}
+                            </div>
+                        )
+                    })}
                 </div>
 
-                {/* ── STEP 1 ── */}
+                {/* ════════ STEP 1: 기관 선택 ════════ */}
                 {step === 1 && (
                     <div className="sp-form">
-                        <div className="sp-field">
-                            <label className="sp-label" htmlFor="sp-name">이름</label>
-                            <input id="sp-name" className={`sp-input ${errors.name ? 'error' : ''}`}
-                                   type="text" placeholder="홍길동"
-                                   value={form.name} onChange={e => update('name', e.target.value)} />
-                            {errors.name && <span className="sp-field-error">{errors.name}</span>}
+                        <p className="sp-step2-guide">소속 기관을 선택해주세요. 선택에 따라 입력 항목이 달라집니다.</p>
+                        {errors.orgType && <div className="sp-field-error sp-org-error">{errors.orgType}</div>}
+                        <div className="sp-org-grid">
+                            {ORG_TYPES.map(org => (
+                                <button
+                                    key={org.id}
+                                    type="button"
+                                    className={`sp-org-btn ${form.orgType === org.id ? 'selected' : ''}`}
+                                    style={{ '--org-color': org.color }}
+                                    onClick={() => { update('orgType', org.id); setErrors({}) }}
+                                >
+                                    <div className="sp-org-icon-wrap">
+                                        <span className="sp-org-icon">{org.icon}</span>
+                                    </div>
+                                    <div className="sp-org-body">
+                                        <div className="sp-org-label">{org.label}</div>
+                                        <div className="sp-org-desc">{org.desc}</div>
+                                    </div>
+                                    {form.orgType === org.id && (
+                                        <div className="sp-org-check">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M20 6L9 17l-5-5"/>
+                                            </svg>
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
                         </div>
+                    </div>
+                )}
 
+                {/* ════════ STEP 2: 기본 정보 ════════ */}
+                {step === 2 && (
+                    <div className="sp-form">
+                        {orgInfo && (
+                            <div className="sp-org-banner" style={{ '--org-color': orgInfo.color }}>
+                                <span className="sp-org-banner-icon">{orgInfo.icon}</span>
+                                <div>
+                                    <div className="sp-org-banner-name">{orgInfo.label}</div>
+                                    <div className="sp-org-banner-desc">{orgInfo.desc}</div>
+                                </div>
+                            </div>
+                        )}
+                        {!isOrg && (
+                            <div className="sp-field">
+                                <label className="sp-label" htmlFor="sp-name">이름 <span className="sp-required">*</span></label>
+                                <input id="sp-name" className={`sp-input ${errors.name ? 'error' : ''}`}
+                                       type="text" placeholder="홍길동"
+                                       value={form.name} onChange={e => update('name', e.target.value)} />
+                                {errors.name && <span className="sp-field-error">{errors.name}</span>}
+                            </div>
+                        )}
                         <div className="sp-field">
-                            <label className="sp-label" htmlFor="sp-email">이메일</label>
+                            <label className="sp-label" htmlFor="sp-email">이메일 <span className="sp-required">*</span></label>
                             <input id="sp-email" className={`sp-input ${errors.email ? 'error' : ''}`}
                                    type="email" placeholder="example@email.com"
                                    value={form.email} onChange={e => update('email', e.target.value)} />
                             {errors.email && <span className="sp-field-error">{errors.email}</span>}
                         </div>
-
                         <div className="sp-field">
-                            <label className="sp-label" htmlFor="sp-pw">비밀번호</label>
+                            <label className="sp-label" htmlFor="sp-pw">비밀번호 <span className="sp-required">*</span></label>
                             <input id="sp-pw" className={`sp-input ${errors.password ? 'error' : ''}`}
                                    type="password" placeholder="6자 이상 입력"
                                    value={form.password} onChange={e => update('password', e.target.value)} />
                             {errors.password && <span className="sp-field-error">{errors.password}</span>}
                         </div>
-
                         <div className="sp-field">
-                            <label className="sp-label" htmlFor="sp-pw2">비밀번호 확인</label>
+                            <label className="sp-label" htmlFor="sp-pw2">비밀번호 확인 <span className="sp-required">*</span></label>
                             <input id="sp-pw2" className={`sp-input ${errors.passwordConfirm ? 'error' : ''}`}
                                    type="password" placeholder="비밀번호를 다시 입력"
                                    value={form.passwordConfirm} onChange={e => update('passwordConfirm', e.target.value)} />
                             {errors.passwordConfirm && <span className="sp-field-error">{errors.passwordConfirm}</span>}
                         </div>
-
-                        <button className="sp-btn-next" type="button" onClick={handleNext}>
-                            다음 단계 →
-                        </button>
                     </div>
                 )}
 
-                {/* ── STEP 2 ── */}
-                {step === 2 && (
-                    <form className="sp-form" onSubmit={handleSubmit} noValidate>
-
-                        {/* 사용자 유형 */}
-                        <div className="sp-field">
-                            <label className="sp-label">사용자 유형</label>
-                            <div className="sp-type-grid">
-                                {USER_TYPES.map(t => (
-                                    <button
-                                        key={t.id}
-                                        type="button"
-                                        className={`sp-type-btn ${form.userType === t.id ? 'selected' : ''}`}
-                                        onClick={() => update('userType', t.id)}
-                                    >
-                                        <span className="sp-type-icon">{t.icon}</span>
-                                        <span className="sp-type-label">{t.label}</span>
-                                    </button>
-                                ))}
+                {/* ════════ STEP 3: 상세 입력 ════════ */}
+                {step === 3 && (
+                    <div className="sp-form">
+                        {orgInfo && (
+                            <div className="sp-org-banner" style={{ '--org-color': orgInfo.color }}>
+                                <span className="sp-org-banner-icon">{orgInfo.icon}</span>
+                                <div>
+                                    <div className="sp-org-banner-name">{orgInfo.label}</div>
+                                    <div className="sp-org-banner-desc">{orgInfo.desc}</div>
+                                </div>
                             </div>
-                            {errors.userType && <span className="sp-field-error">{errors.userType}</span>}
-                        </div>
-
-                        {/* 전화번호 (선택) */}
-                        <div className="sp-field">
-                            <label className="sp-label" htmlFor="sp-phone">
-                                전화번호 <span className="sp-optional">(선택)</span>
-                            </label>
-                            <input id="sp-phone" className="sp-input"
-                                   type="tel" placeholder="010-0000-0000"
-                                   value={form.phone} onChange={e => update('phone', e.target.value)} />
-                        </div>
-
-                        {/* 약관 동의 */}
+                        )}
+                        {isOrg && (
+                            <p className="sp-step2-guide">
+                                기관명과 주소만 입력하시면 됩니다.<br />
+                                나머지 세부 정보는 이후 담당자와 협의 후 작성할 수 있습니다.
+                            </p>
+                        )}
+                        {orgFields.map(field => (
+                            <div className="sp-field" key={field.id}>
+                                <label className="sp-label" htmlFor={`sp-${field.id}`}>
+                                    {field.label}
+                                    {field.required
+                                        ? <span className="sp-required"> *</span>
+                                        : <span className="sp-optional"> (선택)</span>}
+                                </label>
+                                {field.type === 'select' ? (
+                                    <select
+                                        id={`sp-${field.id}`}
+                                        className={`sp-input sp-select ${errors[field.id] ? 'error' : ''}`}
+                                        value={form[field.id] || ''}
+                                        onChange={e => update(field.id, e.target.value)}
+                                    >
+                                        <option value="">선택해주세요</option>
+                                        {field.options.map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <input
+                                        id={`sp-${field.id}`}
+                                        className={`sp-input ${errors[field.id] ? 'error' : ''}`}
+                                        type="text"
+                                        placeholder={field.placeholder}
+                                        value={form[field.id] || ''}
+                                        onChange={e => update(field.id, e.target.value)}
+                                    />
+                                )}
+                                {errors[field.id] && <span className="sp-field-error">{errors[field.id]}</span>}
+                            </div>
+                        ))}
                         <div className="sp-agree-group">
                             <label className="sp-agree">
                                 <input type="checkbox" checked={form.agreeTerms}
@@ -164,7 +316,6 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                                 <span>[필수] 이용약관에 동의합니다.</span>
                             </label>
                             {errors.agreeTerms && <span className="sp-field-error">{errors.agreeTerms}</span>}
-
                             <label className="sp-agree">
                                 <input type="checkbox" checked={form.agreePrivacy}
                                        onChange={e => update('agreePrivacy', e.target.checked)} />
@@ -172,19 +323,22 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                             </label>
                             {errors.agreePrivacy && <span className="sp-field-error">{errors.agreePrivacy}</span>}
                         </div>
-
-                        <div className="sp-btn-row">
-                            <button className="sp-btn-back" type="button" onClick={() => setStep(1)}>
-                                ← 이전
-                            </button>
-                            <button className="sp-submit" type="submit" disabled={loading}>
-                                {loading ? <span className="sp-spinner" /> : '가입 완료'}
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 )}
 
-                {/* 전환 링크 */}
+                <div className={`sp-btn-row ${step === 1 ? 'sp-btn-single' : ''}`}>
+                    {step > 1 && (
+                        <button className="sp-btn-back" type="button" onClick={handleBack}>← 이전</button>
+                    )}
+                    {step < 3 ? (
+                        <button className="sp-btn-next" type="button" onClick={handleNext}>다음 단계 →</button>
+                    ) : (
+                        <button className="sp-submit" type="button" onClick={handleSubmit} disabled={loading}>
+                            {loading ? <span className="sp-spinner" /> : '가입 완료'}
+                        </button>
+                    )}
+                </div>
+
                 <div className="sp-switch">
                     이미 계정이 있으신가요?{' '}
                     <button onClick={onSwitchToLogin}>로그인</button>

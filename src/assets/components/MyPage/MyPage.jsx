@@ -1,60 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './MyPage.css'
 import ImmigrationCasePage from '../My/ImmigrationCasePage/ImmigrationCasePage.jsx'
 import PoliceCasePage      from '../My/PoliceCasePage/PoliceCasePage.jsx'
 
 // ══════════════════════════════════════════
-//  데이터 정의
+//  상수
 // ══════════════════════════════════════════
+const ORG_META = {
+  immigration: { icon: '🛂', label: '출입국외국인사무소', color: '#7c3aed' },
+  airport:     { icon: '✈️', label: '공항',              color: '#0891b2' },
+  hospital:    { icon: '🏥', label: '병원',              color: '#059669' },
+  police:      { icon: '👮', label: '경찰서',            color: '#dc2626' },
+}
 
+// 기관 선택 화면에 표시할 카드 (orgType이 없을 때만 사용)
 const USAGE_TYPES = [
-  {
-    id: 'personal',
-    icon: '👤',
-    label: '개인용',
-    badge: 'PERSONAL',
-    sub: '내 대화 기록 및 프로필 관리',
-    color: '#2563eb',
-  },
-  {
-    id: 'immigration',
-    icon: '🛂',
-    label: '출입국외국인사무소',
-    badge: 'IMMIGRATION',
-    sub: '청각장애인 신청인 목록 조회',
-    color: '#7c3aed',
-  },
-  {
-    id: 'police',
-    icon: '👮',
-    label: '경찰서',
-    badge: 'POLICE',
-    sub: '청각장애인 당사자 목록 조회',
-    color: '#dc2626',
-  },
+  { id: 'personal',    icon: '👤', label: '개인용',            badge: 'PERSONAL',   sub: '내 대화 기록 및 프로필 관리',  color: '#2563eb' },
+  { id: 'immigration', icon: '🛂', label: '출입국외국인사무소', badge: 'IMMIGRATION', sub: '청각장애인 신청인 목록 조회',  color: '#7c3aed' },
+  { id: 'police',      icon: '👮', label: '경찰서',            badge: 'POLICE',      sub: '청각장애인 당사자 목록 조회', color: '#dc2626' },
 ]
 
-// ── 개인용 데이터 ──
-const PERSONAL_USER = {
-  name: '김서준', role: '청각장애인',
-  id: 'SB-2025-00142', location: '인천국제공항 1터미널',
-  joined: '2025.01.15', avatar: '🧏',
-}
 const PERSONAL_STATS = [
   { icon: '📋', label: '총 대화 기록', value: '23건' },
   { icon: '⭐', label: '즐겨찾기',     value: '6개' },
   { icon: '🕐', label: '총 사용 시간', value: '1시간 42분' },
   { icon: '📍', label: '사용 장소',    value: '5곳' },
 ]
+
 const PERSONAL_RECORDS = [
-  { id: 'REC-001', date: '2025.05.12', time: '14:32', location: '인천국제공항 출국장', duration: '3분 22초', signs: ['안녕하세요 👋', '화장실 어디예요? 🚻'], voice: ['화장실은 왼쪽으로 가시면 됩니다'], status: '정상', flagged: false },
-  { id: 'REC-002', date: '2025.05.11', time: '09:15', location: '출입국 사무소 3번 창구', duration: '7분 51초', signs: ['도움이 필요해요 🤲', '잠깐만요 ✋'], voice: ['여권을 보여주세요'], status: '분쟁 발생', flagged: true },
+  { id: 'REC-001', date: '2025.05.12', time: '14:32', location: '인천국제공항 출국장',   duration: '3분 22초', signs: ['안녕하세요 👋', '화장실 어디예요? 🚻'], voice: ['화장실은 왼쪽으로 가시면 됩니다'], flagged: false },
+  { id: 'REC-002', date: '2025.05.11', time: '09:15', location: '출입국 사무소 3번 창구', duration: '7분 51초', signs: ['도움이 필요해요 🤲', '잠깐만요 ✋'],       voice: ['여권을 보여주세요'],                  flagged: true  },
 ]
 
 // ══════════════════════════════════════════
-//  공용 컴포넌트
+//  RecordModal
 // ══════════════════════════════════════════
-
 function RecordModal({ record, onClose }) {
   if (!record) return null
   return (
@@ -109,18 +89,20 @@ function RecordModal({ record, onClose }) {
 // ══════════════════════════════════════════
 //  개인용 MyPage
 // ══════════════════════════════════════════
-
-function PersonalMyPage() {
+function PersonalMyPage({ displayName, onBack }) {
   const [activeTab, setActiveTab]     = useState('프로필')
   const [selectedRecord, setSelected] = useState(null)
   const [filterFlag, setFilterFlag]   = useState(false)
   const [editMode, setEditMode]       = useState(false)
-  const [userName, setUserName]       = useState(PERSONAL_USER.name)
-  const [userRole, setUserRole]       = useState(PERSONAL_USER.role)
+  const [userName, setUserName]       = useState(displayName || '김서준')
+  const [userRole, setUserRole]       = useState('청각장애인')
   const [notify, setNotify]           = useState(true)
   const [autoSave, setAutoSave]       = useState(true)
   const [lang, setLang]               = useState('한국어')
 
+  const USER_ID  = 'SB-2025-00142'
+  const LOCATION = '인천국제공항 1터미널'
+  const JOINED   = '2025.01.15'
   const filtered = PERSONAL_RECORDS.filter(r => !filterFlag || r.flagged)
   const TABS = ['프로필', '대화 기록', '즐겨찾기', '설정']
 
@@ -129,16 +111,16 @@ function PersonalMyPage() {
         <div className="my-header">
           <div className="my-header-inner">
             <div className="my-avatar-wrap">
-              <div className="my-avatar-big">{PERSONAL_USER.avatar}</div>
+              <div className="my-avatar-big">🧏</div>
               <div className="my-avatar-badge">✓</div>
             </div>
             <div className="my-header-info">
-              <div className="my-name">{userName}</div>
+              <div className="my-name">{userName}님, 환영합니다!</div>
               <div className="my-role-badge personal-badge">{userRole}</div>
               <div className="my-meta">
-                <span>🪪 {PERSONAL_USER.id}</span>
-                <span>📍 {PERSONAL_USER.location}</span>
-                <span>📅 가입일 {PERSONAL_USER.joined}</span>
+                <span>🪪 {USER_ID}</span>
+                <span>📍 {LOCATION}</span>
+                <span>📅 가입일 {JOINED}</span>
               </div>
             </div>
             <button className="edit-btn" onClick={() => setEditMode(true)}>✏️ 편집</button>
@@ -166,7 +148,7 @@ function PersonalMyPage() {
                 <div className="profile-card">
                   <div className="profile-card-title">🪪 기본 정보</div>
                   <div className="profile-rows">
-                    {[['이름', userName], ['사용자 유형', userRole], ['사용자 ID', PERSONAL_USER.id], ['주 사용 장소', PERSONAL_USER.location], ['가입일', PERSONAL_USER.joined]].map(([k, v]) => (
+                    {[['이름', userName], ['사용자 유형', userRole], ['사용자 ID', USER_ID], ['주 사용 장소', LOCATION], ['가입일', JOINED]].map(([k, v]) => (
                         <div className="profile-row" key={k}><span>{k}</span><span>{v}</span></div>
                     ))}
                   </div>
@@ -297,9 +279,23 @@ function PersonalMyPage() {
 }
 
 // ══════════════════════════════════════════
-//  화살표 아이콘 컴포넌트
+//  기관 환영 배너 (기관 페이지 상단)
 // ══════════════════════════════════════════
+function OrgWelcomeHeader({ displayName, orgLabel, orgIcon, orgColor }) {
+  return (
+      <div className="my-org-welcome" style={{ '--org-color': orgColor }}>
+        <span className="my-org-welcome-icon">{orgIcon}</span>
+        <div>
+          <div className="my-org-welcome-name">{displayName} 환영합니다!</div>
+          <div className="my-org-welcome-label">{orgLabel}</div>
+        </div>
+      </div>
+  )
+}
 
+// ══════════════════════════════════════════
+//  화살표 아이콘 (선택 화면용)
+// ══════════════════════════════════════════
 function ArrowIcon() {
   return (
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -309,25 +305,26 @@ function ArrowIcon() {
 }
 
 // ══════════════════════════════════════════
-//  메인 MyPage — 기관 선택 → 바로 목록으로
+//  메인 MyPage
+//
+//  동작 규칙:
+//  - orgType이 있으면 → 선택 화면 없이 바로 해당 화면
+//  - orgType이 없으면 → 기존 선택 화면 표시
 // ══════════════════════════════════════════
+export default function MyPage({ displayName = '', orgType = '' }) {
+  // orgType이 이미 있으면 바로 그 화면으로, 없으면 선택 화면
+  const initialView = orgType || 'select'
+  const [view, setView] = useState(initialView)
 
-export default function MyPage() {
-  const [step,      setStep]      = useState('type')
-  const [usageType, setUsageType] = useState(null)
+  // orgType prop이 바뀌면(로그인 직후 등) view도 동기화
+  useEffect(() => {
+    setView(orgType || 'select')
+  }, [orgType])
 
-  const handleSelectType = (typeId) => {
-    setUsageType(typeId)
-    setStep('view')
-  }
+  const meta = ORG_META[view] || {}
 
-  const handleBack = () => {
-    setStep('type')
-    setUsageType(null)
-  }
-
-  // ── 1단계: 기관 선택 ──
-  if (step === 'type') {
+  // ── orgType 없음: 선택 화면 ──
+  if (view === 'select') {
     return (
         <div className="my-page">
           <div className="select-screen">
@@ -343,7 +340,7 @@ export default function MyPage() {
                         key={type.id}
                         className="sel-card"
                         style={{ '--card-color': type.color }}
-                        onClick={() => handleSelectType(type.id)}
+                        onClick={() => setView(type.id)}
                     >
                       <div className="sel-card-icon">{type.icon}</div>
                       <div className="sel-card-body">
@@ -351,9 +348,7 @@ export default function MyPage() {
                         <div className="sel-card-sub">{type.sub}</div>
                         <span className="sel-card-badge">{type.badge}</span>
                       </div>
-                      <div className="sel-card-arrow">
-                        <ArrowIcon />
-                      </div>
+                      <div className="sel-card-arrow"><ArrowIcon /></div>
                     </button>
                 ))}
               </div>
@@ -363,21 +358,61 @@ export default function MyPage() {
     )
   }
 
-  // ── 2단계: 실제 화면 ──
+  // ── 개인 ──
+  if (view === 'personal') {
+    return (
+        <div className="my-page">
+          <div className="view-wrap">
+            {/* orgType이 없었던 경우(선택 화면 경유)만 뒤로가기 표시 */}
+            {!orgType && (
+                <button className="back-btn" onClick={() => setView('select')}>← 용도 선택으로</button>
+            )}
+            <PersonalMyPage displayName={displayName} />
+          </div>
+        </div>
+    )
+  }
+
+  // ── 출입국 ──
+  if (view === 'immigration') {
+    return (
+        <div className="my-page">
+          <div className="view-wrap">
+            {!orgType && (
+                <button className="back-btn" onClick={() => setView('select')}>← 용도 선택으로</button>
+            )}
+            <OrgWelcomeHeader displayName={displayName} orgLabel={meta.label} orgIcon={meta.icon} orgColor={meta.color} />
+            <ImmigrationCasePage onBack={orgType ? undefined : () => setView('select')} />
+          </div>
+        </div>
+    )
+  }
+
+  // ── 경찰 ──
+  if (view === 'police') {
+    return (
+        <div className="my-page">
+          <div className="view-wrap">
+            {!orgType && (
+                <button className="back-btn" onClick={() => setView('select')}>← 용도 선택으로</button>
+            )}
+            <OrgWelcomeHeader displayName={displayName} orgLabel={meta.label} orgIcon={meta.icon} orgColor={meta.color} />
+            <PoliceCasePage onBack={orgType ? undefined : () => setView('select')} />
+          </div>
+        </div>
+    )
+  }
+
+  // ── 병원·공항 등 (ImmigrationCasePage/PoliceCasePage 없는 기관) ──
+  // 추후 해당 페이지 완성 시 교체
   return (
       <div className="my-page">
-        {usageType === 'personal' && (
-            <div className="view-wrap">
-              <button className="back-btn" onClick={handleBack}>← 용도 선택으로</button>
-              <PersonalMyPage />
-            </div>
-        )}
-        {usageType === 'immigration' && (
-            <ImmigrationCasePage onBack={handleBack} />
-        )}
-        {usageType === 'police' && (
-            <PoliceCasePage onBack={handleBack} />
-        )}
+        <div className="view-wrap">
+          <OrgWelcomeHeader displayName={displayName} orgLabel={meta.label} orgIcon={meta.icon} orgColor={meta.color} />
+          <div className="records-empty" style={{ marginTop: 40 }}>
+            {meta.icon} {meta.label} 화면은 준비 중입니다.
+          </div>
+        </div>
       </div>
   )
 }

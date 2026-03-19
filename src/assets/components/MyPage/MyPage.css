@@ -599,3 +599,23 @@
   .sel-card-body { padding: 14px 16px; }
   .sel-card-label { font-size: 15px; }
 }
+/* ══════════════════════════════
+   기관 환영 배너
+══════════════════════════════ */
+.my-org-welcome {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px;
+  background: color-mix(in srgb, var(--org-color, #7c3aed) 8%, #fff);
+  border: 1.5px solid color-mix(in srgb, var(--org-color, #7c3aed) 22%, transparent);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+.my-org-welcome-icon { font-size: 32px; flex-shrink: 0; }
+.my-org-welcome-name {
+  font-size: 18px; font-weight: 900;
+  color: var(--org-color, #7c3aed); letter-spacing: -0.4px;
+}
+.my-org-welcome-label {
+  font-size: 12px; font-weight: 700; margin-top: 2px;
+  color: color-mix(in srgb, var(--org-color, #7c3aed) 70%, #666);
+}
