@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+:root { --ri-accent: #7c3aed; }
+
+.ri-page {
+    max-width: 760px; margin: 0 auto;
+    padding: 48px 40px 80px;
+    font-family: 'Noto Sans KR', sans-serif;
+    display: flex; flex-direction: column; gap: 28px;
+}
+
+.ri-btn-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; color: var(--ri-accent);
+    border: 1.5px solid rgba(124,58,237,0.25); border-radius: 8px;
+    padding: 7px 16px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; align-self: flex-start;
+    font-family: inherit;
+}
+.ri-btn-back:hover { background: rgba(124,58,237,0.06); transform: translateX(-2px); }
+
+.ri-badge {
+    display: inline-block; padding: 4px 14px; border-radius: 100px;
+    font-size: 12px; font-weight: 700; align-self: flex-start;
+    background: rgba(124,58,237,0.08); color: var(--ri-accent);
+    border: 1px solid rgba(124,58,237,0.2);
+}
+
+.ri-header { display: flex; flex-direction: column; gap: 10px; }
+.ri-title {
+    font-family: 'Syne', 'Noto Sans KR', sans-serif;
+    font-size: 28px; font-weight: 900; color: #111; margin: 0; letter-spacing: -0.5px;
+}
+.ri-subtitle { font-size: 14px; color: #666; margin: 0; }
+
+/* 공문서 헤더 */
+.ri-official-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.02));
+    border: 1.5px solid rgba(124,58,237,0.2); border-radius: 14px;
+}
+.ri-official-logo { font-size: 40px; flex-shrink: 0; }
+.ri-official-org  { font-size: 12px; color: #888; font-weight: 600; margin-bottom: 3px; }
+.ri-official-doc  { font-size: 18px; font-weight: 900; color: var(--ri-accent); }
+.ri-official-date { margin-left: auto; font-size: 12px; color: #888; white-space: nowrap; }
+
+/* 미리보기 */
+.ri-preview {
+    background: #fff; border: 1.5px solid #e4e2dc; border-radius: 16px; overflow: hidden;
+}
+.ri-preview-header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    padding: 14px 20px; background: #fafaf8; border-bottom: 1px solid #e4e2dc;
+}
+.ri-preview-title { font-size: 13px; font-weight: 700; color: #111; }
+.ri-preview-meta  { font-size: 12px; color: #888; display: flex; align-items: center; gap: 6px; }
+.ri-tag {
+    padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 700;
+}
+.ri-tag.purple { background: rgba(124,58,237,0.08); color: #7c3aed; }
+.ri-tag.blue   { background: rgba(37,99,235,0.08);  color: #2563eb; }
+
+.ri-preview-list {
+    padding: 14px 20px; display: flex; flex-direction: column; gap: 10px;
+    max-height: 200px; overflow-y: auto;
+}
+.ri-empty { color: #bbb; font-size: 13px; text-align: center; padding: 20px 0; }
+
+.ri-msg { display: flex; align-items: baseline; gap: 10px; font-size: 13px; }
+.ri-msg-sign  { flex-direction: row; }
+.ri-msg-voice { flex-direction: row-reverse; }
+.ri-msg-who  { font-size: 11px; font-weight: 700; color: #888; white-space: nowrap; }
+.ri-msg-text { flex: 1; color: #111; line-height: 1.5; }
+.ri-msg-voice .ri-msg-text { text-align: right; }
+.ri-msg-time { font-size: 10px; color: #ccc; white-space: nowrap; }
+
+/* 폼 */
+.ri-form {
+    background: #fff; border: 1.5px solid #e4e2dc; border-radius: 16px;
+    padding: 28px; display: flex; flex-direction: column; gap: 18px;
+}
+.ri-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ri-field { display: flex; flex-direction: column; gap: 6px; }
+.ri-label { font-size: 13px; font-weight: 700; color: #111; }
+.ri-required { color: #ef4444; }
+.ri-input {
+    border: 1.5px solid #e4e2dc; border-radius: 10px;
+    padding: 10px 14px; font-size: 14px; font-family: inherit; color: #111;
+    outline: none; transition: border-color 0.18s; background: #fafaf8;
+}
+.ri-input:focus { border-color: var(--ri-accent); background: #fff; }
+
+.ri-btn-primary {
+    background: var(--ri-accent); color: #fff; border: none; border-radius: 10px;
+    padding: 14px; font-size: 15px; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(124,58,237,0.25);
+}
+.ri-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,237,0.35); }
+
+/* 성공 */
+.ri-success {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; min-height: 60vh; text-align: center;
+}
+.ri-success-icon  { font-size: 64px; }
+.ri-success-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 900; color: #111; margin: 0; }
+.ri-success-desc  { font-size: 15px; color: #666; margin: 0; }
+
+@media (max-width: 640px) {
+    .ri-page { padding: 24px 16px 60px; }
+    .ri-form-row { grid-template-columns: 1fr; }
+    .ri-form { padding: 20px 16px; }
+}
