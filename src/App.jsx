@@ -3,7 +3,7 @@ import './App.css'
 
 import About            from './assets/components/About/About.jsx'
 import ConversationPage from './assets/components/ConversationPage/ConversationPage.jsx'
-import DemoPage         from './assets/components/DemoPage/DemoPage.jsx'
+import Practice from './assets/components/Practice/Practice.jsx'
 import DictPage         from './assets/components/DictPage/DictPage.jsx'
 import Home             from './assets/components/Home/Home.jsx'
 import MyPage           from './assets/components/MyPage/MyPage.jsx'
@@ -19,11 +19,11 @@ import LoginPage  from './assets/components/LoginPage/LoginPage.jsx'
 import SignupPage from './assets/components/SignupPage/SignupPage.jsx'
 
 const MENUS = [
-  { id: 'home',  label: '홈' },
-  { id: 'demo',  label: '데모' },
-  { id: 'trans', label: '번역기' },
-  { id: 'dict',  label: '수어사전' },
-  { id: 'about', label: 'About' },
+    { id: 'home',  label: '홈' },
+    { id: 'practice', label: '연습하기' }, // ✅ added
+    { id: 'trans', label: '번역기' },
+    { id: 'dict',  label: '수어사전' },
+    { id: 'about', label: 'About' },
 ]
 
 const SAMPLE_NOTIFICATIONS = [
@@ -167,12 +167,12 @@ export default function App() {
     if (showConv) return <ConversationPage messages={convMessages} onBack={handleBackToTranslate} onRegister={handleGoRegister} />
     return (
         <>
-          {tab === 'home'  && <Home />}
-          {tab === 'demo'  && <DemoPage />}
-          {tab === 'trans' && <TranslatePage onEndConversation={handleEndConversation} />}
-          {tab === 'dict'  && <DictPage query={query} />}
-          {tab === 'about' && <About />}
-          {tab === 'my'    && <MyPage />}
+            {tab === 'home'     && <Home />}
+            {tab === 'practice' && <Practice />}   // ✅ HERE
+            {tab === 'trans'    && <TranslatePage onEndConversation={handleEndConversation} />}
+            {tab === 'dict'     && <DictPage query={query} />}
+            {tab === 'about'    && <About />}
+            {tab === 'my'       && <MyPage />}
         </>
     )
   }
