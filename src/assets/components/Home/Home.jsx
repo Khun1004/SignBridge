@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './Home.css'
 
-/* ── 슬라이드 데이터 (Unsplash 이미지 사용) ── */
+/* ── 슬라이드 데이터 ── */
 const SLIDES = [
   {
     img: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80',
@@ -47,33 +47,24 @@ const STEPS = [
   },
 ]
 
-/* ── Image Slider Component ── */
+/* ── 이미지 슬라이더 ── */
 function ImageSlider() {
   const [current, setCurrent] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
   const total = SLIDES.length
   const autoRef = useRef(null)
 
-  // Auto-play
   useEffect(() => {
-    autoRef.current = setInterval(() => {
-      setCurrent(c => (c + 1) % total)
-    }, 4000)
+    autoRef.current = setInterval(() => setCurrent(c => (c + 1) % total), 4000)
     return () => clearInterval(autoRef.current)
   }, [total])
 
   const go = (idx) => {
     clearInterval(autoRef.current)
     setCurrent(idx)
-    autoRef.current = setInterval(() => {
-      setCurrent(c => (c + 1) % total)
-    }, 4000)
+    autoRef.current = setInterval(() => setCurrent(c => (c + 1) % total), 4000)
   }
 
-  const prev = () => go((current - 1 + total) % total)
-  const next = () => go((current + 1) % total)
-
-  // Mobile detection
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 900)
     check()
@@ -81,12 +72,7 @@ function ImageSlider() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // On mobile: translate one card at a time (card width = 80vw + 24px gap)
-  // On desktop: show all 3 at once, no translation needed
-  const translateX = isMobile
-      ? `calc(-${current} * (80vw + 24px))`
-      : '0px'
-
+  const translateX = isMobile ? `calc(-${current} * (80vw + 24px))` : '0px'
   const progressPct = ((current + 1) / total) * 100
 
   return (
@@ -97,53 +83,35 @@ function ImageSlider() {
             <h2 className="section-title">SignBridge가 제공하는<br />세 가지 경험</h2>
           </div>
           <div className="slider-nav">
-            <button className="snav-btn" onClick={prev} aria-label="이전">‹</button>
+            <button className="snav-btn" onClick={() => go((current - 1 + total) % total)}>‹</button>
             <div className="snav-dots">
               {SLIDES.map((_, i) => (
-                  <button
-                      key={i}
-                      className={`snav-dot${i === current ? ' active' : ''}`}
-                      onClick={() => go(i)}
-                      aria-label={`슬라이드 ${i + 1}`}
-                  />
+                  <button key={i} className={`snav-dot${i === current ? ' active' : ''}`} onClick={() => go(i)} />
               ))}
             </div>
-            <button className="snav-btn" onClick={next} aria-label="다음">›</button>
+            <button className="snav-btn" onClick={() => go((current + 1) % total)}>›</button>
           </div>
         </div>
 
         <div className="slider-viewport">
-          <div
-              className="slider-track"
-              style={{ transform: `translateX(${translateX})` }}
-          >
+          <div className="slider-track" style={{ transform: `translateX(${translateX})` }}>
             {SLIDES.map((slide, i) => (
                 <div className="slide-card" key={i}>
-                  {/* 이미지 */}
                   <div className="slide-img-wrap">
-                    <img
-                        src={slide.img}
-                        alt={slide.title}
-                        loading={i === 0 ? 'eager' : 'lazy'}
-                    />
+                    <img src={slide.img} alt={slide.title} loading={i === 0 ? 'eager' : 'lazy'} />
                     <span className="slide-img-tag">{slide.imgTag}</span>
                   </div>
-
-                  {/* 텍스트 */}
                   <div className="slide-body">
                     <div className="slide-body-tag">{slide.tag}</div>
                     <h3 className="slide-title">{slide.title}</h3>
                     <p className="slide-desc">{slide.desc}</p>
-                    <button className="slide-link">
-                      {slide.link} <span>→</span>
-                    </button>
+                    <button className="slide-link">{slide.link} <span>→</span></button>
                   </div>
                 </div>
             ))}
           </div>
         </div>
 
-        {/* Progress Bar */}
         <div className="slider-progress">
           <div className="slider-progress-fill" style={{ width: `${progressPct}%` }} />
         </div>
@@ -151,56 +119,85 @@ function ImageSlider() {
   )
 }
 
-/* ── Main Component ── */
+/* ── 메인 컴포넌트 ── */
 export default function Home() {
   return (
       <div className="home-page">
 
-        {/* ── 히어로 ── */}
+        {/* ══════════════════════════════
+          히어로 — 풀스크린 배경 + 글래스 카드
+      ══════════════════════════════ */}
         <section className="hero-section">
-          <div className="hero-left">
-            <div className="hero-badge">AI 수어 번역 시스템 v2.0</div>
-            <h1 className="hero-title">
-              <span className="hero-title-small">Sign Language AI</span>
-              <span className="hero-accent">손짓이</span>
-              <span className="hero-accent2">말이 됩니다</span>
-            </h1>
-            <p className="hero-sub">
-              SignBridge는 카메라로 수어를 인식하여 실시간으로 텍스트로 변환합니다.
-              청각장애인과 비장애인 사이의 소통 장벽을 허무는 AI 플랫폼입니다.
-            </p>
-            <div className="hero-btns">
-              <button className="btn-primary">🎥 데모 체험하기</button>
-              <button className="btn-outline">📖 더 알아보기</button>
-            </div>
+
+          {/* 배경 이미지 */}
+          <div className="hero-bg">
+            <img
+                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&q=85"
+                alt="사람들이 소통하는 모습"
+            />
+            {/* 어두운 그라디언트 오버레이 */}
+            <div className="hero-bg-overlay" />
           </div>
 
-          <div className="hero-right">
-            <div className="hero-card floating">
-              <div className="hcard-chip">실시간 인식 중</div>
-              <div className="hcard-emoji">🤟</div>
-              <div className="hcard-word">안녕하세요</div>
-              <div className="hcard-en">HELLO</div>
-              <div className="hcard-bar">
-                <div className="hcard-fill" />
+          {/* 콘텐츠 */}
+          <div className="hero-content">
+
+            {/* 왼쪽: 글래스 텍스트 카드 (이미지 참고 디자인) */}
+            <div className="hero-glass-card">
+              <div className="hero-glass-eyebrow">AI 수어 번역 시스템</div>
+              <div className="hero-glass-divider" />
+              <h1 className="hero-glass-title">
+                <span className="hero-glass-title-main">손짓이</span>
+                <span className="hero-glass-title-sub">말이 됩니다</span>
+              </h1>
+              <p className="hero-glass-desc">
+                SignBridge는 카메라로 수어를 인식하여 실시간으로 텍스트로 변환합니다.<br />
+                청각장애인과 비장애인 사이의 소통 장벽을 허무는 AI 플랫폼입니다.
+              </p>
+              <div className="hero-glass-btns">
+                <button className="hero-btn-primary">🎥 데모 체험하기</button>
+                <button className="hero-btn-outline">📖 더 알아보기</button>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* ── 통계 ── */}
-        <section className="stats-section">
-          {[
-            ['337만', '국내 청각장애인'],
-            ['7천만', '전세계 수어 사용자'],
-            ['98%',   '목표 인식 정확도'],
-            ['0.3초', '실시간 번역 속도'],
-          ].map(([n, l]) => (
-              <div className="stat-card" key={l}>
-                <div className="stat-num">{n}</div>
-                <div className="stat-lbl">{l}</div>
+            {/* 오른쪽: 실시간 인식 카드 */}
+            <div className="hero-live-card floating">
+              <div className="hero-live-chip">
+                <span className="hero-live-dot" />
+                실시간 인식 중
               </div>
-          ))}
+              <div className="hero-live-emoji">🤟</div>
+              <div className="hero-live-word">안녕하세요</div>
+              <div className="hero-live-en">HELLO</div>
+              <div className="hero-live-bar">
+                <div className="hero-live-fill" />
+              </div>
+              <div className="hero-live-acc">정확도 98.2%</div>
+            </div>
+
+          </div>
+
+          {/* 하단 스크롤 힌트 */}
+          <div className="hero-scroll-hint">
+            <span>스크롤하여 더 보기</span>
+            <div className="hero-scroll-arrow">↓</div>
+          </div>
+
+          {/* ── 통계 — Hero 이미지 위 하단 오버랩 ── */}
+          <div className="stats-section">
+            {[
+              ['337만', '국내 청각장애인'],
+              ['7천만', '전세계 수어 사용자'],
+              ['98%',   '목표 인식 정확도'],
+              ['0.3초', '실시간 번역 속도'],
+            ].map(([n, l]) => (
+                <div className="stat-card" key={l}>
+                  <div className="stat-num">{n}</div>
+                  <div className="stat-lbl">{l}</div>
+                </div>
+            ))}
+          </div>
+
         </section>
 
         {/* ── 이미지 슬라이더 ── */}
@@ -211,21 +208,15 @@ export default function Home() {
         <section className="section section--center">
           <div className="section-tag">작동 원리</div>
           <h2 className="section-title">세 단계로 완성되는 번역</h2>
-
           <div className="steps-wrapper">
-            {/* 연결선 */}
             <div className="steps-connector" />
-
             <div className="steps-grid">
               {STEPS.map((s, i) => (
                   <div className="step-card" key={i}>
-                    {/* 번호 원 */}
                     <div className="step-num-circle">
                       0{i + 1}
                       <div className="step-icon-badge">{s.icon}</div>
                     </div>
-
-                    {/* 내용 박스 */}
                     <div className="step-body">
                       <div className="step-label">STEP 0{i + 1}</div>
                       <div className="step-title">{s.title}</div>
