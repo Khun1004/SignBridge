@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+:root { --rpol-accent: #dc2626; }
+
+.rpol-page {
+    max-width: 760px; margin: 0 auto;
+    padding: 48px 40px 80px;
+    font-family: 'Noto Sans KR', sans-serif;
+    display: flex; flex-direction: column; gap: 28px;
+}
+
+.rpol-btn-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; color: var(--rpol-accent);
+    border: 1.5px solid rgba(220,38,38,0.25); border-radius: 8px;
+    padding: 7px 16px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; align-self: flex-start;
+    font-family: inherit;
+}
+.rpol-btn-back:hover { background: rgba(220,38,38,0.06); transform: translateX(-2px); }
+
+.rpol-badge {
+    display: inline-block; padding: 4px 14px; border-radius: 100px;
+    font-size: 12px; font-weight: 700; align-self: flex-start;
+    background: rgba(220,38,38,0.08); color: var(--rpol-accent);
+    border: 1px solid rgba(220,38,38,0.2);
+}
+
+.rpol-header { display: flex; flex-direction: column; gap: 10px; }
+.rpol-title {
+    font-family: 'Syne', 'Noto Sans KR', sans-serif;
+    font-size: 28px; font-weight: 900; color: #111; margin: 0; letter-spacing: -0.5px;
+}
+.rpol-subtitle { font-size: 14px; color: #666; margin: 0; }
+
+/* 공문서 헤더 */
+.rpol-official-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(220,38,38,0.05), rgba(220,38,38,0.01));
+    border: 1.5px solid rgba(220,38,38,0.2); border-radius: 14px;
+}
+.rpol-official-logo { font-size: 40px; flex-shrink: 0; }
+.rpol-official-org  { font-size: 12px; color: #888; font-weight: 600; margin-bottom: 3px; }
+.rpol-official-doc  { font-size: 18px; font-weight: 900; color: var(--rpol-accent); }
+.rpol-official-date { margin-left: auto; font-size: 12px; color: #888; white-space: nowrap; }
+
+/* 미리보기 */
+.rpol-preview {
+    background: #fff; border: 1.5px solid #e4e2dc; border-radius: 16px; overflow: hidden;
+}
+.rpol-preview-header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    padding: 14px 20px; background: #fafaf8; border-bottom: 1px solid #e4e2dc;
+}
+.rpol-preview-title { font-size: 13px; font-weight: 700; color: #111; }
+.rpol-preview-meta  { font-size: 12px; color: #888; display: flex; align-items: center; gap: 6px; }
+.rpol-tag {
+    padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 700;
+}
+.rpol-tag.red  { background: rgba(220,38,38,0.08); color: #dc2626; }
+.rpol-tag.blue { background: rgba(37,99,235,0.08);  color: #2563eb; }
+
+.rpol-preview-list {
+    padding: 14px 20px; display: flex; flex-direction: column; gap: 10px;
+    max-height: 200px; overflow-y: auto;
+}
+.rpol-empty { color: #bbb; font-size: 13px; text-align: center; padding: 20px 0; }
+
+.rpol-msg { display: flex; align-items: baseline; gap: 10px; font-size: 13px; }
+.rpol-msg-sign  { flex-direction: row; }
+.rpol-msg-voice { flex-direction: row-reverse; }
+.rpol-msg-who  { font-size: 11px; font-weight: 700; color: #888; white-space: nowrap; }
+.rpol-msg-text { flex: 1; color: #111; line-height: 1.5; }
+.rpol-msg-voice .rpol-msg-text { text-align: right; }
+.rpol-msg-time { font-size: 10px; color: #ccc; white-space: nowrap; }
+
+/* 폼 */
+.rpol-form {
+    background: #fff; border: 1.5px solid #e4e2dc; border-radius: 16px;
+    padding: 28px; display: flex; flex-direction: column; gap: 18px;
+}
+.rpol-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.rpol-field { display: flex; flex-direction: column; gap: 6px; }
+.rpol-label { font-size: 13px; font-weight: 700; color: #111; }
+.rpol-required { color: #ef4444; }
+.rpol-input {
+    border: 1.5px solid #e4e2dc; border-radius: 10px;
+    padding: 10px 14px; font-size: 14px; font-family: inherit; color: #111;
+    outline: none; transition: border-color 0.18s; background: #fafaf8;
+}
+.rpol-input:focus { border-color: var(--rpol-accent); background: #fff; }
+
+.rpol-btn-primary {
+    background: var(--rpol-accent); color: #fff; border: none; border-radius: 10px;
+    padding: 14px; font-size: 15px; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(220,38,38,0.25);
+}
+.rpol-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(220,38,38,0.35); }
+
+/* 성공 */
+.rpol-success {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; min-height: 60vh; text-align: center;
+}
+.rpol-success-icon  { font-size: 64px; }
+.rpol-success-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 900; color: #111; margin: 0; }
+.rpol-success-desc  { font-size: 15px; color: #666; margin: 0; }
+
+@media (max-width: 640px) {
+    .rpol-page { padding: 24px 16px 60px; }
+    .rpol-form-row { grid-template-columns: 1fr; }
+    .rpol-form { padding: 20px 16px; }
+}
