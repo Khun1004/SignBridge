@@ -12,9 +12,9 @@
 }
 
 .reg-page {
-    max-width: 720px;
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 48px 40px 80px;
+    padding: 32px 32px 80px;
     font-family: var(--body);
     min-height: 80vh;
     display: flex;
@@ -71,73 +71,113 @@
 .reg-cards {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
 }
 
 .reg-card {
-    display: flex;
+    display: grid;
+    grid-template-columns: 68px 1fr 40px;
     align-items: center;
-    gap: 20px;
-    padding: 28px 28px;
-    background: var(--card-bg, #f8f8ff);
+    gap: 0;
+    background: var(--surface);
     border: 1.5px solid var(--card-border, #e0e0f0);
     border-radius: 16px;
     cursor: pointer;
     text-align: left;
-    transition: all 0.2s;
     font-family: var(--body);
-    position: relative;
+    transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.2s ease;
+    width: 100%;
     overflow: hidden;
+    position: relative;
 }
 
+/* 왼쪽 컬러 액센트 바 */
 .reg-card::before {
     content: '';
     position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
+    left: 0; top: 22%; bottom: 22%;
+    width: 3px;
     background: var(--card-color, #2563eb);
-    border-radius: 4px 0 0 4px;
+    border-radius: 0 4px 4px 0;
+    opacity: 0;
+    transition: opacity 0.22s ease, top 0.22s ease, bottom 0.22s ease;
 }
+.reg-card:hover::before { opacity: 1; top: 14%; bottom: 14%; }
 
 .reg-card:hover {
-    transform: translateX(6px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     border-color: var(--card-color, #2563eb);
+    box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--card-color, #2563eb) 10%, transparent),
+            0 8px 28px rgba(0,0,0,0.09);
+    transform: translateY(-2px);
+}
+.reg-card:active { transform: translateY(0) scale(0.99); }
+
+/* 아이콘 패널 */
+.reg-card-icon {
+    width: 68px;
+    align-self: stretch;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    background: color-mix(in srgb, var(--card-color, #2563eb) 8%, transparent);
+    border-right: 1.5px solid var(--border);
+    flex-shrink: 0;
+    transition: background 0.22s ease;
+}
+.reg-card:hover .reg-card-icon {
+    background: color-mix(in srgb, var(--card-color, #2563eb) 15%, transparent);
 }
 
-.reg-card-icon {
-    font-size: 44px;
-    line-height: 1;
-    flex-shrink: 0;
+/* 본문 */
+.reg-card-body {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .reg-card-title {
     font-family: var(--display);
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 900;
-    color: var(--card-color, #2563eb);
-    margin-bottom: 6px;
+    color: var(--text);
     letter-spacing: -0.3px;
 }
 
 .reg-card-desc {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-dim);
-    line-height: 1.7;
+    line-height: 1.5;
 }
 
-.reg-card-arrow {
-    margin-left: auto;
-    font-size: 22px;
+.reg-card-badge {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    padding: 2px 8px; border-radius: 20px;
+    background: color-mix(in srgb, var(--card-color, #2563eb) 10%, transparent);
     color: var(--card-color, #2563eb);
-    opacity: 0.4;
-    transition: all 0.2s;
-    flex-shrink: 0;
+    align-self: flex-start;
+    transition: background 0.22s ease;
 }
-.reg-card:hover .reg-card-arrow {
-    opacity: 1;
-    transform: translateX(4px);
+.reg-card:hover .reg-card-badge {
+    background: color-mix(in srgb, var(--card-color, #2563eb) 18%, transparent);
 }
+
+/* 화살표 */
+.reg-card-arrow {
+    width: 40px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; padding-right: 6px;
+}
+.reg-card-arrow svg {
+    width: 18px; height: 18px;
+    stroke: var(--card-color, #2563eb); fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.reg-card:hover .reg-card-arrow svg { opacity: 1; transform: translateX(3px); }
 
 /* ── 하단 안내 ── */
 .reg-note {
@@ -151,7 +191,7 @@
 }
 
 @media (max-width: 640px) {
-    .reg-page { padding: 24px 16px 60px; }
+    .reg-page { padding: 20px 16px 60px; }
     .reg-card { padding: 20px 18px; gap: 14px; }
     .reg-card-icon { font-size: 36px; }
 }

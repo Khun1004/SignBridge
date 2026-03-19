@@ -5,6 +5,7 @@ const REGISTER_TYPES = [
         id: 'personal',
         icon: '👤',
         title: '개인용',
+        badge: 'PERSONAL',
         desc: '개인 대화 기록을 저장하고 관리합니다. 일상적인 수어 소통 내용을 기록합니다.',
         color: '#2563eb',
         bg: 'rgba(37,99,235,0.06)',
@@ -14,6 +15,7 @@ const REGISTER_TYPES = [
         id: 'immigration',
         icon: '🛂',
         title: '출입국외국인사무소용',
+        badge: 'IMMIGRATION',
         desc: '출입국 업무 시 필요한 수어 대화를 공식 양식으로 등록합니다.',
         color: '#7c3aed',
         bg: 'rgba(124,58,237,0.06)',
@@ -23,6 +25,7 @@ const REGISTER_TYPES = [
         id: 'police',
         icon: '👮',
         title: '경찰서용',
+        badge: 'POLICE',
         desc: '경찰 업무 시 수어 대화 기록을 공식 문서로 등록합니다.',
         color: '#dc2626',
         bg: 'rgba(220,38,38,0.06)',
@@ -55,9 +58,16 @@ export default function RegisterPage({ messages = [], onBack, onSelect }) {
                         onClick={() => onSelect(type.id)}
                     >
                         <div className="reg-card-icon">{type.icon}</div>
-                        <div className="reg-card-title">{type.title}</div>
-                        <div className="reg-card-desc">{type.desc}</div>
-                        <div className="reg-card-arrow">→</div>
+                        <div className="reg-card-body">
+                            <div className="reg-card-title">{type.title}</div>
+                            <div className="reg-card-desc">{type.desc}</div>
+                            <span className="reg-card-badge">{type.badge}</span>
+                        </div>
+                        <div className="reg-card-arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </div>
                     </button>
                 ))}
             </div>
