@@ -1,5 +1,5 @@
 /* ── 전체 페이지 ── */
-.demo-page {
+.trans-page {
   max-width: 1100px;
   margin: 0 auto;
   padding: 28px 32px;
@@ -518,5 +518,5 @@
 @media (max-width: 800px) {
   :root { --panel-h: 480px; }
   .demo-grid { grid-template-columns: 1fr; grid-template-rows: repeat(4, var(--panel-h)); }
-  .demo-page { padding: 16px; }
+  .trans-page { padding: 16px; }
 }

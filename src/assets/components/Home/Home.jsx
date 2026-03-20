@@ -48,7 +48,7 @@ const STEPS = [
 ]
 
 /* ── 이미지 슬라이더 ── */
-function ImageSlider() {
+function ImageSlider({ onDemo }) {
   const [current, setCurrent] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
   const total = SLIDES.length
@@ -105,7 +105,7 @@ function ImageSlider() {
                     <div className="slide-body-tag">{slide.tag}</div>
                     <h3 className="slide-title">{slide.title}</h3>
                     <p className="slide-desc">{slide.desc}</p>
-                    <button className="slide-link">{slide.link} <span>→</span></button>
+                    <button className="slide-link" onClick={slide.link === "데모 체험하기" ? onDemo : undefined}>{slide.link} <span>→</span></button>
                   </div>
                 </div>
             ))}
@@ -120,7 +120,7 @@ function ImageSlider() {
 }
 
 /* ── 메인 컴포넌트 ── */
-export default function Home() {
+export default function Home({ onDemo, onAbout }) {
   return (
       <div className="home-page">
 
@@ -155,8 +155,8 @@ export default function Home() {
                 청각장애인과 비장애인 사이의 소통 장벽을 허무는 AI 플랫폼입니다.
               </p>
               <div className="hero-glass-btns">
-                <button className="hero-btn-primary">🎥 데모 체험하기</button>
-                <button className="hero-btn-outline">📖 더 알아보기</button>
+                <button className="hero-btn-primary" onClick={onDemo}>🎥 소통 데모 체험하기</button>
+                <button className="hero-btn-outline" onClick={onAbout}>📖 더 알아보기</button>
               </div>
             </div>
 
@@ -201,7 +201,7 @@ export default function Home() {
         </section>
 
         {/* ── 이미지 슬라이더 ── */}
-        <ImageSlider />
+        <ImageSlider onDemo={onDemo} />
 
         {/* ── 작동 원리 ── */}
         <div className="section-divider" />

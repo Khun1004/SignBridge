@@ -1,5 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './SignupPage.css'
+
+// ── 카카오 우편번호 서비스 동적 로드 ──
+function useDaumPostcode() {
+    useEffect(() => {
+        if (document.getElementById('daum-postcode-script')) return
+        const script = document.createElement('script')
+        script.id    = 'daum-postcode-script'
+        script.src   = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+        script.async = true
+        document.head.appendChild(script)
+    }, [])
+}
+
+function openPostcode(onComplete) {
+    if (!window.daum?.Postcode) {
+        alert('주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
+        return
+    }
+    new window.daum.Postcode({
+        oncomplete(data) {
+            const addr = data.roadAddress || data.jibunAddress
+            onComplete(addr, data.zonecode)
+        },
+    }).open()
+}
 
 // ══════════════════════════════════════════
 //  기관 유형 정의
@@ -54,11 +79,13 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
     const [step,    setStep]    = useState(1)
     const [form,    setForm]    = useState({
         name: '', email: '', password: '', passwordConfirm: '',
-        orgType: '', officeName: '', address: '',
+        orgType: '', officeName: '', address: '', zonecode: '',
         agreeTerms: false, agreePrivacy: false,
     })
     const [errors,  setErrors]  = useState({})
     const [loading, setLoading] = useState(false)
+
+    useDaumPostcode()
 
     const update = (key, val) => setForm(f => ({ ...f, [key]: val }))
     const STEP_LABELS = ['기관 선택', '기본 정보', '상세 입력']
@@ -296,6 +323,43 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                                             <option key={opt} value={opt}>{opt}</option>
                                         ))}
                                     </select>
+                                ) : field.id === 'address' ? (
+                                    /* ── 주소 검색 필드 ── */
+                                    <div className="sp-address-wrap">
+                                        {form.zonecode && (
+                                            <div className="sp-zonecode">📮 우편번호 {form.zonecode}</div>
+                                        )}
+                                        <div className="sp-address-row">
+                                            <input
+                                                id="sp-address"
+                                                className={`sp-input ${errors.address ? 'error' : ''}`}
+                                                type="text"
+                                                placeholder="주소 검색 버튼을 눌러주세요"
+                                                value={form.address}
+                                                readOnly
+                                            />
+                                            <button
+                                                type="button"
+                                                className="sp-addr-search-btn"
+                                                onClick={() => openPostcode((addr, zone) => {
+                                                    update('address', addr)
+                                                    update('zonecode', zone)
+                                                    setErrors(e => ({ ...e, address: '' }))
+                                                })}
+                                            >
+                                                🔍 검색
+                                            </button>
+                                        </div>
+                                        {form.address && (
+                                            <input
+                                                className="sp-input sp-address-detail"
+                                                type="text"
+                                                placeholder="상세 주소 입력 (동/호수 등)"
+                                                value={form.addressDetail || ''}
+                                                onChange={e => update('addressDetail', e.target.value)}
+                                            />
+                                        )}
+                                    </div>
                                 ) : (
                                     <input
                                         id={`sp-${field.id}`}

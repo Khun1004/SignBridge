@@ -16,6 +16,7 @@ import RegisterPolice      from './assets/components/RegisterPolice/RegisterPoli
 
 import LoginPage  from './assets/components/LoginPage/LoginPage.jsx'
 import SignupPage from './assets/components/SignupPage/SignupPage.jsx'
+import DemoPage from "./assets/components/DemoPage/DemoPage.jsx";
 
 const MENUS = [
     { id: 'home',     label: '홈' },
@@ -111,6 +112,8 @@ function FloatingSidebar({ onChat, onCall }) {
 // ── 메인 App ──
 export default function App() {
     const [tab,            setTab]            = useState('home')
+    const [showDemo,       setShowDemo]       = useState(false)
+    const [showAbout,      setShowAbout]      = useState(false)
     const [searchInput,    setSearchInput]    = useState('')
     const [query,          setQuery]          = useState('')
     const [convMessages,   setConvMessages]   = useState([])
@@ -150,7 +153,7 @@ export default function App() {
     const handleSelectRegisterType   = (type) => setRegisterScreen(`register_${type}`)
     const handleBackToConv           = () => setRegisterScreen(null)
     const handleBackFromRegisterSelect = () => setRegisterScreen(null)
-    const handleLogoClick            = () => { setShowConv(false); setRegisterScreen(null); setTab('home'); setQuery('') }
+    const handleLogoClick            = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('home'); setQuery('') }
 
     // 로그인 성공: LoginPage → onLogin(name, orgType)
     const handleLogin = (name, type) => {
@@ -176,7 +179,7 @@ export default function App() {
     }
 
     const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
-    const handleQuickChat   = () => { setShowConv(false); setRegisterScreen(null); setTab('trans') }
+    const handleQuickChat   = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('trans') }
     const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
 
     const renderMain = () => {
@@ -184,21 +187,19 @@ export default function App() {
         if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} />
         if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} onBack={handleBackToConv} />
         if (registerScreen === 'registerSelect')       return <RegisterPage messages={convMessages} onBack={handleBackFromRegisterSelect} onSelect={handleSelectRegisterType} />
-        if (showConv) return <ConversationPage messages={convMessages} onBack={handleBackToTranslate} onRegister={handleGoRegister} />
-        return (
-            <>
-                {tab === 'home'     && <Home />}
-                {tab === 'practice' && <Practice />}
-                {tab === 'trans'    && <TranslatePage onEndConversation={handleEndConversation} />}
-                {tab === 'dict'     && <DictPage query={query} />}
-                {tab === 'about'    && <About />}
-                {/* ✅ displayName, orgType을 MyPage에 전달 */}
-                {tab === 'my'       && <MyPage displayName={displayName} orgType={orgType} />}
-            </>
-        )
+        if (showConv)  return <ConversationPage messages={convMessages} onBack={handleBackToTranslate} onRegister={handleGoRegister} />
+        if (showDemo)  return <DemoPage  onBack={() => { setShowDemo(false); setTab('home') }} />
+        if (showAbout) return <About onBack={() => { setShowAbout(false); setTab('home') }} />
+        if (tab === 'home')     return <Home onDemo={() => setShowDemo(true)} onAbout={() => setShowAbout(true)} />
+        if (tab === 'practice') return <Practice />
+        if (tab === 'trans')    return <TranslatePage onEndConversation={handleEndConversation} />
+        if (tab === 'dict')     return <DictPage query={query} />
+        if (tab === 'about')    return <About onBack={() => setTab('home')} />
+        if (tab === 'my')       return <MyPage displayName={displayName} orgType={orgType} />
+        return null
     }
 
-    const isNormalTab = !showConv && !registerScreen
+    const isNormalTab = !showConv && !registerScreen && !showDemo && !showAbout
 
     return (
         <div className="app">
@@ -238,7 +239,7 @@ export default function App() {
                         {loggedIn ? (
                             <div className="nav-user-group">
                                 <button className="my-btn"
-                                        onClick={() => { setShowConv(false); setRegisterScreen(null); setTab('my') }}>
+                                        onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('my') }}>
                                     <div className="my-avatar">{displayName.charAt(0)}</div>
                                     {/* 네비바: 짧게 표시 */}
                                     <span>{navLabel}</span>
@@ -258,8 +259,8 @@ export default function App() {
                     <nav className="navbar-bottom-inner">
                         {MENUS.map(m => (
                             <button key={m.id}
-                                    className={`nav-menu-btn ${(isNormalTab && tab === m.id) ? 'active' : ''}`}
-                                    onClick={() => { setShowConv(false); setRegisterScreen(null); setTab(m.id); setQuery('') }}>
+                                    className={`nav-menu-btn ${(isNormalTab && tab === m.id) || (showAbout && m.id === 'about') ? 'active' : ''}`}
+                                    onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab(m.id); setQuery('') }}>
                                 {m.label}
                             </button>
                         ))}

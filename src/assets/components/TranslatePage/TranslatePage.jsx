@@ -308,7 +308,7 @@ export default function TranslatePage({ onEndConversation }) {
       ? '#10b981' : topConf >= 0.5 ? '#f59e0b' : '#ef4444'
 
   return (
-      <div className="demo-page">
+      <div className="trans-page">
 
         <div className="warn-banner">
           ⚠️ 이 화면에서 나온 것들 다 record 되는 것으로 참조해 조심시오.

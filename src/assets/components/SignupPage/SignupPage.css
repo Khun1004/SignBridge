@@ -29,7 +29,7 @@
     border-radius: 22px;
     padding: 40px 40px 32px;
     width: 100%;
-    max-width: 500px;
+    max-width: 420px;
     max-height: 92vh;
     overflow-y: auto;
     box-shadow: 0 28px 80px rgba(0,0,0,0.18);
@@ -58,7 +58,7 @@
 .sp-close:hover { background: #f3f3f8; color: #555; }
 
 /* ── 헤더 ── */
-.sp-header { text-align: center; margin-bottom: 20px; }
+.sp-header { text-align: center; margin-bottom: 16px; }
 .sp-logo     { font-size: 40px; margin-bottom: 10px; line-height: 1; }
 .sp-title    { font-size: 22px; font-weight: 900; color: var(--sp-text); margin-bottom: 5px; letter-spacing: -0.5px; }
 .sp-subtitle { font-size: 13px; color: var(--sp-sub); line-height: 1.5; }
@@ -67,7 +67,7 @@
 .sp-steps {
     display: flex; align-items: flex-start;
     justify-content: center;
-    margin-bottom: 24px;
+    margin-bottom: 18px;
 }
 
 .sp-step-wrap {
@@ -108,7 +108,7 @@
 .sp-step-line.done { background: var(--sp-accent); }
 
 /* ── 폼 공통 ── */
-.sp-form { display: flex; flex-direction: column; gap: 14px; }
+.sp-form { display: flex; flex-direction: column; gap: 10px; }
 
 .sp-step2-guide {
     font-size: 13px; color: var(--sp-sub);
@@ -155,17 +155,17 @@
    기관 선택 그리드 (STEP 2)
 ══════════════════════════════ */
 .sp-org-grid {
-    display: flex; flex-direction: column; gap: 8px;
+    display: flex; flex-direction: column; gap: 6px;
 }
 
 .sp-org-btn {
     display: grid;
-    grid-template-columns: 52px 1fr 28px;
+    grid-template-columns: 44px 1fr 28px;
     align-items: center;
     gap: 0;
     background: #fff;
     border: 1.5px solid var(--sp-border);
-    border-radius: 14px;
+    border-radius: 12px;
     cursor: pointer;
     font-family: var(--sp-body);
     text-align: left;
@@ -197,9 +197,9 @@
 }
 
 .sp-org-icon-wrap {
-    width: 52px; align-self: stretch;
+    width: 44px; align-self: stretch;
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
+    font-size: 18px;
     background: color-mix(in srgb, var(--org-color, var(--sp-accent)) 8%, transparent);
     border-right: 1.5px solid var(--sp-border);
     transition: background 0.2s;
@@ -209,10 +209,10 @@
     background: color-mix(in srgb, var(--org-color, var(--sp-accent)) 14%, transparent);
 }
 
-.sp-org-body { padding: 12px 14px; }
+.sp-org-body { padding: 8px 12px; }
 .sp-org-label {
-    font-size: 14px; font-weight: 700; color: var(--sp-text);
-    margin-bottom: 2px; letter-spacing: -0.2px;
+    font-size: 13px; font-weight: 700; color: var(--sp-text);
+    margin-bottom: 1px; letter-spacing: -0.2px;
 }
 .sp-org-desc { font-size: 11px; color: var(--sp-sub); }
 
@@ -264,7 +264,7 @@
 /* ── 버튼들 ── */
 .sp-btn-row {
     display: flex; gap: 10px;
-    margin-top: 18px;
+    margin-top: 14px;
 }
 .sp-btn-single { flex-direction: column; }
 
@@ -316,7 +316,7 @@
 
 /* ── 전환 링크 ── */
 .sp-switch {
-    text-align: center; margin-top: 18px;
+    text-align: center; margin-top: 14px;
     font-size: 13px; color: var(--sp-sub);
 }
 .sp-switch button {
@@ -360,3 +360,35 @@
     font-size: 14px; font-weight: 700; color: var(--org-color, var(--sp-accent));
 }
 .sp-done-login-btn { width: 100%; margin-top: 8px; }
+/* ── 주소 검색 ── */
+.sp-address-wrap { display: flex; flex-direction: column; gap: 7px; }
+
+.sp-zonecode {
+    font-size: 11px; font-weight: 600;
+    color: var(--sp-accent);
+    background: rgba(124,111,255,0.08);
+    border-radius: 6px; padding: 4px 10px;
+    display: inline-block; width: fit-content;
+}
+
+.sp-address-row {
+    display: flex; gap: 8px; align-items: stretch;
+}
+.sp-address-row .sp-input {
+    flex: 1; background: #f9f9fc; cursor: default;
+}
+
+.sp-addr-search-btn {
+    flex-shrink: 0;
+    padding: 0 14px;
+    background: var(--sp-accent); color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 13px; font-weight: 700;
+    font-family: var(--sp-body);
+    cursor: pointer; white-space: nowrap;
+    transition: opacity 0.15s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(124,111,255,0.28);
+}
+.sp-addr-search-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+.sp-address-detail { margin-top: 0; }
