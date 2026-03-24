@@ -49,20 +49,36 @@ const ORG_FIELDS = {
             options: ['한국수어', '미국수어(ASL)', '국제수어(ISL)', '기타'] },
     ],
     immigration: [
-        { id: 'officeName', label: '사무소명', placeholder: '예: 인천출입국·외국인사무소',       required: true },
-        { id: 'address',    label: '주소',     placeholder: '예: 인천광역시 중구 공항로 272',    required: true },
+        { id: 'officeName',   label: '사무소명',         placeholder: '예: 인천출입국·외국인사무소',    required: true },
+        { id: 'orgCode',      label: '사무소 관리 코드',
+            placeholder: '예: IMM-ICN-001',
+            hint: '법무부 출입국·외국인정책본부에서 발급한 사무소 관리 코드를 입력하세요.',
+            required: true },
+        { id: 'address',      label: '주소',             placeholder: '예: 인천광역시 중구 공항로 272', required: true },
     ],
     airport: [
-        { id: 'officeName', label: '공항명', placeholder: '예: 인천국제공항',                   required: true },
-        { id: 'address',    label: '주소',   placeholder: '예: 인천광역시 중구 공항로 272',      required: true },
+        { id: 'officeName',   label: '공항명',           placeholder: '예: 인천국제공항',               required: true },
+        { id: 'orgCode',      label: 'IATA 공항 코드',
+            placeholder: '예: ICN',
+            hint: '국제항공운송협회(IATA)에서 부여한 3자리 공항 코드를 입력하세요.',
+            required: true },
+        { id: 'address',      label: '주소',             placeholder: '예: 인천광역시 중구 공항로 272', required: true },
     ],
     hospital: [
-        { id: 'officeName', label: '병원명', placeholder: '예: 서울아산병원',                   required: true },
-        { id: 'address',    label: '주소',   placeholder: '예: 서울시 송파구 올림픽로 43길 88', required: true },
+        { id: 'officeName',   label: '병원명',           placeholder: '예: 서울아산병원',               required: true },
+        { id: 'orgCode',      label: '요양기관 기호',
+            placeholder: '예: 12345678',
+            hint: '건강보험심사평가원(HIRA)에 등록된 8자리 요양기관 기호를 입력하세요.',
+            required: true },
+        { id: 'address',      label: '주소',             placeholder: '예: 서울시 송파구 올림픽로 43길 88', required: true },
     ],
     police: [
-        { id: 'officeName', label: '경찰서명', placeholder: '예: 서울 강남경찰서',               required: true },
-        { id: 'address',    label: '주소',     placeholder: '예: 서울시 강남구 테헤란로 114길 11', required: true },
+        { id: 'officeName',   label: '경찰서명',         placeholder: '예: 서울 강남경찰서',            required: true },
+        { id: 'orgCode',      label: '경찰청 기관 코드',
+            placeholder: '예: POL-1174',
+            hint: '경찰청에서 부여한 기관 고유 코드를 입력하세요. 소속 경찰서 행정팀에 문의하시기 바랍니다.',
+            required: true },
+        { id: 'address',      label: '주소',             placeholder: '예: 서울시 강남구 테헤란로 114길 11', required: true },
     ],
 }
 
@@ -302,8 +318,8 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                         )}
                         {isOrg && (
                             <p className="sp-step2-guide">
-                                기관명과 주소만 입력하시면 됩니다.<br />
-                                나머지 세부 정보는 이후 담당자와 협의 후 작성할 수 있습니다.
+                                기관 정보와 공식 인증 코드를 입력해주세요.<br />
+                                인증 코드는 가입 승인 검토에 사용되며, 허위 입력 시 이용이 제한될 수 있습니다.
                             </p>
                         )}
                         {orgFields.map(field => (
@@ -314,6 +330,9 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                                         ? <span className="sp-required"> *</span>
                                         : <span className="sp-optional"> (선택)</span>}
                                 </label>
+                                {field.hint && (
+                                    <div className="sp-field-hint">ℹ️ {field.hint}</div>
+                                )}
                                 {field.type === 'select' ? (
                                     <select
                                         id={`sp-${field.id}`}

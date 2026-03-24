@@ -169,7 +169,6 @@ export default function PoliceCasePage({ onBack }) {
 
     return (
         <div className="case-page" style={{ '--accent': ACCENT, '--accent-light': 'rgba(220,38,38,0.07)', '--accent-border': 'rgba(220,38,38,0.2)' }}>
-            <button className="case-btn-back" onClick={onBack}>← 마이페이지로</button>
 
             {/* 헤더 */}
             <div className="case-header">

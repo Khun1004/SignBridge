@@ -155,6 +155,13 @@
 .sp-field-error { font-size: 11px; font-weight: 600; color: var(--sp-error); }
 .sp-org-error   { margin-bottom: 4px; }
 
+.sp-field-hint {
+    font-size: 11px; color: var(--sp-sub); line-height: 1.55;
+    background: rgba(124,111,255,0.06);
+    border: 1px solid rgba(124,111,255,0.15);
+    border-radius: 8px; padding: 7px 10px;
+}
+
 /* ══════════════════════════════
    기관 선택 그리드 (STEP 2)
 ══════════════════════════════ */

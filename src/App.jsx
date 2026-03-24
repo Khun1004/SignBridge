@@ -150,7 +150,13 @@ export default function App() {
     }
 
     const handleBackToTranslate      = () => { setShowConv(false); setConvMessages([]);  setRegisterScreen(null); setTab('trans') }
-    const handleGoRegister           = () => setRegisterScreen('registerSelect')
+    const handleGoRegister = () => {
+        if (orgType && orgType !== '') {
+            setRegisterScreen(`register_${orgType}`)
+        } else {
+            setRegisterScreen('registerSelect')
+        }
+    }
     const handleSelectRegisterType   = (type) => setRegisterScreen(`register_${type}`)
     const handleBackToConv           = () => setRegisterScreen(null)
     const handleBackFromRegisterSelect = () => setRegisterScreen(null)
@@ -187,8 +193,10 @@ export default function App() {
         if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} onBack={handleBackToConv} />
         if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} />
         if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} onBack={handleBackToConv} />
+        if (registerScreen === 'register_airport')     return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} />
+        if (registerScreen === 'register_hospital')    return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} />
         if (registerScreen === 'registerSelect')       return <RegisterPage messages={convMessages} onBack={handleBackFromRegisterSelect} onSelect={handleSelectRegisterType} />
-        if (showConv)  return <ConversationPage messages={convMessages} onBack={handleBackToTranslate} onRegister={handleGoRegister} />
+        if (showConv)  return <ConversationPage messages={convMessages} onBack={handleBackToTranslate} onRegister={handleGoRegister} orgType={orgType} />
         if (showDemo)  return <DemoPage  onBack={() => { setShowDemo(false); setTab('home') }} />
         if (showAbout) return <About onBack={() => { setShowAbout(false); setTab('home') }} />
         if (tab === 'home')     return <Home onDemo={() => setShowDemo(true)} onAbout={() => setShowAbout(true)} />

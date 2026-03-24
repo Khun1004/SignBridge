@@ -64,23 +64,105 @@
 /* ════════════════════════════════
    그리드 & 패널
    ════════════════════════════════ */
-:root { --panel-h: 560px; }
+:root {
+  --panel-h: 600px;
+  --ai-panel-h: 280px;
+  --chat-panel-h: 300px;
+}
 
+/* 이미지 레이아웃: 3열 구조
+   [수어인식] [AI안내 / 대화기록] [음성입력]
+*/
 .demo-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: var(--panel-h) var(--panel-h);
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: var(--panel-h);
   gap: 20px;
+  align-items: start;
+}
+
+/* 가운데 열: AI 수어 안내 + 대화 기록 세로 스택 */
+.panel-col-center {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: var(--panel-h);
 }
 
 .panel {
-  border: 1.5px solid #e0e0ee;
   border-radius: 14px;
   background: #fff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* 좌/우 패널: 타이틀 고정, body만 스크롤 */
+.panel-full {
   height: var(--panel-h);
+}
+.panel-full .panel-body {
+  overflow-y: auto;
+}
+.panel-full .panel-body::-webkit-scrollbar { width: 4px; }
+.panel-full .panel-body::-webkit-scrollbar-thumb { background: #d0c8ff; border-radius: 4px; }
+
+/* AI 수어 안내 패널 (가운데 위) */
+.panel-ai {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 대화 기록 패널 (가운데 아래) */
+.panel-chat {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 패널별 색상 테마 ── */
+
+/* 패널 1: 수어 인식 — 보라 계열 */
+.panel-sign {
+  border: 2px solid #7c6fff;
+  box-shadow: 0 4px 18px rgba(124, 111, 255, 0.12);
+}
+.panel-sign .panel-title {
+  background: linear-gradient(135deg, #f3f0ff, #ede8ff);
+  border-bottom: 1.5px solid #c4b8ff;
+  color: #4c37c4;
+}
+
+/* 패널 2: AI 수어 안내 — 청록 계열 */
+.panel-ai-guide {
+  border: 2px solid #06b6d4;
+  box-shadow: 0 4px 18px rgba(6, 182, 212, 0.12);
+}
+.panel-ai-guide .panel-title {
+  background: linear-gradient(135deg, #ecfeff, #cffafe);
+  border-bottom: 1.5px solid #a5f3fc;
+  color: #0e7490;
+}
+
+/* 패널 3: 대화 기록 — 초록 계열 */
+.panel-chat-log {
+  border: 2px solid #10b981;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.12);
+}
+.panel-chat-log .panel-title {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-bottom: 1.5px solid #a7f3d0;
+  color: #065f46;
+}
+
+/* 패널 4: 음성 입력 — 주황 계열 */
+.panel-voice {
+  border: 2px solid #f59e0b;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.12);
+}
+.panel-voice .panel-title {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border-bottom: 1.5px solid #fcd34d;
+  color: #92400e;
 }
 
 .panel-title {
@@ -99,7 +181,7 @@
 
 .panel-body {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
@@ -515,8 +597,414 @@
 }
 
 /* 반응형 */
-@media (max-width: 800px) {
-  :root { --panel-h: 480px; }
-  .demo-grid { grid-template-columns: 1fr; grid-template-rows: repeat(4, var(--panel-h)); }
+@media (max-width: 1000px) {
+  :root { --panel-h: 500px; }
+  .demo-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 16px;
+  }
+  .panel-col-center { height: auto; }
+  .panel-full { height: var(--panel-h); }
+  .panel-ai, .panel-chat { height: var(--panel-h); flex: unset; }
   .trans-page { padding: 16px; }
+}
+/* ════════════════════════════════
+   실시간 수어 인식 결과 영역
+   ════════════════════════════════ */
+.live-result-area {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border-top: 1.5px solid #e8e0ff;
+  background: #faf8ff;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.live-result-idle {
+  font-size: 13px;
+  color: #bbb;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.live-result-active {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  animation: fadeUp 0.2s ease;
+}
+
+.live-gesture-emoji {
+  font-size: 30px;
+  line-height: 1;
+  text-align: center;
+}
+
+.live-gesture-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+
+.live-gesture-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #4c37c4;
+  letter-spacing: 0.3px;
+}
+
+.live-gesture-meaning {
+  font-size: 11px;
+  color: #7c6fff;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* 동작 유지 진행 바 */
+.stable-bar-wrap {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stable-bar-label {
+  font-size: 10px;
+  color: #aaa;
+  text-align: right;
+}
+.stable-bar-track {
+  height: 6px;
+  background: #e8e0ff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.stable-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c6fff, #5b45e0);
+  border-radius: 4px;
+  transition: width 0.1s ease;
+}
+
+/* ════════════════════════════════
+   AI 수어 안내 — 구조화 카드
+   ════════════════════════════════ */
+.ai-guide-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+/* 핵심 메시지 박스 */
+.ai-summary-box {
+  background: linear-gradient(135deg, #ecfeff, #cffafe);
+  border: 1.5px solid #a5f3fc;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-summary-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #0e7490;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.ai-summary-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0c4a6e;
+  line-height: 1.4;
+}
+
+/* 단계 카드 가로 스크롤 */
+.ai-steps {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.ai-steps::-webkit-scrollbar { height: 4px; }
+.ai-steps::-webkit-scrollbar-thumb { background: #a5f3fc; border-radius: 4px; }
+
+.ai-step-card {
+  flex-shrink: 0;
+  width: 148px;
+  background: #fff;
+  border: 1.5px solid #a5f3fc;
+  border-radius: 14px;
+  padding: 10px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 10px rgba(6,182,212,0.08);
+}
+
+.ai-step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-step-num {
+  width: 20px; height: 20px;
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ai-step-word {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0c4a6e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 손 일러스트 영역 */
+.ai-hand-wrap {
+  background: #f0fdf4;
+  border-radius: 10px;
+  border: 1px solid #d1fae5;
+  padding: 8px 4px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 동작 설명 */
+.ai-step-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 10px;
+  color: #444;
+  line-height: 1.45;
+}
+.ai-step-icon {
+  flex-shrink: 0;
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+/* 소통 팁 */
+.ai-tip-box {
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+  color: #92400e;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* ════════════════════════════════
+   HandSVG 손 애니메이션 컴포넌트
+   ════════════════════════════════ */
+.hand-svg-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 4px;
+}
+
+.hand-svg {
+  width: 110px;
+  height: 110px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.10));
+}
+
+/* 손가락 올라오는 애니메이션 */
+.hand-animated .finger-animated {
+  animation: fingerPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes fingerPop {
+  from { transform: scaleY(0.3); transform-origin: bottom center; opacity: 0.4; }
+  to   { transform: scaleY(1);   transform-origin: bottom center; opacity: 1; }
+}
+
+/* 흔드는 손 (open) */
+.hand-animated .wave-arrow {
+  animation: waveSwing 1.4s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+@keyframes waveSwing {
+  0%,100% { transform: rotate(-6deg); }
+  50%     { transform: rotate(6deg); }
+}
+
+/* 위/아래 화살표 맥박 */
+.arrow-up, .arrow-down {
+  animation: arrowPulse 1s ease-in-out infinite;
+}
+@keyframes arrowPulse {
+  0%,100% { opacity: 0.3; transform: translateY(0); }
+  50%     { opacity: 1;   transform: translateY(-4px); }
+}
+.arrow-down {
+  animation-name: arrowPulseDown;
+}
+@keyframes arrowPulseDown {
+  0%,100% { opacity: 0.3; transform: translateY(0); }
+  50%     { opacity: 1;   transform: translateY(4px); }
+}
+
+/* SVG 자체 부드러운 등장 */
+.hand-animated {
+  animation: handAppear 0.4s ease both;
+}
+@keyframes handAppear {
+  from { opacity: 0; transform: scale(0.82) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+/* 한/영 라벨 */
+.hand-svg-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.hand-label-ko {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hand-color, #7c6fff);
+}
+.hand-label-en {
+  font-size: 10px;
+  font-weight: 500;
+  color: #aaa;
+  letter-spacing: 0.4px;
+}
+
+/* ── AI 수어 안내 결과 카드 ── */
+.ai-guide-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  animation: fadeUp 0.3s ease;
+}
+
+.ai-summary-box {
+  background: linear-gradient(135deg, #ecfeff, #cffafe);
+  border: 1.5px solid #a5f3fc;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-summary-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #0e7490;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.ai-summary-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0c4a6e;
+  line-height: 1.5;
+}
+
+.ai-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-step-card {
+  border: 1.5px solid #e0e0f8;
+  border-radius: 12px;
+  background: #fafbff;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.ai-step-card:hover {
+  box-shadow: 0 4px 16px rgba(124,111,255,0.12);
+}
+
+.ai-step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 6px;
+  border-bottom: 1px solid #f0f0f8;
+  background: #f5f3ff;
+}
+.ai-step-num {
+  width: 22px; height: 22px;
+  background: #7c6fff;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ai-step-word {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.ai-hand-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 2px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f8;
+}
+
+.ai-step-desc {
+  padding: 8px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ai-step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  color: #444;
+  line-height: 1.55;
+}
+.ai-step-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ai-tip-box {
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #78350f;
+  line-height: 1.6;
 }

@@ -164,8 +164,7 @@ export default function ImmigrationCasePage({ onBack }) {
 
     return (
         <div className="case-page" style={{ '--accent': ACCENT, '--accent-light': 'rgba(124,58,237,0.07)', '--accent-border': 'rgba(124,58,237,0.2)' }}>
-            <button className="case-btn-back" onClick={onBack}>← 마이페이지로</button>
-
+            
             {/* 헤더 */}
             <div className="case-header">
                 <div className="case-official-bar">🛂 출입국·외국인사무소</div>
