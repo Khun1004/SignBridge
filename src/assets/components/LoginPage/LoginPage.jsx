@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './LoginPage.css'
+import SignBridgeLogo from '../../SignBridge.png'
 
 // displayName : 개인=이름, 기관=기관명 (SignupPage 완료 후 전달받거나 API 응답값 사용)
 // orgType     : 'personal' | 'immigration' | 'airport' | 'hospital' | 'police' | ''
@@ -39,7 +40,9 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
                 <button className="lp-close" onClick={onClose} aria-label="닫기">✕</button>
 
                 <div className="lp-header">
-                    <div className="lp-logo">🤟</div>
+                    <div className="lp-logo">
+                        <img src={SignBridgeLogo} alt="SignBridge" className="lp-logo-img" />
+                    </div>
                     <h2 className="lp-title">로그인</h2>
                     <p className="lp-subtitle">{welcomeMsg}</p>
                 </div>

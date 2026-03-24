@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './SignupPage.css'
+import SignBridgeLogo from '../../SignBridge.png'
 
 // ── 카카오 우편번호 서비스 동적 로드 ──
 function useDaumPostcode() {
@@ -178,7 +179,9 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                 <button className="sp-close" onClick={onClose} aria-label="닫기">✕</button>
 
                 <div className="sp-header">
-                    <div className="sp-logo">🤟</div>
+                    <div className="sp-logo">
+                        <img src={SignBridgeLogo} alt="SignBridge" className="sp-logo-img" />
+                    </div>
                     <h2 className="sp-title">회원가입</h2>
                     <p className="sp-subtitle">새 계정을 만들어 SignBridge를 시작하세요.</p>
                 </div>

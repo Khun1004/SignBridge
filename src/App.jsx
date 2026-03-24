@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import SignBridgeLogo from './assets/SignBridge.png'
 
 import About            from './assets/components/About/About.jsx'
 import ConversationPage from './assets/components/ConversationPage/ConversationPage.jsx'
@@ -207,7 +208,7 @@ export default function App() {
             <header className="navbar">
                 <div className="navbar-top">
                     <div className="nav-logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
-                        <span className="nav-logo-icon">🤟</span>
+                        <img src={SignBridgeLogo} alt="SignBridge" className="nav-logo-icon" />
                         <span className="nav-logo-text">SignBridge</span>
                     </div>
 
@@ -273,7 +274,7 @@ export default function App() {
 
             {/* ── 푸터 ── */}
             <footer className="footer">
-                <span className="footer-logo">🤟 SignBridge</span>
+                <span className="footer-logo"><img src={SignBridgeLogo} alt="SignBridge" className="footer-logo-icon" />SignBridge</span>
                 <span>© 2025 SignBridge Team · AI 수어 번역 시스템</span>
             </footer>
 

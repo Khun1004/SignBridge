@@ -69,9 +69,11 @@
     margin-bottom: 32px;
 }
 .lp-logo {
-    font-size: 44px;
+    display: flex; justify-content: center;
     margin-bottom: 12px;
-    line-height: 1;
+}
+.lp-logo-img {
+    height: 150px; width: auto;
 }
 .lp-title {
     font-size: 24px;

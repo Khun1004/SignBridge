@@ -29,7 +29,7 @@
     border-radius: 22px;
     padding: 40px 40px 32px;
     width: 100%;
-    max-width: 420px;
+    max-width: 550px;
     max-height: 92vh;
     overflow-y: auto;
     box-shadow: 0 28px 80px rgba(0,0,0,0.18);
@@ -59,7 +59,11 @@
 
 /* ── 헤더 ── */
 .sp-header { text-align: center; margin-bottom: 16px; }
-.sp-logo     { font-size: 40px; margin-bottom: 10px; line-height: 1; }
+.sp-logo {
+    display: flex; justify-content: center;
+    margin-bottom: 10px;
+}
+.sp-logo-img { height: 150px; width: auto; }
 .sp-title    { font-size: 22px; font-weight: 900; color: var(--sp-text); margin-bottom: 5px; letter-spacing: -0.5px; }
 .sp-subtitle { font-size: 13px; color: var(--sp-sub); line-height: 1.5; }
 
