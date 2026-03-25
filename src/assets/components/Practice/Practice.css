@@ -251,3 +251,457 @@
   .cat-tab   { padding: 5px 9px; font-size: 11px; }
   .mode-tab  { font-size: 12px; padding: 8px 10px; }
 }
+/* ══════════════════════════════════════
+   Practice.css 추가분 — 플래시카드 연습 모드
+   기존 Practice.css 파일 끝에 붙여넣기
+══════════════════════════════════════ */
+
+/* ── 플래시카드 레이아웃 ── */
+.fc-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.fc-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.fc-side {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── 진행 도트 ── */
+.fc-progress-dots {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 400px;
+}
+.fc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e0e0ec;
+  transition: all 0.2s;
+}
+.fc-dot.done    { background: #10b981; }
+.fc-dot.current { background: #7c6fff; transform: scale(1.5); }
+
+/* ── 플래시카드 래퍼 ── */
+.fc-card-wrap {
+  width: 100%;
+  max-width: 320px;
+  height: 220px;
+}
+
+/* ── 3D 카드 장면 (scene) ── */
+.fc-scene {
+  perspective: 900px;
+  width: 100%;
+  height: 100%;
+}
+
+.fc-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.fc-card.flipped {
+  transform: rotateY(180deg);
+}
+
+/* 정답/오답 시 색상 */
+.fc-card.correct .fc-back { background: rgba(16,185,129,0.1) !important; border-color: #10b981 !important; }
+.fc-card.wrong   .fc-back { background: rgba(239,68,68,0.08) !important;  border-color: #ef4444 !important; }
+
+/* ── 카드 앞/뒤 면 ── */
+.fc-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  user-select: none;
+}
+
+.fc-front {
+  background: #fff;
+  border: 2px solid #e8e8f0;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+}
+
+.fc-back {
+  background: var(--card-bg, #f5f3ff);
+  border: 2px solid var(--card-border, #7c6fff);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+  transform: rotateY(180deg);
+}
+
+/* 앞면 힌트 텍스트 */
+.fc-front-hint {
+  position: absolute;
+  bottom: 8px;
+  font-size: 9px;
+  color: #ccc;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* 뒷면 텍스트 */
+.fc-back-label {
+  font-size: 22px;
+  font-weight: 900;
+  color: #1a1a2e;
+}
+.fc-back-en {
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+  margin-bottom: 4px;
+}
+
+/* 정답/오답 버튼 */
+.fc-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.fc-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.fc-btn.correct {
+  background: #10b981;
+  color: #fff;
+}
+.fc-btn.wrong {
+  background: #f5f5fa;
+  color: #666;
+  border: 1.5px solid #e0e0ec;
+}
+.fc-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+
+/* 답변 확인 */
+.fc-answered {
+  font-size: 15px;
+  font-weight: 800;
+  margin-top: 4px;
+  animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fc-answered.correct { color: #10b981; }
+.fc-answered.wrong   { color: #ef4444; }
+@keyframes pop-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ── 힌트 영역 ── */
+.fc-hint-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+}
+.fc-hint-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ── 사이드 프리뷰 ── */
+.fc-preview-box {
+  border: 1.5px solid #e8e8f0;
+  border-radius: 14px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: #f9f9fc;
+}
+.fc-preview-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.fc-preview-shape {
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── 완료 화면 ── */
+.fc-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px;
+  gap: 12px;
+  text-align: center;
+}
+.fc-done-icon  { font-size: 56px; }
+.fc-done-title { font-size: 22px; font-weight: 900; color: #1a1a2e; }
+.fc-done-score { font-size: 16px; color: #666; }
+
+/* ── 반응형 ── */
+@media (max-width: 640px) {
+  .fc-layout { flex-direction: column; }
+  .fc-side    { width: 100%; }
+  .fc-card-wrap { max-width: 100%; height: 200px; }
+}
+/* ══════════════════════════════════════
+   연습 모드 — 수어 보고 뜻 고르기 (Practice.css 추가)
+   기존 Practice.css 파일 끝에 붙여넣기
+══════════════════════════════════════ */
+
+/* ── 전체 레이아웃 ── */
+.pm-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+.pm-left  { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+.pm-right { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+
+/* ── 수어 카드 ── */
+.pm-sign-card {
+  width: 100%;
+  border: 2px solid rgba(124,111,255,0.25);
+  border-radius: 20px;
+  padding: 22px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(124,111,255,0.04), rgba(6,182,212,0.03));
+  transition: border-color 0.3s, background 0.3s;
+  position: relative;
+}
+.pm-sign-card.correct {
+  border-color: #10b981;
+  background: rgba(16,185,129,0.04);
+}
+.pm-sign-card.wrong {
+  border-color: #ef4444;
+  background: rgba(239,68,68,0.03);
+}
+
+.pm-card-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #7c6fff;
+  margin-bottom: 4px;
+}
+
+/* 손 모양 크게 */
+.pm-hand-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 160px;
+  height: 160px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  border: 1.5px solid #f0f0f8;
+  transition: box-shadow 0.2s;
+}
+.pm-sign-card.correct .pm-hand-display { box-shadow: 0 4px 20px rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); }
+.pm-sign-card.wrong   .pm-hand-display { box-shadow: 0 4px 20px rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.2); }
+
+.pm-shape-label {
+  font-size: 12px;
+  color: #888;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* 결과 배지 */
+.pm-result-badge {
+  font-size: 15px;
+  font-weight: 800;
+  padding: 7px 18px;
+  border-radius: 20px;
+  animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.pm-result-badge.correct {
+  background: rgba(16,185,129,0.12);
+  color: #10b981;
+}
+.pm-result-badge.wrong {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+}
+@keyframes pop-in {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* 힌트 파라미터 */
+.pm-hint-params {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+  margin-top: 4px;
+}
+
+/* ── 보기 그리드 ── */
+.pm-choices-grid {
+  display: grid;
+  gap: 8px;
+}
+.pm-choices-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.pm-choices-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+.pm-choice-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 14px 10px;
+  border-radius: 12px;
+  border: 2px solid #e0e0ec;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 64px;
+  text-align: center;
+}
+.pm-choice-btn:hover:not(:disabled) {
+  border-color: #7c6fff;
+  background: rgba(124,111,255,0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(124,111,255,0.12);
+}
+.pm-choice-btn:disabled {
+  cursor: default;
+}
+.pm-choice-btn.choice-correct {
+  background: #10b981;
+  border-color: #10b981;
+  transform: scale(1.03);
+  box-shadow: 0 4px 16px rgba(16,185,129,0.25);
+}
+.pm-choice-btn.choice-wrong {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+.pm-choice-btn.choice-reveal {
+  background: rgba(16,185,129,0.1);
+  border-color: #10b981;
+  border-style: dashed;
+}
+
+.pm-choice-label {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1.2;
+}
+.pm-choice-btn.choice-correct .pm-choice-label,
+.pm-choice-btn.choice-wrong   .pm-choice-label { color: #fff; }
+
+.pm-choice-sub {
+  font-size: 10px;
+  color: #aaa;
+  font-weight: 500;
+}
+.pm-choice-btn.choice-correct .pm-choice-sub,
+.pm-choice-btn.choice-wrong   .pm-choice-sub { color: rgba(255,255,255,0.7); }
+
+.pm-choice-mark {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+}
+.pm-choice-mark.reveal { color: #10b981; }
+
+/* ── 정답 파라미터 패널 ── */
+.pm-answer-params {
+  border: 1.5px solid rgba(124,111,255,0.2);
+  border-radius: 13px;
+  padding: 12px 13px;
+  background: rgba(124,111,255,0.025);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fade-in 0.3s ease;
+}
+.pm-ap-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #7c6fff;
+  margin-bottom: 3px;
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── history 추가 컬럼 ── */
+.h-chosen {
+  font-size: 10px;
+  color: #ef4444;
+  flex: 1;
+  text-align: right;
+  margin-right: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 연속 정답 강조 ── */
+.score-n {
+  transition: color 0.3s;
+}
+
+/* ── 반응형 ── */
+@media (max-width: 680px) {
+  .pm-layout { flex-direction: column; }
+  .pm-right  { width: 100%; }
+  .pm-choices-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  .pm-hand-display { width: 130px; height: 130px; }
+}
+@media (max-width: 400px) {
+  .pm-choices-grid.cols-2,
+  .pm-choices-grid.cols-3 { grid-template-columns: 1fr 1fr; }
+}

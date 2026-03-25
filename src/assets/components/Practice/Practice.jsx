@@ -3,21 +3,6 @@ import './Practice.css'
 import GestureCheck from './GestureCheck'
 import SignLearnCard from './SignLearnCard'
 
-/* ══════════════════════════════════════════════════════════
-   REAL KOREAN SIGN LANGUAGE DATABASE
-   Sources: 국립국어원 한국수어사전, 한국농아인협회
-
-   Each sign documents the 5 parameters (수어의 5요소):
-   1. 수형 (handshape)   — which fingers are extended/bent
-   2. 수위 (location)    — where on/near the body
-   3. 수동 (movement)    — path, direction, repetition
-   4. 수향 (orientation) — which way the palm faces
-   5. 비수지 (NMS)       — facial expression, mouth, head
-
-   hand SVG shapes: 'fist'|'open'|'point1'|'point2'|'thumb'
-                    |'ily'|'b-hand'|'c-hand'|'flat-o'|'v-hand'
-══════════════════════════════════════════════════════════ */
-
 export const CATEGORIES = [
   { id: 'all',      label: '전체',      icon: '🗂️', desc: '모든 수어' },
   { id: 'greet',    label: '인사',      icon: '👋', desc: '일상 인사 표현' },
@@ -30,7 +15,6 @@ export const CATEGORIES = [
   { id: 'emergency',label: '긴급',      icon: '🚨', desc: '위급 상황 표현' },
 ]
 
-// SVG hand shape paths — simplified but accurate finger configurations
 const HANDSHAPES = {
   fist:   { label: '주먹 (S형)', desc: '네 손가락 모두 접고 엄지를 손가락 위에 얹음' },
   open:   { label: '편손 (5형)', desc: '다섯 손가락 모두 펴고 손바닥을 앞으로' },
@@ -49,7 +33,7 @@ const HANDSHAPES = {
 export const SIGNS = [
   /* ─── 인사 ─── */
   {
-    id:'g01', cat:'greet', label:'안녕하세요', english:'Hello / How are you?',
+    id:'g01', cat:'greet', label:'안녕하세요', korean:'안녕 / 잘 지내세요?',
     color:'#7c6fff',
     params: {
       수형: 'bhand',
@@ -69,7 +53,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 안녕하세요',
   },
   {
-    id:'g02', cat:'greet', label:'감사합니다', english:'Thank you',
+    id:'g02', cat:'greet', label:'감사합니다', korean:'고마움을 표현할 때',
     color:'#7c6fff',
     params: {
       수형: 'bhand',
@@ -89,7 +73,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 감사',
   },
   {
-    id:'g03', cat:'greet', label:'미안합니다', english:'Sorry / I apologize',
+    id:'g03', cat:'greet', label:'미안합니다', korean:'사과·미안함을 표현할 때',
     color:'#7c6fff',
     params: {
       수형: 'fist',
@@ -109,7 +93,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 미안',
   },
   {
-    id:'g04', cat:'greet', label:'이름', english:'Name',
+    id:'g04', cat:'greet', label:'이름', korean:'이름을 물어볼 때',
     color:'#7c6fff',
     params: {
       수형: 'point2',
@@ -129,7 +113,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 이름',
   },
   {
-    id:'g05', cat:'greet', label:'반갑습니다', english:'Nice to meet you',
+    id:'g05', cat:'greet', label:'반갑습니다', korean:'처음 만날 때 인사',
     color:'#7c6fff',
     params: {
       수형: 'open',
@@ -150,7 +134,7 @@ export const SIGNS = [
 
   /* ─── 가족 ─── */
   {
-    id:'f01', cat:'family', label:'엄마', english:'Mother / Mom',
+    id:'f01', cat:'family', label:'엄마', korean:'어머니',
     color:'#ec4899',
     params: {
       수형: 'yhand',
@@ -169,7 +153,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 어머니',
   },
   {
-    id:'f02', cat:'family', label:'아빠', english:'Father / Dad',
+    id:'f02', cat:'family', label:'아빠', korean:'아버지',
     color:'#ec4899',
     params: {
       수형: 'yhand',
@@ -188,7 +172,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 아버지',
   },
   {
-    id:'f03', cat:'family', label:'형제 / 오빠', english:'Brother / Older brother',
+    id:'f03', cat:'family', label:'형제 / 오빠', korean:'남자 형제',
     color:'#ec4899',
     params: {
       수형: 'point1',
@@ -207,7 +191,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 형제',
   },
   {
-    id:'f04', cat:'family', label:'언니 / 누나', english:'Older sister',
+    id:'f04', cat:'family', label:'언니 / 누나', korean:'여자 형제 (손위)',
     color:'#ec4899',
     params: {
       수형: 'point1',
@@ -227,7 +211,7 @@ export const SIGNS = [
 
   /* ─── 숫자 ─── */
   {
-    id:'n01', cat:'number', label:'1 (일)', english:'One',
+    id:'n01', cat:'number', label:'1 (일)', korean:'숫자 일',
     color:'#3b82f6',
     params: {
       수형: 'point1',
@@ -246,7 +230,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 숫자 일',
   },
   {
-    id:'n02', cat:'number', label:'2 (이)', english:'Two',
+    id:'n02', cat:'number', label:'2 (이)', korean:'숫자 이',
     color:'#3b82f6',
     params: {
       수형: 'point2',
@@ -265,7 +249,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 숫자 이',
   },
   {
-    id:'n03', cat:'number', label:'3 (삼)', english:'Three',
+    id:'n03', cat:'number', label:'3 (삼)', korean:'숫자 삼',
     color:'#3b82f6',
     params: {
       수형: 'whand',
@@ -284,7 +268,22 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 숫자 삼',
   },
   {
-    id:'n04', cat:'number', label:'5 (오)', english:'Five',
+    id:'n04', cat:'number', label:'4 (사)', korean:'숫자 사',
+    color:'#3b82f6',
+    params: {
+      수형: 'bhand',
+      수위: '몸 앞 중앙',
+      수동: '정지',
+      수향: '손바닥이 상대방 방향',
+      비수지: '중립',
+    },
+    steps: [
+      '네 손가락을 펴고 엄지는 접습니다.',
+      '손바닥이 앞을 향하게 유지합니다.',
+    ],
+  },
+  {
+    id:'n05o', cat:'number', label:'5 (오)', korean:'숫자 오',
     color:'#3b82f6',
     params: {
       수형: 'open',
@@ -303,7 +302,67 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 숫자 오',
   },
   {
-    id:'n05', cat:'number', label:'10 (십)', english:'Ten',
+    id:'n06', cat:'number', label:'6 (육)', korean:'숫자 육',
+    color:'#3b82f6',
+    params: {
+      수형: 'yhand',
+      수위: '몸 앞',
+      수동: '정지',
+      수향: '손바닥이 앞',
+      비수지: '중립',
+    },
+    steps: [
+      '엄지와 소지를 펴고 나머지는 접습니다.',
+      '가슴 앞에서 유지합니다.',
+    ],
+  },
+  {
+    id:'n07', cat:'number', label:'7 (칠)', korean:'숫자 칠',
+    color:'#3b82f6',
+    params: {
+      수형: 'point2',
+      수위: '몸 앞',
+      수동: '정지',
+      수향: '손바닥이 앞',
+      비수지: '중립',
+    },
+    steps: [
+      '검지와 중지를 펴고 나머지는 접습니다.',
+      '손바닥을 앞쪽으로 유지합니다.',
+    ],
+  },
+  {
+    id:'n08', cat:'number', label:'8 (팔)', korean:'숫자 팔',
+    color:'#3b82f6',
+    params: {
+      수형: 'point2',
+      수위: '몸 앞',
+      수동: '손가락을 약간 구부림',
+      수향: '손바닥 앞',
+      비수지: '중립',
+    },
+    steps: [
+      '검지와 중지를 펴되 살짝 구부립니다.',
+      '가슴 앞에서 유지합니다.',
+    ],
+  },
+  {
+    id:'n09', cat:'number', label:'9 (구)', korean:'숫자 구',
+    color:'#3b82f6',
+    params: {
+      수형: 'flato',
+      수위: '몸 앞',
+      수동: '정지',
+      수향: '손바닥 앞',
+      비수지: '중립',
+    },
+    steps: [
+      '엄지와 검지를 붙여 O 모양을 만듭니다.',
+      '나머지 손가락은 펴둡니다.',
+    ],
+  },
+  {
+    id:'n10', cat:'number', label:'10 (십)', korean:'숫자 십',
     color:'#3b82f6',
     params: {
       수형: 'thumb',
@@ -324,7 +383,7 @@ export const SIGNS = [
 
   /* ─── 색깔 ─── */
   {
-    id:'c01', cat:'color', label:'빨간색', english:'Red',
+    id:'c01', cat:'color', label:'빨간색', korean:'붉은 색',
     color:'#ef4444',
     params: {
       수형: 'point1',
@@ -343,7 +402,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 빨간색',
   },
   {
-    id:'c02', cat:'color', label:'파란색', english:'Blue',
+    id:'c02', cat:'color', label:'파란색', korean:'푸른 색',
     color:'#3b82f6',
     params: {
       수형: 'bhand',
@@ -362,7 +421,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 파란색',
   },
   {
-    id:'c03', cat:'color', label:'흰색', english:'White',
+    id:'c03', cat:'color', label:'흰색', korean:'하얀 색',
     color:'#888',
     params: {
       수형: 'open',
@@ -381,7 +440,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 흰색',
   },
   {
-    id:'c04', cat:'color', label:'검은색', english:'Black',
+    id:'c04', cat:'color', label:'검은색', korean:'검은 색',
     color:'#1a1a2e',
     params: {
       수형: 'point1',
@@ -402,7 +461,7 @@ export const SIGNS = [
 
   /* ─── 음식 ─── */
   {
-    id:'fd01', cat:'food', label:'밥 / 식사', english:'Rice / Meal',
+    id:'fd01', cat:'food', label:'밥 / 식사', korean:'먹는 것·식사',
     color:'#10b981',
     params: {
       수형: 'flato',
@@ -422,26 +481,23 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 밥',
   },
   {
-    id:'fd02', cat:'food', label:'물', english:'Water',
+    id:'fd02', cat:'food', label:'물', korean:'마시는 물',
     color:'#10b981',
     params: {
-      수형: 'whand',
+      수형: 'point1',
       수위: '입 앞',
-      수동: 'W형 손을 입 앞으로 가져와 기울이기',
-      수향: '손바닥이 안쪽을 향함',
+      수동: '검지를 입 앞으로 가져와 살짝 기울임 (마시는 동작)',
+      수향: '손바닥이 안쪽',
       비수지: '자연스러운 표정',
     },
     steps: [
-      '검지·중지·약지를 펴고 나머지는 접습니다 (W형).',
-      '손을 입 앞으로 가져옵니다.',
-      '컵에서 물을 마시는 것처럼 손을 살짝 기울입니다.',
+      '검지만 펴고 나머지는 접습니다.',
+      '검지를 입 앞으로 가져옵니다.',
+      '물을 마시는 것처럼 손을 살짝 기울입니다.',
     ],
-    notes: '영어 Water의 첫 글자 W 손 모양에서 유래 (차용 수어).',
-    commonMistake: '손가락 세 개를 정확하게 펴야 합니다. 더 펴면 다른 뜻.',
-    videoNote: '🔗 국립국어원 수어사전: 물',
   },
   {
-    id:'fd03', cat:'food', label:'커피', english:'Coffee',
+    id:'fd03', cat:'food', label:'커피', korean:'커피·원두',
     color:'#10b981',
     params: {
       수형: 'fist',
@@ -460,7 +516,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 커피',
   },
   {
-    id:'fd04', cat:'food', label:'빵', english:'Bread',
+    id:'fd04', cat:'food', label:'빵', korean:'빵·베이커리',
     color:'#10b981',
     params: {
       수형: 'bhand',
@@ -481,7 +537,7 @@ export const SIGNS = [
 
   /* ─── 신체 ─── */
   {
-    id:'b01', cat:'body', label:'머리', english:'Head',
+    id:'b01', cat:'body', label:'머리', korean:'신체 — 머리',
     color:'#f97316',
     params: {
       수형: 'open',
@@ -499,7 +555,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 머리',
   },
   {
-    id:'b02', cat:'body', label:'눈', english:'Eye(s)',
+    id:'b02', cat:'body', label:'눈', korean:'신체 — 눈',
     color:'#f97316',
     params: {
       수형: 'point2',
@@ -518,7 +574,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 눈',
   },
   {
-    id:'b03', cat:'body', label:'귀', english:'Ear',
+    id:'b03', cat:'body', label:'귀', korean:'신체 — 귀',
     color:'#f97316',
     params: {
       수형: 'point1',
@@ -536,7 +592,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 귀',
   },
   {
-    id:'b04', cat:'body', label:'손', english:'Hand',
+    id:'b04', cat:'body', label:'손', korean:'신체 — 손',
     color:'#f97316',
     params: {
       수형: 'open',
@@ -558,7 +614,7 @@ export const SIGNS = [
 
   /* ─── 시간 ─── */
   {
-    id:'t01', cat:'time', label:'오늘', english:'Today',
+    id:'t01', cat:'time', label:'오늘', korean:'현재 날짜',
     color:'#8b5cf6',
     params: {
       수형: 'bhand',
@@ -578,7 +634,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 오늘',
   },
   {
-    id:'t02', cat:'time', label:'내일', english:'Tomorrow',
+    id:'t02', cat:'time', label:'내일', korean:'다음 날',
     color:'#8b5cf6',
     params: {
       수형: 'thumb',
@@ -597,7 +653,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 내일',
   },
   {
-    id:'t03', cat:'time', label:'어제', english:'Yesterday',
+    id:'t03', cat:'time', label:'어제', korean:'지난 날',
     color:'#8b5cf6',
     params: {
       수형: 'thumb',
@@ -616,7 +672,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 어제',
   },
   {
-    id:'t04', cat:'time', label:'지금', english:'Now',
+    id:'t04', cat:'time', label:'지금', korean:'지금 이 순간',
     color:'#8b5cf6',
     params: {
       수형: 'bhand',
@@ -637,7 +693,7 @@ export const SIGNS = [
 
   /* ─── 긴급 ─── */
   {
-    id:'e01', cat:'emergency', label:'도와주세요', english:'Help me / Please help',
+    id:'e01', cat:'emergency', label:'도와주세요', korean:'도움 요청',
     color:'#ef4444',
     params: {
       수형: 'thumb + open',
@@ -657,7 +713,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 도움',
   },
   {
-    id:'e02', cat:'emergency', label:'병원', english:'Hospital',
+    id:'e02', cat:'emergency', label:'병원', korean:'의료기관',
     color:'#ef4444',
     params: {
       수형: 'point2',
@@ -676,7 +732,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 병원',
   },
   {
-    id:'e03', cat:'emergency', label:'위험', english:'Danger',
+    id:'e03', cat:'emergency', label:'위험', korean:'위험 경고',
     color:'#ef4444',
     params: {
       수형: 'open',
@@ -696,7 +752,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 위험',
   },
   {
-    id:'e04', cat:'emergency', label:'경찰', english:'Police',
+    id:'e04', cat:'emergency', label:'경찰', korean:'경찰관',
     color:'#ef4444',
     params: {
       수형: 'chand',
@@ -715,7 +771,7 @@ export const SIGNS = [
     videoNote: '🔗 국립국어원 수어사전: 경찰',
   },
   {
-    id:'e05', cat:'emergency', label:'불 / 화재', english:'Fire',
+    id:'e05', cat:'emergency', label:'불 / 화재', korean:'화재·불꽃',
     color:'#ef4444',
     params: {
       수형: 'open → 주먹 반복',
@@ -866,9 +922,6 @@ function HandShapeSVG({ shape, color = '#7c6fff', size = 100 }) {
   return shapes[shape] || shapes['open']
 }
 
-/* ═══════════════════════════════════
-   API
-═══════════════════════════════════ */
 async function callClaude(prompt, system = '') {
   const body = { model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] }
   if (system) body.system = system
@@ -879,9 +932,6 @@ async function callClaude(prompt, system = '') {
 
 function signsForCat(id) { return id === 'all' ? SIGNS : SIGNS.filter(s => s.cat === id) }
 
-/* ═══════════════════════════════════
-   PARAM BADGE
-═══════════════════════════════════ */
 const PARAM_META = {
   수형: { label: '수형', sub: '손 모양', color: '#7c6fff' },
   수위: { label: '수위', sub: '위치',   color: '#3b82f6' },
@@ -979,50 +1029,61 @@ function LearnMode() {
   )
 }
 
+/* ═══════════════════════════════════
+   PRACTICE MODE — 수어 보고 뜻 고르기
+═══════════════════════════════════ */
 function PracticeMode() {
-  const [catId,   setCatId]   = useState('all')
-  const [diff,    setDiff]    = useState('normal')
-  const [target,  setTarget]  = useState(null)
-  const [choices, setChoices] = useState([])
-  const [detected,setDetected]= useState(null)
-  const [result,  setResult]  = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [aiFb,    setAiFb]    = useState('')
-  const [aiLoad,  setAiLoad]  = useState(false)
-  const [history, setHistory] = useState([])
-  const [score,   setScore]   = useState({ correct: 0, total: 0 })
-  const [showParams, setShowParams] = useState(false)
+  const [catId,    setCatId]    = useState('all')
+  const [diff,     setDiff]     = useState('normal')
+  const [target,   setTarget]   = useState(null)
+  const [choices,  setChoices]  = useState([])
+  const [selected, setSelected] = useState(null)      // 사용자가 고른 보기
+  const [result,   setResult]   = useState(null)      // 'correct' | 'wrong'
+  const [aiLoad,   setAiLoad]   = useState(false)
+  const [aiFb,     setAiFb]     = useState('')
+  const [history,  setHistory]  = useState([])
+  const [score,    setScore]    = useState({ correct: 0, total: 0 })
+  const [showHint, setShowHint] = useState(false)
+  const [streak,   setStreak]   = useState(0)
+  const [bestStreak, setBestStreak] = useState(0)
 
-  const pool = signsForCat(catId)
+  // 보기 수
+  const choiceCount = diff === 'easy' ? 3 : diff === 'hard' ? 6 : 4
 
-  const buildChoices = useCallback((t) => {
-    const n = diff === 'easy' ? 4 : diff === 'hard' ? 9 : 6
-    const others = SIGNS.filter(s => s.id !== t.id).sort(() => Math.random() - 0.5).slice(0, n - 1)
+  const buildChoices = useCallback((t, pool) => {
+    const others = SIGNS
+      .filter(s => s.id !== t.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, choiceCount - 1)
     return [...others, t].sort(() => Math.random() - 0.5)
-  }, [diff])
+  }, [choiceCount])
 
   const next = useCallback(() => {
-    const p = signsForCat(catId)
-    const t = p[Math.floor(Math.random() * p.length)]
-    setTarget(t); setChoices(buildChoices(t))
-    setDetected(null); setResult(null); setAiFb(''); setShowParams(false)
+    const pool = signsForCat(catId)
+    const t = pool[Math.floor(Math.random() * pool.length)]
+    setTarget(t)
+    setChoices(buildChoices(t, pool))
+    setSelected(null); setResult(null); setAiFb(''); setShowHint(false)
   }, [catId, buildChoices])
 
   useEffect(() => { next() }, [catId, diff])
 
-  const detect = async (sign) => {
-    if (loading || aiLoad || result) return
-    setLoading(true); setAiFb('')
-    await new Promise(r => setTimeout(r, 400))
-    const ok = sign.id === target.id
-    setDetected(sign); setResult(ok ? 'correct' : 'wrong'); setLoading(false)
+  const pick = async (choice) => {
+    if (result) return
+    setSelected(choice)
+    const ok = choice.id === target.id
+    setResult(ok ? 'correct' : 'wrong')
+    const newStreak = ok ? streak + 1 : 0
+    setStreak(newStreak)
+    setBestStreak(b => Math.max(b, newStreak))
     setScore(p => ({ correct: p.correct + (ok ? 1 : 0), total: p.total + 1 }))
-    setHistory(h => [{ ...sign, correct: ok, time: new Date().toLocaleTimeString('ko-KR') }, ...h.slice(0, 5)])
+    setHistory(h => [{ label: target.label, chosen: choice.label, correct: ok, time: new Date().toLocaleTimeString('ko-KR') }, ...h.slice(0, 5)])
+
     setAiLoad(true)
     try {
       const prompt = ok
-        ? `수어 학습자가 "${sign.label}" 한국수어를 맞혔습니다. 이 수어의 실생활 활용 예시와 함께 2문장으로 격려해주세요.`
-        : `한국수어 학습자가 "${target.label}"을 해야 했지만 "${sign.label}"을 했습니다. 두 수어의 핵심 차이(수형·수위·수동 중 무엇이 다른지)를 명확히 2-3문장으로 설명해주세요.`
+        ? `한국수어 학습자가 "${target.label}"의 손 모양 이미지를 보고 뜻을 정확히 골랐습니다. 이 수어의 재미있는 기억법이나 실생활 활용을 2문장 이내로 알려주세요.`
+        : `한국수어 학습자가 "${target.label}" 수어를 보고 "${choice.label}"라고 잘못 선택했습니다. 두 수어의 차이점을 2–3문장으로 명확히 설명해 주세요.`
       setAiFb((await callClaude(prompt, '당신은 한국수어 전문 강사입니다.')).trim())
     } catch { setAiFb('피드백을 불러올 수 없습니다.') }
     setAiLoad(false)
@@ -1032,7 +1093,7 @@ function PracticeMode() {
 
   return (
     <div className="practice-mode">
-      {/* Options */}
+      {/* 카테고리 & 난이도 */}
       <div className="options-bar">
         <div className="option-group">
           <span className="option-label">카테고리</span>
@@ -1047,97 +1108,149 @@ function PracticeMode() {
         <div className="option-group">
           <span className="option-label">난이도</span>
           <div className="option-pills">
-            {[['easy','쉬움 4개'],['normal','보통 6개'],['hard','어려움 9개']].map(([v,l]) => (
+            {[['easy','쉬움 (3개)'],['normal','보통 (4개)'],['hard','어려움 (6개)']].map(([v,l]) => (
               <button key={v} className={`pill ${diff === v ? 'active' : ''}`} onClick={() => setDiff(v)}>{l}</button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Scorebar */}
+      {/* 점수 바 */}
       <div className="practice-scorebar">
-        {[['정답', score.correct], ['시도', score.total], [`${acc}%`, '정확도']].map(([n, l], i) => (
-          <div key={i} className={`score-stat ${i > 0 ? 'with-divider' : ''}`}>
-            <span className="score-n" style={n === `${acc}%` ? { color: acc >= 70 ? '#10b981' : '#ef4444' } : {}}>{typeof l === 'number' ? l : n}</span>
-            <span className="score-l">{typeof l === 'number' ? l : n === `${acc}%` ? '정확도' : l}</span>
-          </div>
-        ))}
+        <div className="score-stat">
+          <span className="score-n">{score.correct}</span>
+          <span className="score-l">정답</span>
+        </div>
         <div className="score-stat with-divider">
-          <span className="score-n" style={{ fontSize: 13, color: '#888' }}>{pool.length}개</span>
-          <span className="score-l">현재</span>
+          <span className="score-n">{score.total}</span>
+          <span className="score-l">시도</span>
+        </div>
+        <div className="score-stat with-divider">
+          <span className="score-n" style={{ color: acc >= 70 ? '#10b981' : acc > 0 ? '#f59e0b' : '#1a1a2e' }}>{acc}%</span>
+          <span className="score-l">정확도</span>
+        </div>
+        <div className="score-stat with-divider">
+          <span className="score-n" style={{ color: streak >= 3 ? '#f59e0b' : '#1a1a2e' }}>
+            {streak >= 3 ? '🔥' : ''}{streak}
+          </span>
+          <span className="score-l">연속정답</span>
+        </div>
+        <div className="score-stat with-divider">
+          <span className="score-n" style={{ fontSize: 13, color: '#aaa' }}>{bestStreak}</span>
+          <span className="score-l">최고기록</span>
         </div>
       </div>
 
-      {/* Target card */}
-      {target && (
-        <div className="target-card" style={{ '--c': target.color }}>
-          <div className="target-tag">이 수어를 선택하세요</div>
-          <div className="target-emoji-wrap">
-            <HandShapeSVG shape={target.params.수형.split(' ')[0].replace('+','').trim()} color={target.color} size={72} />
-          </div>
-          <div className="target-label">{target.label}</div>
-          <div className="target-en">{target.english}</div>
-          <button className="hint-btn" onClick={() => setShowParams(p => !p)}>
-            {showParams ? '힌트 숨기기' : '💡 힌트 보기'}
-          </button>
-          {showParams && (
-            <div className="target-hint-params">
-              <ParamBadge k="수위" v={target.params.수위} />
-              <ParamBadge k="수동" v={target.params.수동} />
+      {/* 메인 레이아웃 */}
+      <div className="pm-layout">
+
+        {/* ── 왼쪽: 수어 카드 + 보기 ── */}
+        <div className="pm-left">
+
+          {/* 수어 이미지 카드 */}
+          {target && (
+            <div className={`pm-sign-card ${result || ''}`} style={{ '--sc': target.color }}>
+              <div className="pm-card-tag">이 수어의 뜻은?</div>
+
+              {/* 손 모양 크게 */}
+              <div className="pm-hand-display">
+                <HandShapeSVG
+                  shape={target.params.수형.split(' ')[0].replace('+','').trim()}
+                  color={result === 'correct' ? '#10b981' : result === 'wrong' ? '#ef4444' : target.color}
+                  size={140}
+                />
+              </div>
+
+              {/* 수형 레이블 */}
+              <div className="pm-shape-label">
+                {HANDSHAPES[target.params.수형.split(' ')[0].replace('+','').trim()]?.label || ''}
+              </div>
+
+              {/* 결과 표시 */}
+              {result && (
+                <div className={`pm-result-badge ${result}`}>
+                  {result === 'correct' ? `✔ 정답! "${target.label}"` : `✕ 정답은 "${target.label}"`}
+                </div>
+              )}
+
+              {/* 힌트 버튼 */}
+              {!result && (
+                <button className="hint-btn" onClick={() => setShowHint(h => !h)}>
+                  {showHint ? '힌트 숨기기' : '💡 힌트'}
+                </button>
+              )}
+              {showHint && !result && (
+                <div className="pm-hint-params">
+                  <ParamBadge k="수위" v={target.params.수위} />
+                  <ParamBadge k="수동" v={target.params.수동} />
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      <div className="practice-layout">
-        <div className="signs-panel">
-          <p className="panel-hint">아래 수어 중 하나를 고르세요</p>
-          <div className={`signs-grid cols-${diff === 'easy' ? 2 : 3}`}>
-            {choices.map(s => {
-              const isChosen  = detected?.id === s.id
+          {/* 보기 그리드 */}
+          <div className={`pm-choices-grid cols-${choiceCount <= 3 ? 3 : choiceCount <= 4 ? 2 : 3}`}>
+            {choices.map((s) => {
+              const isChosen  = selected?.id === s.id
               const isCorrect = s.id === target?.id
-              let cls = 'sign-btn'
-              if (isChosen) cls += result === 'correct' ? ' btn-correct' : ' btn-wrong'
-              else if (detected && isCorrect) cls += ' btn-reveal'
+              let cls = 'pm-choice-btn'
+              if (result) {
+                if (isChosen && result === 'correct') cls += ' choice-correct'
+                else if (isChosen && result === 'wrong') cls += ' choice-wrong'
+                else if (isCorrect) cls += ' choice-reveal'
+              }
               return (
-                <button key={s.id} className={cls} style={{ '--c': s.color }}
-                  onClick={() => detect(s)} disabled={loading || aiLoad || !!result}>
-                  <HandShapeSVG shape={s.params.수형.split(' ')[0].replace('+','').trim()} color={isChosen || (detected && isCorrect) ? '#fff' : s.color} size={44} />
-                  <span className="sign-label">{s.label}</span>
+                <button
+                  key={s.id}
+                  className={cls}
+                  onClick={() => pick(s)}
+                  disabled={!!result}
+                >
+                  <span className="pm-choice-label">{s.label}</span>
+                  {s.korean && <span className="pm-choice-sub">{s.korean}</span>}
+                  {result && isChosen && <span className="pm-choice-mark">{result === 'correct' ? '✔' : '✕'}</span>}
+                  {result && !isChosen && isCorrect && <span className="pm-choice-mark reveal">✔</span>}
                 </button>
               )
             })}
           </div>
+
+          <button className="next-btn" onClick={next}>🔁 다음 문제</button>
         </div>
 
-        <div className="feedback-panel">
-          <div className={`result-card ${result || 'idle'}`}>
-            {loading
-              ? <div className="detecting"><div className="detect-spinner" /><span>채점 중...</span></div>
-              : detected
-                ? <>
-                    <HandShapeSVG shape={detected.params.수형.split(' ')[0].replace('+','').trim()} color={result === 'correct' ? '#10b981' : '#ef4444'} size={60} />
-                    <div className="res-label" style={{ color: detected.color }}>{detected.label}</div>
-                    <div className={`res-verdict ${result}`}>{result === 'correct' ? '✔ 정확합니다!' : '✕ 다시 시도하세요'}</div>
-                  </>
-                : <div className="idle-msg">수어를 선택하세요</div>}
-          </div>
-
+        {/* ── 오른쪽: AI 피드백 + 기록 ── */}
+        <div className="pm-right">
           <div className={`ai-feedback-box ${aiFb ? 'has-content' : ''} ${aiLoad ? 'loading' : ''}`}>
-            <div className="ai-header"><span className="ai-icon">🤖</span><span>AI 피드백</span>{aiLoad && <span className="ai-loading-dot" />}</div>
-            {aiLoad ? <div className="ai-skeleton"><div className="skel-line" /><div className="skel-line short" /></div>
-              : aiFb ? <p className="ai-text">{aiFb}</p>
-              : <p className="ai-placeholder">선택하면 AI 피드백이 표시됩니다</p>}
+            <div className="ai-header">
+              <span className="ai-icon">🤖</span>
+              <span>AI 피드백</span>
+              {aiLoad && <span className="ai-loading-dot" />}
+            </div>
+            {aiLoad
+              ? <div className="ai-skeleton"><div className="skel-line" /><div className="skel-line short" /></div>
+              : aiFb
+                ? <p className="ai-text">{aiFb}</p>
+                : <p className="ai-placeholder">수어를 보고 뜻을 골라보세요</p>}
           </div>
 
-          <button className="next-btn" onClick={next} disabled={loading}>🔁 다음 문제</button>
+          {/* 정답 파라미터 (결과 후) */}
+          {result && target && (
+            <div className="pm-answer-params">
+              <div className="pm-ap-title">📋 수어 정보</div>
+              {Object.entries(target.params).map(([k, v]) =>
+                PARAM_META[k] ? <ParamBadge key={k} k={k} v={v} /> : null
+              )}
+            </div>
+          )}
 
           <div className="history-box">
             <div className="history-title">🕐 최근 기록</div>
-            {history.length === 0 ? <div className="history-empty">기록 없음</div>
+            {history.length === 0
+              ? <div className="history-empty">기록 없음</div>
               : history.map((h, i) => (
                 <div key={i} className="history-row">
                   <span className="h-label">{h.label}</span>
+                  {!h.correct && <span className="h-chosen">→ {h.chosen}</span>}
                   <span className="h-time">{h.time}</span>
                   <span className={`h-result ${h.correct ? 'ok' : 'fail'}`}>{h.correct ? '✔' : '✕'}</span>
                 </div>
@@ -1170,7 +1283,7 @@ function AITestMode() {
 
   const SYSTEM = `당신은 공인 한국수어(KSL) 시험관입니다.
 시험 범위 수어:
-${catSigns.map(s => `- ${s.label} (${s.english}): 수형=${s.params.수형}, 수위=${s.params.수위}, 수동=${s.params.수동}`).join('\n')}
+${catSigns.map(s => `- ${s.label}: 수형=${s.params.수형}, 수위=${s.params.수위}, 수동=${s.params.수동}`).join('\n')}
 
 규칙:
 1. 총 ${TOTAL}문제. 항상 [질문 N/${TOTAL}] 형식으로 번호 표시.
