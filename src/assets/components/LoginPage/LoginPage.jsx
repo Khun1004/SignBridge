@@ -11,7 +11,7 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
 
     const isOrg = orgType && orgType !== 'personal'
 
-    // 환영 문구
+    // 환영 문구 설정
     const welcomeMsg = displayName
         ? isOrg
             ? `${displayName} 환영합니다.`
@@ -26,17 +26,34 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
             return
         }
         setLoading(true)
-        await new Promise(r => setTimeout(r, 600))
-        setLoading(false)
-        const name = displayName || form.email.split('@')[0]
-        onLogin(name, orgType)
-        onClose()
+
+        try {
+            // 백엔드 AuthController의 /api/auth/login 호출
+            const response = await fetch('http://localhost:8080/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(form)
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                // 로그인 성공 시 부모 컴포넌트에 정보 전달
+                onLogin(data.name, data.orgType)
+                onClose()
+            } else {
+                setError(data.message || '로그인에 실패했습니다.')
+            }
+        } catch (err) {
+            setError('서버와 통신 중 오류가 발생했습니다.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
         <div className="lp-overlay" onClick={onClose}>
             <div className="lp-modal" onClick={e => e.stopPropagation()}>
-
                 <button className="lp-close" onClick={onClose} aria-label="닫기">✕</button>
 
                 <div className="lp-header">
@@ -87,7 +104,6 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
                     계정이 없으신가요?{' '}
                     <button onClick={onSwitchToSignup}>회원가입</button>
                 </div>
-
             </div>
         </div>
     )

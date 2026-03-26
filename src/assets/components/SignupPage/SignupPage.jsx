@@ -39,13 +39,11 @@ const ORG_TYPES = [
 ]
 
 // ── 기관별 3단계 필드 ──
-// 기관 유형: 기관명 + 주소만 (필수) — 나머지는 이후 협의
-// 개인: 선택 정보만
 const ORG_FIELDS = {
     personal: [
-        { id: 'disabilityGrade', label: '장애 등급',        placeholder: '예: 청각장애 1급',  required: false },
-        { id: 'region',          label: '거주 지역',         placeholder: '예: 서울시 강남구', required: false },
-        { id: 'preferredSign',   label: '주로 사용하는 수어', required: false, type: 'select',
+        { id: 'disabilityGrade', label: '장애 등급',          placeholder: '예: 청각장애 1급', required: false },
+        { id: 'address',         label: '거주 지역 (주소)',    required: false },   // 주소 검색 UI 자동 사용
+        { id: 'preferredSign',   label: '주로 사용하는 수어',  required: false, type: 'select',
             options: ['한국수어', '미국수어(ASL)', '국제수어(ISL)', '기타'] },
     ],
     immigration: [
@@ -88,9 +86,6 @@ function isOrgType(orgType) {
 
 // ══════════════════════════════════════════
 //  메인 SignupPage
-// onSignup(displayName, orgType) 형태로 호출
-//   - 개인: displayName = 이름
-//   - 기관: displayName = officeName
 // ══════════════════════════════════════════
 export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
     const [step,    setStep]    = useState(1)
@@ -140,12 +135,31 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
     const handleBack = () => { setErrors({}); setStep(s => s - 1) }
 
     const handleSubmit = async () => {
-        if (!validateStep3()) return
-        setLoading(true)
-        await new Promise(r => setTimeout(r, 700))
-        setLoading(false)
-        setStep(4)
-    }
+        // 1. 유효성 검사 실행
+        if (!validateStep3()) return;
+
+        setLoading(true);
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(form)
+            });
+
+            if (response.ok) {
+                setStep(4); // 가입 완료 단계로 이동
+            } else {
+                // 백엔드에서 보낸 에러 메시지 확인 (예: "이미 존재하는 이메일입니다.")
+                const errorText = await response.text();
+                alert(errorText || '회원가입에 실패했습니다.');
+            }
+        } catch (err) {
+            console.error('Signup Error:', err);
+            alert('서버와 통신 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleGoLogin = () => {
         const displayName = isOrgType(form.orgType) ? form.officeName : form.name
@@ -346,7 +360,7 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                                         ))}
                                     </select>
                                 ) : field.id === 'address' ? (
-                                    /* ── 주소 검색 필드 ── */
+                                    /* ── 주소 검색 필드 (개인 + 기관 공통) ── */
                                     <div className="sp-address-wrap">
                                         {form.zonecode && (
                                             <div className="sp-zonecode">📮 우편번호 {form.zonecode}</div>

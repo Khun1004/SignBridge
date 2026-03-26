@@ -36,6 +36,16 @@ const SAMPLE_NOTIFICATIONS = [
 // ── 알림 드롭다운 ──
 function NotificationDropdown({ notifications, onClose, onMarkAll }) {
     const ref = useRef(null)
+    const [status, setStatus] = useState('')
+
+    useEffect(() => {
+        // 아까 백엔드에서 만든 /api/status 엔드포인트 호출
+        fetch('http://localhost:8080/api/status')
+            .then(res => res.json())
+            .then(data => setStatus(data.project + " 서버 상태: " + data.status))
+            .catch(err => console.error("연결 실패:", err))
+    }, [])
+
     useEffect(() => {
         const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
         document.addEventListener('mousedown', handler)
@@ -201,7 +211,7 @@ export default function App() {
         if (showAbout) return <About onBack={() => { setShowAbout(false); setTab('home') }} />
         if (tab === 'home')     return <Home onDemo={() => setShowDemo(true)} onAbout={() => setShowAbout(true)} />
         if (tab === 'practice') return <Practice />
-        if (tab === 'trans')    return <TranslatePage onEndConversation={handleEndConversation} />
+        if (tab === 'trans')    return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} />
         if (tab === 'dict')     return <DictPage query={query} />
         if (tab === 'about')    return <About onBack={() => setTab('home')} />
         if (tab === 'my')       return <MyPage displayName={displayName} orgType={orgType} />
