@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import './MyPage.css'
 import ImmigrationCasePage from '../My/ImmigrationCasePage/ImmigrationCasePage.jsx'
 import PoliceCasePage      from '../My/PoliceCasePage/PoliceCasePage.jsx'
+import { myPageApi } from '../../../assets/components/api/api.jsx';
 
 // ══════════════════════════════════════════
 //  상수
@@ -311,10 +312,36 @@ function ArrowIcon() {
 //  - orgType이 있으면 → 선택 화면 없이 바로 해당 화면
 //  - orgType이 없으면 → 기존 선택 화면 표시
 // ══════════════════════════════════════════
-export default function MyPage({ displayName = '', orgType = '' }) {
-  // orgType이 이미 있으면 바로 그 화면으로, 없으면 선택 화면
-  const initialView = orgType || 'select'
-  const [view, setView] = useState(initialView)
+export default function MyPage({ displayName = '', orgType = '', userEmail = '' }) {
+    const initialView = orgType || 'select'
+    const [view, setView] = useState(initialView)
+
+    // 데이터 저장을 위한 상태 추가
+    const [profileData, setProfileData] = useState(null);
+    const [caseList, setCaseList] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const loadMyData = async () => {
+            if (!userEmail) return; // 이메일이 없으면 요청하지 않음
+
+            setLoading(true);
+            try {
+                // 프로필 정보와 케이스 목록을 가져와 상태에 저장
+                const profile = await myPageApi.getProfile(userEmail);
+                const cases = await myPageApi.getCases(userEmail);
+
+                setProfileData(profile);
+                setCaseList(cases); // 이제 'profile' is assigned a value but never used 에러가 사라집니다.
+            } catch (err) {
+                console.error("데이터 로드 실패:", err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadMyData();
+    }, [userEmail]);
 
   // orgType prop이 바뀌면(로그인 직후 등) view도 동기화
   useEffect(() => {
@@ -359,19 +386,20 @@ export default function MyPage({ displayName = '', orgType = '' }) {
   }
 
   // ── 개인 ──
-  if (view === 'personal') {
-    return (
-        <div className="my-page">
-          <div className="view-wrap">
-            {/* orgType이 없었던 경우(선택 화면 경유)만 뒤로가기 표시 */}
-            {!orgType && (
-                <button className="back-btn" onClick={() => setView('select')}>← 용도 선택으로</button>
-            )}
-            <PersonalMyPage displayName={displayName} />
-          </div>
-        </div>
-    )
-  }
+    if (view === 'personal') {
+        return (
+            <div className="my-page">
+                <div className="view-wrap">
+                    {!orgType && <button className="back-btn" onClick={() => setView('select')}>← 뒤로</button>}
+                    {/* DB에서 가져온 실제 이름을 우선 표시 */}
+                    <PersonalMyPage
+                        displayName={profileData?.name || displayName}
+                        profile={profileData}
+                    />
+                </div>
+            </div>
+        )
+    }
 
   // ── 출입국 ──
   if (view === 'immigration') {

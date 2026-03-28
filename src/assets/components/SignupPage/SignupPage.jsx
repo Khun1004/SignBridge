@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './SignupPage.css'
 import SignBridgeLogo from '../../SignBridge.png'
+import { authApi } from '../../../assets/components/api/api.jsx';
 
 // ── 카카오 우편번호 서비스 동적 로드 ──
 function useDaumPostcode() {
@@ -135,27 +136,14 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
     const handleBack = () => { setErrors({}); setStep(s => s - 1) }
 
     const handleSubmit = async () => {
-        // 1. 유효성 검사 실행
         if (!validateStep3()) return;
-
         setLoading(true);
-        try {
-            const response = await fetch('http://localhost:8080/api/auth/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form)
-            });
 
-            if (response.ok) {
-                setStep(4); // 가입 완료 단계로 이동
-            } else {
-                // 백엔드에서 보낸 에러 메시지 확인 (예: "이미 존재하는 이메일입니다.")
-                const errorText = await response.text();
-                alert(errorText || '회원가입에 실패했습니다.');
-            }
+        try {
+            await authApi.signup(form);
+            setStep(4); // 가입 완료 단계로 이동
         } catch (err) {
-            console.error('Signup Error:', err);
-            alert('서버와 통신 중 오류가 발생했습니다.');
+            alert(err.message);
         } finally {
             setLoading(false);
         }

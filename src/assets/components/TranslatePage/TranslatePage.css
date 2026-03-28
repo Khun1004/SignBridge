@@ -111,6 +111,16 @@
 .badge-rec  { font-size:11px; font-weight:700; color:var(--err);    background:#fef2f2; padding:3px 8px; border-radius:20px; }
 .badge-live { font-size:11px; font-weight:700; color:var(--accent); background:#f0eeff; padding:3px 8px; border-radius:20px; }
 
+.place-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #7c6fff;
+  background: #f0eeff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-right: 12px;
+}
+
 /* ── 카메라 ── */
 .cam-row { display:flex; gap:8px; margin-bottom:10px; }
 .btn-start { background:var(--sign);  color:#fff; border:none; border-radius:9px; padding:8px 16px; font-size:13px; font-weight:700; font-family:var(--font); cursor:pointer; transition:opacity .15s; }

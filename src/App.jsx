@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import SignBridgeLogo from './assets/SignBridge.png'
-
+import { commonApi } from './assets/components/api/api.jsx';
 import About            from './assets/components/About/About.jsx'
 import ConversationPage from './assets/components/ConversationPage/ConversationPage.jsx'
 import Practice         from './assets/components/Practice/Practice.jsx'
@@ -37,6 +37,13 @@ const SAMPLE_NOTIFICATIONS = [
 function NotificationDropdown({ notifications, onClose, onMarkAll }) {
     const ref = useRef(null)
     const [status, setStatus] = useState('')
+
+    useEffect(() => {
+        // 직접 fetch 대신 api 객체 사용
+        commonApi.getStatus()
+            .then(data => setStatus(`${data.project} 서버 상태: ${data.status}`))
+            .catch(err => console.error("연결 실패:", err));
+    }, []);
 
     useEffect(() => {
         // 아까 백엔드에서 만든 /api/status 엔드포인트 호출
@@ -136,6 +143,7 @@ export default function App() {
     const [loggedIn,     setLoggedIn]     = useState(false)
     const [displayName,  setDisplayName]  = useState('')     // 개인=이름, 기관=기관명
     const [orgType,      setOrgType]      = useState('')     // 'personal' | 'hospital' | ...
+    const [userEmail, setUserEmail] = useState('')
 
     // 알림 상태
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
@@ -173,9 +181,10 @@ export default function App() {
     const handleLogoClick            = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('home'); setQuery('') }
 
     // 로그인 성공: LoginPage → onLogin(name, orgType)
-    const handleLogin = (name, type) => {
+    const handleLogin = (name, type, email) => {
         setDisplayName(name)
         setOrgType(type || '')
+        setUserEmail(email || '') // 이메일 저장
         setLoggedIn(true)
         setAuthModal(null)
     }
@@ -192,6 +201,7 @@ export default function App() {
         setLoggedIn(false)
         setDisplayName('')
         setOrgType('')
+        setUserEmail('') // 이메일 초기화
         setTab('home')
     }
 
@@ -214,7 +224,13 @@ export default function App() {
         if (tab === 'trans')    return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} />
         if (tab === 'dict')     return <DictPage query={query} />
         if (tab === 'about')    return <About onBack={() => setTab('home')} />
-        if (tab === 'my')       return <MyPage displayName={displayName} orgType={orgType} />
+        if (tab === 'my') return (
+            <MyPage
+                displayName={displayName}
+                orgType={orgType}
+                userEmail={userEmail} // 이메일 전달
+            />
+        )
         return null
     }
 

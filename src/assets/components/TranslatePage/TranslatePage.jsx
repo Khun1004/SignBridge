@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import './TranslatePage.css'
 import useLSTMSign from '../../ai/Uselstmsign.js'
+import { translateApi } from '../../../assets/components/api/api.jsx';
 
 // ══════════════════════════════════════════════════════════════
 //  ❶ Teachable Machine 설정 (선택사항)
@@ -12,20 +13,23 @@ const TM_THRESHOLD = 0.80
 const TM_ENABLED   = !TM_MODEL_URL.includes('YOUR_MODEL_ID')
 
 // ══════════════════════════════════════════════════════════════
-//  ❷ API 호출 — 백엔드 프록시 (API 키 브라우저 노출 방지)
+//  ❷ 장소 라벨 매핑
 // ══════════════════════════════════════════════════════════════
-const API_BASE = 'http://localhost:8000'
+const PLACE_LABEL = {
+    personal:    '개인 사용자',
+    immigration: '출입국관리소',
+    airport:     '공항',
+    hospital:    '병원',
+    police:      '경찰서',
+}
 
+// ══════════════════════════════════════════════════════════════
+//  ❸ API 호출 — api.jsx의 translateApi 사용 (vite proxy → Spring Boot)
+// ══════════════════════════════════════════════════════════════
 async function buildSubtitle(words) {
     if (!words.length) return null
     try {
-        const res = await fetch(`${API_BASE}/api/subtitle`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ words }),
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const d = await res.json()
+        const d = await translateApi.buildSubtitle(words)
         return d.sentence || null
     } catch (e) {
         // 서버 연결 실패 시 단순 연결로 fallback
@@ -35,20 +39,14 @@ async function buildSubtitle(words) {
 
 async function fetchSignGuide(text) {
     try {
-        const res = await fetch(`${API_BASE}/api/sign-guide`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text }),
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return await res.json()
+        return await translateApi.getSignGuide(text)
     } catch (e) {
         return null
     }
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ❸ DTW 엔진 — 동적 시간 왜곡 거리 기반 동작 인식
+//  ❹ DTW 엔진 — 동적 시간 왜곡 거리 기반 동작 인식
 // ══════════════════════════════════════════════════════════════
 function normalizeLandmarks(lm) {
     const w = lm[0], m = lm[9]
@@ -111,7 +109,7 @@ class DTWRec {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ❹ Rule-based 제스처 (1차 빠른 필터)
+//  ❺ Rule-based 제스처 (1차 빠른 필터)
 //  손가락 관절 각도로 정적 포즈를 즉시 판단
 // ══════════════════════════════════════════════════════════════
 const d2 = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
@@ -144,7 +142,7 @@ const classify = lm => {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ❺ 3중 투표 — Rule(1.0) + DTW(1.5) + LSTM(3.0) + TM(2.5)
+//  ❻ 3중 투표 — Rule(1.0) + DTW(1.5) + LSTM(3.0) + TM(2.5)
 //  LSTM이 가장 높은 가중치를 갖습니다
 // ══════════════════════════════════════════════════════════════
 function vote({ ruleName, dtwResult, lstmName, lstmConf, tmName, tmProb }) {
@@ -171,7 +169,7 @@ function vote({ ruleName, dtwResult, lstmName, lstmConf, tmName, tmProb }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ❻ 상수
+//  ❼ 상수
 // ══════════════════════════════════════════════════════════════
 const STABLE   = 15      // Rule이 이 프레임 이상 유지되어야 확정
 const COOLDOWN = 2500    // 같은 단어 재인식 최소 간격 (ms)
@@ -184,7 +182,7 @@ const A2P = {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ❼ SVG 캐릭터 + 손 모양
+//  ❽ SVG 캐릭터 + 손 모양
 // ══════════════════════════════════════════════════════════════
 const POSE = {
     idle:      { a: -15,  h: 'relaxed',   c: '#7c6fff', l: '',           m: 'neutral' },
@@ -372,7 +370,7 @@ function CharSVG({ pose = 'idle', anim = false }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ❽ AIPanel — AI 수어 시연 패널
+//  ❾ AIPanel — AI 수어 시연 패널
 // ══════════════════════════════════════════════════════════════
 function AIPanel({ guide, loading }) {
     const [idx, setIdx] = useState(0)
@@ -447,7 +445,7 @@ function AIPanel({ guide, loading }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ❾ 미니 손 캔버스 애니메이션
+//  ❿ 미니 손 캔버스 애니메이션
 // ══════════════════════════════════════════════════════════════
 function drawMiniHand(ctx, { thumb, index, middle, ring, pinky, td = 'up' }, color) {
     ctx.beginPath(); ctx.ellipse(0, 7, 20, 16, 0, 0, Math.PI * 2)
@@ -510,7 +508,7 @@ function MiniHand({ pose = 'wave', size = 60, running = true }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ❿ TTS
+//  ⓫ TTS
 // ══════════════════════════════════════════════════════════════
 const speak = (text, rate = 0.9) => {
     if (!window.speechSynthesis) return
@@ -523,7 +521,7 @@ const speak = (text, rate = 0.9) => {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ⓫ 자막 패널 — 문장 생성 → 맞음 확인 → 전송 흐름
+//  ⓬ 자막 패널 — 문장 생성 → 맞음 확인 → 전송 흐름
 // ══════════════════════════════════════════════════════════════
 function SubPanel({ tokens, text, loading, history, onFlush, onClear, onConfirm, tmStatus, lstmStatus }) {
     const tmDot  = { ready: '#10b981', loading: '#f59e0b', error: '#ef4444', off: '#94a3b8' }[tmStatus]  || '#94a3b8'
@@ -531,7 +529,6 @@ function SubPanel({ tokens, text, loading, history, onFlush, onClear, onConfirm,
     const lstmDot = { ready: '#10b981', connecting: '#f59e0b', disconnected: '#94a3b8', error: '#ef4444' }[lstmStatus] || '#94a3b8'
     const lstmLbl = { ready: 'LSTM 연결됨 ✓', connecting: 'LSTM 연결 중...', disconnected: 'LSTM 미연결', error: 'LSTM 오류' }[lstmStatus] || 'LSTM 미연결'
 
-    // 문장이 생성된 상태 (확인 대기)
     const hasSentence = !loading && !!text
 
     return (
@@ -545,7 +542,6 @@ function SubPanel({ tokens, text, loading, history, onFlush, onClear, onConfirm,
                 <span className="tm-label">{lstmLbl}</span>
             </div>
 
-            {/* ── 문장 생성 중 ── */}
             {loading && (
                 <div className="subtitle-loading">
                     <div className="typing-dots"><span /><span /><span /></div>
@@ -553,7 +549,6 @@ function SubPanel({ tokens, text, loading, history, onFlush, onClear, onConfirm,
                 </div>
             )}
 
-            {/* ── 문장 생성 전: 안내 + 수동 생성 버튼 ── */}
             {!loading && !text && (
                 <div className="sub-idle-area">
                     <p className="subtitle-hint">수어 동작을 하면 자동으로 문장이 생성됩니다</p>
@@ -563,7 +558,6 @@ function SubPanel({ tokens, text, loading, history, onFlush, onClear, onConfirm,
                 </div>
             )}
 
-            {/* ── 문장 생성 완료: 확인 카드 ── */}
             {hasSentence && (
                 <div className="sentence-confirm-card">
                     <div className="scc-label">💬 생성된 문장</div>
@@ -577,7 +571,6 @@ function SubPanel({ tokens, text, loading, history, onFlush, onClear, onConfirm,
                 </div>
             )}
 
-            {/* ── 이전 대화 이력 ── */}
             {history.length > 0 && (
                 <div className="subtitle-history">
                     <div className="hist-label">📋 이전 문장</div>
@@ -594,9 +587,9 @@ function SubPanel({ tokens, text, loading, history, onFlush, onClear, onConfirm,
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ⓬ 메인 컴포넌트
+//  ⓭ 메인 컴포넌트
 // ══════════════════════════════════════════════════════════════
-export default function TranslatePage({ onEndConversation }) {
+export default function TranslatePage({ onEndConversation, place = 'immigration' }) {
     // ── 상태 ──────────────────────────────────────────────────
     const [mpError,      setMpError]      = useState(null)
     const [cameraOn,     setCameraOn]     = useState(false)
@@ -639,28 +632,20 @@ export default function TranslatePage({ onEndConversation }) {
     const ttsRef       = useRef(true)
     const dtwRef       = useRef(new DTWRec())
     const tmRef        = useRef(null)
-    const tmResultRef  = useRef(null)   // TM 비동기 결과 보관 (중복 pushTok 방지)
+    const tmResultRef  = useRef(null)
     const flushTRef    = useRef(null)
     const tokRef       = useRef([])
 
     // ── LSTM WebSocket 훅 ─────────────────────────────────────
-    // useLSTMSign이 server.py와 WebSocket으로 연결됩니다.
-    // onGesture: LSTM이 단어를 확정하면 호출됨
-    // onSentence: server.py가 자동으로 자막을 생성하면 호출됨
     const { lstmStatus, lstmGesture, sendLandmarks } = useLSTMSign({
         onGesture: useCallback((name, conf) => {
-            // LSTM이 인식한 결과를 토큰 버퍼에 추가
-            // (이미 Rule/DTW에서 같은 단어가 추가됐을 경우를 대비해
-            //  COOLDOWN 체크는 server.py에서 이미 처리함)
             if (name && conf >= 0.75) {
                 pushTok(name)
             }
-        }, []),  // pushTok은 아래에서 선언되므로 의존성 별도 처리
+        }, []),
         onSentence: useCallback((sentence) => {
-            // server.py 자동 생성 문장 → SubPanel 확인 카드로 표시
             if (sentence) {
                 setSubText(sentence)
-                // TTS·전송은 사용자가 "맞음·전송하기" 눌렀을 때 confirmSentence에서 처리
             }
         }, []),
     })
@@ -703,18 +688,16 @@ export default function TranslatePage({ onEndConversation }) {
         setSubLoading(false)
         if (s) {
             setSubText(s)
-            // TTS는 사용자가 "맞음·전송" 확인 후에만 재생
         }
     }, [])
 
     // ── 토큰 추가 ─────────────────────────────────────────────
-    // setSubTokens 콜백 안에서 tokRef를 동기화해 stale 문제 방지
     const pushTok = useCallback((name) => {
         const w = name.replace(/\p{Emoji}/gu, '').trim()
         if (!w) return
         setSubTokens(prev => {
             const next = [...prev, w]
-            tokRef.current = next   // setState 콜백 내부에서 동기화
+            tokRef.current = next
             return next
         })
         clearTimeout(flushTRef.current)
@@ -768,15 +751,6 @@ export default function TranslatePage({ onEndConversation }) {
         }
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  onResults — Rule + DTW + TM 3중 투표
-    //  (LSTM은 useLSTMSign의 onGesture 콜백으로 별도 수신)
-    //
-    //  핵심 수정사항:
-    //  1. tmStatusRef를 사용해 stale closure 방지
-    //  2. TM 결과를 tmResultRef에만 저장 (pushTok은 vote 후 1번만)
-    //  3. LSTM 랜드마크를 sendLandmarks로 전달
-    // ══════════════════════════════════════════════════════════
     const tmStatusRef = useRef(tmStatus)
     useEffect(() => { tmStatusRef.current = tmStatus }, [tmStatus])
 
@@ -796,13 +770,9 @@ export default function TranslatePage({ onEndConversation }) {
             window.drawConnectors?.(ctx, lm, window.HAND_CONNECTIONS, { color: '#7c6fff', lineWidth: 2 })
             window.drawLandmarks?.(ctx, lm, { color: '#fff', lineWidth: 1, radius: 3, fillColor: '#7c6fff' })
 
-            // ── LSTM 서버로 랜드마크 전송 (useLSTMSign이 처리) ──
             sendLandmarks(lm)
-
-            // ── DTW 버퍼 업데이트 ──
             dtwRef.current.push(lm)
 
-            // ── TM 비동기 실행 — 결과만 ref에 저장, pushTok 안 함 ──
             if (tmRef.current && tmStatusRef.current === 'ready') {
                 tmRef.current.estimatePose(vRef.current)
                     .then(({ posenetOutput }) => tmRef.current.predict(posenetOutput))
@@ -818,15 +788,13 @@ export default function TranslatePage({ onEndConversation }) {
                     .catch(() => { tmResultRef.current = null })
             }
 
-            // ── Rule + DTW 동기 실행 ──
             const rg   = classify(lm)
             const dtwR = dtwRef.current.recognize()
 
-            // TM 결과를 ref에서 읽어와 함께 vote
             const fv = vote({
                 ruleName:  rg?.name || null,
                 dtwResult: dtwR,
-                lstmName:  lstmGesture?.name || null,  // 최신 LSTM 결과 참조
+                lstmName:  lstmGesture?.name || null,
                 lstmConf:  lstmGesture?.conf || 0,
                 tmName:    tmResultRef.current?.name || null,
                 tmProb:    tmResultRef.current?.prob || 0,
@@ -846,13 +814,12 @@ export default function TranslatePage({ onEndConversation }) {
                         stabCnt.current = 0; stabName.current = null; setStabProg(0)
                         dtwRef.current.learn(rg.name)
 
-                        // vote 결과 우선, 없으면 Rule 결과 사용
                         const fin = (fv?.name ? RULES.find(r => r.name === fv.name) || rg : rg)
                         setPendingSign(`${fin.emoji} ${fin.name}`)
                         setSignMeaning(fin.meaning)
                         setSignPose(A2P[fin.pose] || 'wave')
                         if (ttsRef.current) speak(fin.name)
-                        pushTok(fin.name)   // 이모지 없이 클린 텍스트로 저장
+                        pushTok(fin.name)
                         dtwRef.current.reset()
                         tmResultRef.current = null
                     }
@@ -898,17 +865,13 @@ export default function TranslatePage({ onEndConversation }) {
         if (!runRef.current) init()
     }
 
-    // ── 생성 문장 확인 후 전송 ("맞음·전송하기" 버튼) ────────
+    // ── 생성 문장 확인 후 전송 ────────────────────────────────
     const confirmSentence = useCallback((sentence) => {
         if (!sentence) return
-        // 대화 기록에 추가
         addMsg('sign', sentence, null)
-        // 이력에 저장
         const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         setSubHist(p => [...p.slice(-9), { text: sentence, time: t }])
-        // TTS 재생 (확인 완료 후)
         if (ttsRef.current) speak(sentence)
-        // 자막 초기화 → 다음 인식 준비
         setSubText('')
         setSubTokens([])
         tokRef.current = []
@@ -932,7 +895,7 @@ export default function TranslatePage({ onEndConversation }) {
         return { ...s, animType: f }
     }
 
-    // ── AI 수어 가이드 (백엔드 프록시) ──────────────────────
+    // ── AI 수어 가이드 ────────────────────────────────────────
     const getAI = async (text) => {
         setAiLoading(true); setAiGuide(null)
         try {
@@ -941,7 +904,6 @@ export default function TranslatePage({ onEndConversation }) {
             data.steps = data.steps.map(fixAnim)
             setAiGuide(data)
         } catch (e) {
-            // 서버 연결 실패 시 간단한 fallback 가이드
             const gi = /안녕|반갑/i.test(text), po = /좋|네|감사/i.test(text), ne = /아니|싫/i.test(text)
             setAiGuide({
                 summary: text.slice(0, 12), urgency: gi ? 'greeting' : 'normal',
@@ -1031,6 +993,10 @@ export default function TranslatePage({ onEndConversation }) {
             )}
 
             <div className="top-bar">
+                {/* ── 장소 표시 (로그인 후 orgType 기반) ── */}
+                <div className="place-badge">
+                    📍 {PLACE_LABEL[place] || place}
+                </div>
                 <label className="tts-toggle">
                     <input type="checkbox" checked={ttsOn} onChange={e => setTtsOn(e.target.checked)} />
                     <span className="tts-slider" />

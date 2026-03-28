@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './LoginPage.css'
 import SignBridgeLogo from '../../SignBridge.png'
+import { authApi } from '../../../assets/components/api/api.jsx';
 
 // displayName : 개인=이름, 기관=기관명 (SignupPage 완료 후 전달받거나 API 응답값 사용)
 // orgType     : 'personal' | 'immigration' | 'airport' | 'hospital' | 'police' | ''
@@ -19,37 +20,24 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
         : 'SignBridge에 오신 것을 환영합니다.'
 
     const handleSubmit = async (e) => {
-        e.preventDefault()
-        setError('')
-        if (!form.email || !form.password) {
-            setError('이메일과 비밀번호를 입력해주세요.')
-            return
-        }
-        setLoading(true)
+        e.preventDefault();
+        setError('');
+        setLoading(true);
 
         try {
-            // 백엔드 AuthController의 /api/auth/login 호출
-            const response = await fetch('http://localhost:8080/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form)
-            })
+            // api.tsx의 login 함수 사용
+            const data = await authApi.login(form);
 
-            const data = await response.json()
-
-            if (response.ok) {
-                // 로그인 성공 시 부모 컴포넌트에 정보 전달
-                onLogin(data.name, data.orgType)
-                onClose()
-            } else {
-                setError(data.message || '로그인에 실패했습니다.')
-            }
+            // 성공 시 App.jsx에서 전달받은 onLogin 실행
+            onLogin(data.name, data.orgType, data.email);
+            onClose();
         } catch (err) {
-            setError('서버와 통신 중 오류가 발생했습니다.')
+            // api.tsx에서 throw한 에러 메시지가 여기 잡힙니다.
+            setError(err.message);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     return (
         <div className="lp-overlay" onClick={onClose}>
