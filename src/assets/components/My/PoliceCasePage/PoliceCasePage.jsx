@@ -81,8 +81,8 @@ function CaseDetail({ c, onBack }) {
                     <div className="case-detail-num">사건번호: {c.caseNum}</div>
                 </div>
                 <span className={`case-status-badge ${c.statusType}`}>
-          {c.flagged ? '⚠️ ' : '✅ '}{c.status}
-        </span>
+                    {c.flagged ? '⚠️ ' : '✅ '}{c.status}
+                </span>
             </div>
 
             <div className="case-people-grid">
@@ -152,7 +152,9 @@ function CaseDetail({ c, onBack }) {
 }
 
 /* ── 목록 화면 ── */
-export default function PoliceCasePage({ onBack }) {
+// displayName : 회원가입의 officeName (경찰서명)
+// profile     : 회원가입 전체 정보 { name, email, orgCode, address, addressDetail, zonecode, ... }
+export default function PoliceCasePage({ onBack, displayName = '', profile = null }) {
     const [selected, setSelected] = useState(null)
     const [search,   setSearch]   = useState('')
 
@@ -167,6 +169,14 @@ export default function PoliceCasePage({ onBack }) {
     const flagged  = CASES.filter(c => c.flagged).length
     const complete = CASES.filter(c => c.statusType === 'ok').length
 
+    // 회원가입 정보에서 표시할 값 추출
+    const officeName    = displayName || profile?.officeName || '경찰서'
+    const orgCode       = profile?.orgCode       || '-'
+    const address       = profile?.address       || '-'
+    const addressDetail = profile?.addressDetail || ''
+    const zonecode      = profile?.zonecode      || ''
+    const email         = profile?.email         || '-'
+
     return (
         <div className="case-page" style={{ '--accent': ACCENT, '--accent-light': 'rgba(220,38,38,0.07)', '--accent-border': 'rgba(220,38,38,0.2)' }}>
 
@@ -175,6 +185,32 @@ export default function PoliceCasePage({ onBack }) {
                 <div className="case-official-bar">👮 대한민국 경찰청</div>
                 <h1 className="case-title">청각장애인 당사자 목록</h1>
                 <p className="case-subtitle">이름을 선택하면 당사자와 담당 경찰관 정보를 확인할 수 있습니다.</p>
+            </div>
+
+            {/* ── 회원가입 정보 카드 ── */}
+            <div className="case-org-info-card" style={{ borderColor: ACCENT + '44', background: 'rgba(220,38,38,0.04)' }}>
+                <div className="case-org-info-title" style={{ color: ACCENT }}>🏢 기관 정보</div>
+                <div className="case-org-info-grid">
+                    <div className="case-org-info-row">
+                        <span className="case-org-info-label">경찰서명</span>
+                        <span className="case-org-info-value">{officeName}</span>
+                    </div>
+                    <div className="case-org-info-row">
+                        <span className="case-org-info-label">경찰청 기관 코드</span>
+                        <span className="case-org-info-value">{orgCode}</span>
+                    </div>
+                    <div className="case-org-info-row">
+                        <span className="case-org-info-label">주소</span>
+                        <span className="case-org-info-value">
+                            {zonecode && <span className="case-org-zonecode">📮 {zonecode} </span>}
+                            {address}{addressDetail && ` ${addressDetail}`}
+                        </span>
+                    </div>
+                    <div className="case-org-info-row">
+                        <span className="case-org-info-label">담당자 이메일</span>
+                        <span className="case-org-info-value">{email}</span>
+                    </div>
+                </div>
             </div>
 
             {/* 통계 */}

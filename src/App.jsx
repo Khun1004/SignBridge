@@ -182,11 +182,17 @@ export default function App() {
 
     // 로그인 성공: LoginPage → onLogin(name, orgType)
     const handleLogin = (name, type, email) => {
-        setDisplayName(name)
-        setOrgType(type || '')
-        setUserEmail(email || '') // 이메일 저장
-        setLoggedIn(true)
-        setAuthModal(null)
+        setDisplayName(name);
+        setOrgType(type || '');
+        setUserEmail(email || '');
+
+        // 브라우저를 껐다 켜도 유지되도록 저장
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('displayName', name);
+        localStorage.setItem('orgType', type);
+
+        setLoggedIn(true);
+        setAuthModal(null);
     }
 
     // 회원가입 완료 → 로그인 모달로 전환 시: SignupPage → onSignup(name, orgType)
@@ -210,11 +216,9 @@ export default function App() {
     const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
 
     const renderMain = () => {
-        if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} onBack={handleBackToConv} />
-        if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} />
-        if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} onBack={handleBackToConv} />
-        if (registerScreen === 'register_airport')     return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} />
-        if (registerScreen === 'register_hospital')    return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} />
+        if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} onBack={handleBackToConv} userEmail={userEmail} />
+        if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} userEmail={userEmail} />
+        if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} onBack={handleBackToConv} userEmail={userEmail} />
         if (registerScreen === 'registerSelect')       return <RegisterPage messages={convMessages} onBack={handleBackFromRegisterSelect} onSelect={handleSelectRegisterType} />
         if (showConv)  return <ConversationPage messages={convMessages} onBack={handleBackToTranslate} onRegister={handleGoRegister} orgType={orgType} />
         if (showDemo)  return <DemoPage  onBack={() => { setShowDemo(false); setTab('home') }} />

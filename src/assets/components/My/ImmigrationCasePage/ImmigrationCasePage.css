@@ -28,6 +28,57 @@
     --shadow-md:  0 8px 28px rgba(0,0,0,0.10);
 }
 
+/* ── 기관 정보 카드 (회원가입 데이터 표시) ── */
+.case-org-info-card {
+    border: 1.5px solid;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+
+.case-org-info-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 14px;
+}
+
+.case-org-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 24px;
+}
+
+@media (max-width: 600px) {
+    .case-org-info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.case-org-info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.case-org-info-label {
+    font-size: 0.74rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.case-org-info-value {
+    font-size: 0.9rem;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.case-org-zonecode {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 400;
+}
+
 /* ────────────────────────────
    레이아웃 — 전체 너비 사용
 ──────────────────────────── */

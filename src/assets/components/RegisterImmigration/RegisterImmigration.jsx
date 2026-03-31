@@ -1,34 +1,47 @@
 import { useState } from 'react'
 import './RegisterImmigration.css'
+import { immigrationApi } from '../../../assets/components/api/api.jsx'
 
-export default function RegisterImmigration({ messages = [], onBack }) {
+export default function RegisterImmigration({ messages = [], onBack, userEmail = '' }) {
     const [officerName,   setOfficerName]   = useState('')
     const [applicantName, setApplicantName] = useState('')
     const [caseNumber,    setCaseNumber]    = useState('')
     const [purpose,       setPurpose]       = useState('')
     const [saved,         setSaved]         = useState(false)
+    const [saving,        setSaving]        = useState(false)
+    const [error,         setError]         = useState('')
 
     const now = new Date().toLocaleString('ko-KR')
     const signCount  = messages.filter(m => m.type === 'sign').length
     const voiceCount = messages.filter(m => m.type === 'voice').length
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!officerName.trim())   { alert('담당 직원 이름을 입력해 주세요.'); return }
         if (!applicantName.trim()) { alert('신청인 이름을 입력해 주세요.'); return }
-        const record = {
-            id:            Date.now(),
-            type:          'immigration',
-            officerName:   officerName.trim(),
-            applicantName: applicantName.trim(),
-            caseNumber:    caseNumber.trim(),
-            purpose:       purpose.trim(),
-            messages,
-            savedAt:       now,
+
+        setSaving(true)
+        setError('')
+        try {
+            // signs: 수어(sign) 메시지 텍스트 배열
+            // voice: 음성(voice) 메시지 텍스트 배열
+            const signs = messages.filter(m => m.type === 'sign').map(m => m.text)
+            const voice = messages.filter(m => m.type === 'voice').map(m => m.text)
+
+            await immigrationApi.saveRecord({
+                userEmail:     userEmail,
+                officerName:   officerName.trim(),
+                applicantName: applicantName.trim(),
+                caseNumber:    caseNumber.trim(),
+                purpose:       purpose.trim(),
+                signs,
+                voice,
+            })
+            setSaved(true)
+        } catch (err) {
+            setError('저장 중 오류가 발생했습니다: ' + err.message)
+        } finally {
+            setSaving(false)
         }
-        const existing = JSON.parse(localStorage.getItem('signbridge_immigration') || '[]')
-        existing.push(record)
-        localStorage.setItem('signbridge_immigration', JSON.stringify(existing))
-        setSaved(true)
     }
 
     if (saved) return (
@@ -69,7 +82,7 @@ export default function RegisterImmigration({ messages = [], onBack }) {
                     <span className="ri-preview-meta">총 {messages.length}개
                         &nbsp;<span className="ri-tag purple">수어 {signCount}</span>
                         &nbsp;<span className="ri-tag blue">음성 {voiceCount}</span>
-          </span>
+                    </span>
                 </div>
                 <div className="ri-preview-list">
                     {messages.length === 0
@@ -107,7 +120,10 @@ export default function RegisterImmigration({ messages = [], onBack }) {
                         <input className="ri-input" placeholder="예: 체류연장, 귀화신청 등" value={purpose} onChange={e => setPurpose(e.target.value)} />
                     </div>
                 </div>
-                <button className="ri-btn-primary" onClick={handleSave}>📄 공식 등록하기</button>
+                {error && <p className="ri-error">⚠️ {error}</p>}
+                <button className="ri-btn-primary" onClick={handleSave} disabled={saving}>
+                    {saving ? '⏳ 저장 중...' : '📄 공식 등록하기'}
+                </button>
             </div>
 
         </div>

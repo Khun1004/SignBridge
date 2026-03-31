@@ -1,6 +1,5 @@
 const BASE_URL = '/api';
 
-// 공통 fetch 래퍼 함수
 async function request(path, options = {}) {
     const response = await fetch(`${BASE_URL}${path}`, {
         ...options,
@@ -22,12 +21,10 @@ async function request(path, options = {}) {
     return response.text();
 }
 
-// 서버 상태 확인 API
 export const commonApi = {
     getStatus: () => request('/status'),
 };
 
-// 인증 관련 API
 export const authApi = {
     login: (data) => request('/auth/login', {
         method: 'POST',
@@ -39,8 +36,37 @@ export const authApi = {
     }),
 };
 
-// 마이페이지 관련 API
 export const myPageApi = {
     getProfile: (email) => request(`/mypage/profile/${email}`),
-    getCases: (email) => request(`/mypage/cases/${email}`),
+    getCases:   (email) => request(`/mypage/cases/${email}`),
 };
+
+// ── 출입국 케이스 API ──
+export const immigrationApi = {
+    getCases:   (email) => request(`/immigration/cases?email=${encodeURIComponent(email)}`),
+    saveRecord: (data)  => request('/immigration/cases', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+};
+
+// ── 경찰 케이스 API ──
+export const policeApi = {
+    getCases:   (email) => request(`/police/cases?email=${encodeURIComponent(email)}`),
+    saveRecord: (data)  => request('/police/cases', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+};
+
+// ── 번역 관련 API ──
+export const translateApi = {
+    buildSubtitle: (words) => request('/subtitle', {
+        method: 'POST',
+        body: JSON.stringify({ words }),
+    }),
+    getSignGuide: (text) => request('/sign-guide', {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+    }),
+}
