@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import * as THREE from 'three'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import './TranslatePage.css'
 import useLSTMSign from '../../ai/Uselstmsign.js'
 import { translateApi } from '../../../assets/components/api/api.jsx'
@@ -350,20 +348,20 @@ function HandSVG({ type: t, color: c }) {
 // ══════════════════════════════════════════════════════════════
 
 const BONES = {
-    hips:'mixamorig_Hips', spine:'mixamorig_Spine', spine1:'mixamorig_Spine1', spine2:'mixamorig_Spine2',
-    neck:'mixamorig_Neck', head:'mixamorig_Head',
-    lShoulder:'mixamorig_LeftShoulder', lArm:'mixamorig_LeftArm', lForearm:'mixamorig_LeftForeArm', lHand:'mixamorig_LeftHand',
-    lThumb1:'mixamorig_LeftHandThumb1', lThumb2:'mixamorig_LeftHandThumb2', lThumb3:'mixamorig_LeftHandThumb3',
-    lIndex1:'mixamorig_LeftHandIndex1', lIndex2:'mixamorig_LeftHandIndex2', lIndex3:'mixamorig_LeftHandIndex3',
-    lMiddle1:'mixamorig_LeftHandMiddle1',lMiddle2:'mixamorig_LeftHandMiddle2',lMiddle3:'mixamorig_LeftHandMiddle3',
-    lRing1:'mixamorig_LeftHandRing1',   lRing2:'mixamorig_LeftHandRing2',   lRing3:'mixamorig_LeftHandRing3',
-    lPinky1:'mixamorig_LeftHandPinky1', lPinky2:'mixamorig_LeftHandPinky2', lPinky3:'mixamorig_LeftHandPinky3',
-    rShoulder:'mixamorig_RightShoulder', rArm:'mixamorig_RightArm', rForearm:'mixamorig_RightForeArm', rHand:'mixamorig_RightHand',
-    rThumb1:'mixamorig_RightHandThumb1', rThumb2:'mixamorig_RightHandThumb2', rThumb3:'mixamorig_RightHandThumb3',
-    rIndex1:'mixamorig_RightHandIndex1', rIndex2:'mixamorig_RightHandIndex2', rIndex3:'mixamorig_RightHandIndex3',
-    rMiddle1:'mixamorig_RightHandMiddle1',rMiddle2:'mixamorig_RightHandMiddle2',rMiddle3:'mixamorig_RightHandMiddle3',
-    rRing1:'mixamorig_RightHandRing1',   rRing2:'mixamorig_RightHandRing2',   rRing3:'mixamorig_RightHandRing3',
-    rPinky1:'mixamorig_RightHandPinky1', rPinky2:'mixamorig_RightHandPinky2', rPinky3:'mixamorig_RightHandPinky3',
+    hips:'hips_JNT', spine:'spine_JNT', spine1:'spine1_JNT', spine2:'spine2_JNT',
+    neck:'neck_JNT', head:'head_JNT',
+    lShoulder:'l_shoulder_JNT', lArm:'l_arm_JNT', lForearm:'l_forearm_JNT', lHand:'l_hand_JNT',
+    lThumb1:'l_handThumb1_JNT', lThumb2:'l_handThumb2_JNT', lThumb3:'l_handThumb3_JNT',
+    lIndex1:'l_handIndex1_JNT', lIndex2:'l_handIndex2_JNT', lIndex3:'l_handIndex3_JNT',
+    lMiddle1:'l_handMiddle1_JNT',lMiddle2:'l_handMiddle2_JNT',lMiddle3:'l_handMiddle3_JNT',
+    lRing1:'l_handRing1_JNT',   lRing2:'l_handRing2_JNT',   lRing3:'l_handRing3_JNT',
+    lPinky1:'l_handPinky1_JNT', lPinky2:'l_handPinky2_JNT', lPinky3:'l_handPinky3_JNT',
+    rShoulder:'r_shoulder_JNT', rArm:'r_arm_JNT', rForearm:'r_forearm_JNT', rHand:'r_hand_JNT',
+    rThumb1:'r_handThumb1_JNT', rThumb2:'r_handThumb2_JNT', rThumb3:'r_handThumb3_JNT',
+    rIndex1:'r_handIndex1_JNT', rIndex2:'r_handIndex2_JNT', rIndex3:'r_handIndex3_JNT',
+    rMiddle1:'r_handMiddle1_JNT',rMiddle2:'r_handMiddle2_JNT',rMiddle3:'r_handMiddle3_JNT',
+    rRing1:'r_handRing1_JNT',   rRing2:'r_handRing2_JNT',   rRing3:'r_handRing3_JNT',
+    rPinky1:'r_handPinky1_JNT', rPinky2:'r_handPinky2_JNT', rPinky3:'r_handPinky3_JNT',
 }
 
 const CURL_ALL  = [{x:1.35,y:0,z:0},{x:1.25,y:0,z:0},{x:1.05,y:0,z:0}]
@@ -376,7 +374,7 @@ const mkFinger = (segs, key) => ({
 })
 
 // 자연스러운 대기 자세 — 양팔을 약간 앞으로 내리고 손가락 살짝 굽힘
-const basePose = (lArm={x:0,y:0,z:-1.5}, rArm={x:0,y:0,z:1.5}) => ({
+const basePose = (lArm={x:0,y:0,z:-1.3}, rArm={x:0,y:0,z:1.3}) => ({
     head:{x:0,y:0,z:0}, neck:{x:0,y:0,z:0},
     spine:{x:.02,y:0,z:0}, spine1:{x:.02,y:0,z:0}, spine2:{x:.02,y:0,z:0},
     lShoulder:{x:0,y:0,z:.05}, lArm, lForearm:{x:.2,y:0,z:0}, lHand:{x:0,y:-.05,z:0},
@@ -587,7 +585,22 @@ function Person3D({ pose = 'idle', playing = true }) {
         let cancelled = false, animId = null
 
         const run = async () => {
+            if (!window.THREE) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script')
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
+                    s.onload = res; s.onerror = rej; document.head.appendChild(s)
+                })
+            }
+            if (!window.THREE.GLTFLoader) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script')
+                    s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'
+                    s.onload = res; s.onerror = rej; document.head.appendChild(s)
+                })
+            }
             if (cancelled) return
+            const THREE = window.THREE
 
             // 부모(.ai-char-area)의 실제 크기를 읽음
             const parent = el.parentElement || el
@@ -605,8 +618,8 @@ function Person3D({ pose = 'idle', playing = true }) {
             const scene  = new THREE.Scene()
             // hips Y≈1.01, head top Y≈1.66 → 카메라를 가까이 당겨 아바타를 크게
             const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 50)
-            camera.position.set(0, 0.9, 2.6)
-            camera.lookAt(0, 0.8, 0)
+            camera.position.set(0, 1.3, 1.8)
+            camera.lookAt(0, 1.1, 0)
 
             // ResizeObserver — 컨테이너 크기 변경 시 렌더러/카메라 갱신
             const ro = new ResizeObserver(() => {
@@ -617,8 +630,8 @@ function Person3D({ pose = 'idle', playing = true }) {
                     renderer.domElement.style.width  = nW + 'px'
                     renderer.domElement.style.height = nH + 'px'
                     camera.aspect = nW / nH
-                    camera.position.set(0, 0.9, 2.6)
-                    camera.lookAt(0, 0.8, 0)
+                    camera.position.set(0, 1.3, 1.8)
+                    camera.lookAt(0, 1.1, 0)
                     camera.updateProjectionMatrix()
                 }
             })
@@ -635,7 +648,7 @@ function Person3D({ pose = 'idle', playing = true }) {
             fill.position.set(-3,2,3); scene.add(fill)
 
             const boneMap = {}, curRot = {}
-            const loader  = new GLTFLoader()
+            const loader  = new THREE.GLTFLoader()
             loader.load(
                 '/avatar.glb',
                 (gltf) => {
@@ -643,7 +656,7 @@ function Person3D({ pose = 'idle', playing = true }) {
                     const model = gltf.scene
                     model.position.set(0, 0, 0)
                     model.traverse(node => {
-                        if (node.isBone) {
+                        if (node.name?.endsWith('_JNT')) {
                             boneMap[node.name] = node
                             curRot[node.name]  = { x: 0, y: 0, z: 0 }
                         }

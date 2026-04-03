@@ -39,19 +39,10 @@ function NotificationDropdown({ notifications, onClose, onMarkAll }) {
     const [status, setStatus] = useState('')
 
     useEffect(() => {
-        // 직접 fetch 대신 api 객체 사용
         commonApi.getStatus()
             .then(data => setStatus(`${data.project} 서버 상태: ${data.status}`))
             .catch(err => console.error("연결 실패:", err));
     }, []);
-
-    useEffect(() => {
-        // 아까 백엔드에서 만든 /api/status 엔드포인트 호출
-        fetch('http://localhost:8080/api/status')
-            .then(res => res.json())
-            .then(data => setStatus(data.project + " 서버 상태: " + data.status))
-            .catch(err => console.error("연결 실패:", err))
-    }, [])
 
     useEffect(() => {
         const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
@@ -89,38 +80,38 @@ function FloatingSidebar({ onChat, onCall }) {
     return (
         <div className="floating-sidebar">
             <button className="fsb-btn fsb-scroll" onClick={() => scrollTo('top')} title="맨 위로">
-          <span className="fsb-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 15l-6-6-6 6"/>
-            </svg>
-          </span>
+                <span className="fsb-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 15l-6-6-6 6"/>
+                    </svg>
+                </span>
                 <span className="fsb-label">위로</span>
             </button>
 
             <button className="fsb-btn fsb-chat" onClick={onChat} title="채팅">
-          <span className="fsb-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </span>
+                <span className="fsb-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </span>
                 <span className="fsb-label">채팅</span>
             </button>
 
             <button className="fsb-btn fsb-call" onClick={onCall} title="전화">
-          <span className="fsb-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.08 3.42a2 2 0 0 1 1.99-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/>
-            </svg>
-          </span>
+                <span className="fsb-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.08 3.42a2 2 0 0 1 1.99-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/>
+                    </svg>
+                </span>
                 <span className="fsb-label">전화</span>
             </button>
 
             <button className="fsb-btn fsb-scroll" onClick={() => scrollTo('bottom')} title="맨 아래로">
-          <span className="fsb-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </span>
+                <span className="fsb-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                </span>
                 <span className="fsb-label">아래</span>
             </button>
         </div>
@@ -143,7 +134,7 @@ export default function App() {
     const [loggedIn,     setLoggedIn]     = useState(false)
     const [displayName,  setDisplayName]  = useState('')     // 개인=이름, 기관=기관명
     const [orgType,      setOrgType]      = useState('')     // 'personal' | 'hospital' | ...
-    const [userEmail, setUserEmail] = useState('')
+    const [userEmail,    setUserEmail]    = useState('')
 
     // 알림 상태
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
@@ -152,6 +143,20 @@ export default function App() {
 
     // 네비바에 표시할 짧은 이름 (기관명이 길 경우 앞 6자만)
     const navLabel = displayName.length > 6 ? displayName.slice(0, 6) + '…' : displayName
+
+    // ── 새로고침 시 로그인 유지 로직 추가 ──
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('userEmail');
+        const savedName = localStorage.getItem('displayName');
+        const savedType = localStorage.getItem('orgType');
+
+        if (savedEmail && savedName) {
+            setUserEmail(savedEmail);
+            setDisplayName(savedName);
+            setOrgType(savedType || '');
+            setLoggedIn(true);
+        }
+    }, []);
 
     const handleSearch = (e) => {
         e.preventDefault()
@@ -180,35 +185,38 @@ export default function App() {
     const handleBackFromRegisterSelect = () => setRegisterScreen(null)
     const handleLogoClick            = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('home'); setQuery('') }
 
-    // 로그인 성공: LoginPage → onLogin(name, orgType)
+    // 로그인 성공
     const handleLogin = (name, type, email) => {
         setDisplayName(name);
         setOrgType(type || '');
         setUserEmail(email || '');
 
-        // 브라우저를 껐다 켜도 유지되도록 저장
+        // 브라우저 저장소에 세션 정보 기록
         localStorage.setItem('userEmail', email);
         localStorage.setItem('displayName', name);
-        localStorage.setItem('orgType', type);
+        localStorage.setItem('orgType', type || '');
 
         setLoggedIn(true);
         setAuthModal(null);
     }
 
-    // 회원가입 완료 → 로그인 모달로 전환 시: SignupPage → onSignup(name, orgType)
-    // (모달 전환은 SignupPage 내부의 onSwitchToLogin이 처리하므로 여기선 상태만 저장)
     const handleSignup = (name, type) => {
         setDisplayName(name)
         setOrgType(type || '')
-        // authModal은 SignupPage의 handleGoLogin → onSwitchToLogin 호출로 'login'으로 바뀜
     }
 
+    // 로그아웃 (저장된 데이터 삭제 포함)
     const handleLogout = () => {
         setLoggedIn(false)
         setDisplayName('')
         setOrgType('')
-        setUserEmail('') // 이메일 초기화
+        setUserEmail('')
         setTab('home')
+
+        // 로컬 스토리지 데이터 명시적 삭제
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('displayName');
+        localStorage.removeItem('orgType');
     }
 
     const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
@@ -232,7 +240,7 @@ export default function App() {
             <MyPage
                 displayName={displayName}
                 orgType={orgType}
-                userEmail={userEmail} // 이메일 전달
+                userEmail={userEmail}
             />
         )
         return null
@@ -280,7 +288,6 @@ export default function App() {
                                 <button className="my-btn"
                                         onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('my') }}>
                                     <div className="my-avatar">{displayName.charAt(0)}</div>
-                                    {/* 네비바: 짧게 표시 */}
                                     <span>{navLabel}</span>
                                 </button>
                                 <button className="nav-logout-btn" onClick={handleLogout}>로그아웃</button>
@@ -319,7 +326,7 @@ export default function App() {
             {/* ── 플로팅 사이드바 ── */}
             <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} />
 
-            {/* ✅ 로그인 모달 — displayName, orgType 전달 */}
+            {/* 로그인 모달 */}
             {authModal === 'login' && (
                 <LoginPage
                     displayName={displayName}
@@ -330,7 +337,7 @@ export default function App() {
                 />
             )}
 
-            {/* ✅ 회원가입 모달 — onSignup(name, orgType) 수신 후 login으로 전환 */}
+            {/* 회원가입 모달 */}
             {authModal === 'signup' && (
                 <SignupPage
                     onSignup={handleSignup}

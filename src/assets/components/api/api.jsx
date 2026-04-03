@@ -61,9 +61,11 @@ export const policeApi = {
 
 // ── 번역 관련 API ──
 export const translateApi = {
-    buildSubtitle: (words) => request('/subtitle', {
+    // place: 'immigration' | 'hospital' | 'airport' | 'police' | 'school'
+    // prevSentence: 이전 문장 맥락 (긴 문장 이어쓰기용)
+    buildSubtitle: (words, place = 'immigration', prevSentence = '') => request('/subtitle', {
         method: 'POST',
-        body: JSON.stringify({ words }),
+        body: JSON.stringify({ words, place, prevSentence }),
     }),
     getSignGuide: (text) => request('/sign-guide', {
         method: 'POST',

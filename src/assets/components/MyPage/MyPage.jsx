@@ -227,12 +227,37 @@ function PersonalMyPage({ displayName, onBack }) {
 //  기관 환영 배너 (기관 페이지 상단)
 // ══════════════════════════════════════════
 function OrgWelcomeHeader({ displayName, orgLabel, orgIcon, orgColor }) {
+    const now = new Date()
+    const dateStr = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
+    const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+
     return (
         <div className="my-org-welcome" style={{ '--org-color': orgColor }}>
-            <span className="my-org-welcome-icon">{orgIcon}</span>
-            <div>
-                <div className="my-org-welcome-name">{displayName} 환영합니다!</div>
-                <div className="my-org-welcome-label">{orgLabel}</div>
+            {/* 배경 장식 원 */}
+            <div className="my-org-welcome-deco" aria-hidden="true" />
+
+            <div className="my-org-welcome-left">
+                <div className="my-org-welcome-icon-wrap">
+                    <span className="my-org-welcome-icon">{orgIcon}</span>
+                </div>
+                <div className="my-org-welcome-texts">
+                    <div className="my-org-welcome-eyebrow">{orgLabel}</div>
+                    <div className="my-org-welcome-name">
+                        안녕하세요, <strong>{displayName}</strong>님!
+                    </div>
+                    <div className="my-org-welcome-sub">오늘도 SignBridge와 함께하세요.</div>
+                </div>
+            </div>
+
+            <div className="my-org-welcome-right">
+                <div className="my-org-welcome-datetime">
+                    <span className="my-org-welcome-date">📅 {dateStr}</span>
+                    <span className="my-org-welcome-time">🕐 {timeStr}</span>
+                </div>
+                <div className="my-org-welcome-status">
+                    <span className="my-org-welcome-dot" />
+                    시스템 정상 운영 중
+                </div>
             </div>
         </div>
     )

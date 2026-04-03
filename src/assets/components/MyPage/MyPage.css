@@ -603,20 +603,170 @@
    기관 환영 배너
 ══════════════════════════════ */
 .my-org-welcome {
-  display: flex; align-items: center; gap: 14px;
-  padding: 16px 20px;
-  background: color-mix(in srgb, var(--org-color, #7c3aed) 8%, #fff);
-  border: 1.5px solid color-mix(in srgb, var(--org-color, #7c3aed) 22%, transparent);
-  border-radius: var(--radius);
-  margin-bottom: 16px;
-}
-.my-org-welcome-icon { font-size: 32px; flex-shrink: 0; }
-.my-org-welcome-name {
-  font-size: 18px; font-weight: 900;
-  color: var(--org-color, #7c3aed); letter-spacing: -0.4px;
-}
-.my-org-welcome-label {
-  font-size: 12px; font-weight: 700; margin-top: 2px;
-  color: color-mix(in srgb, var(--org-color, #7c3aed) 70%, #666);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--org-color, #7c3aed) 12%, #fff) 0%,
+          color-mix(in srgb, var(--org-color, #7c3aed) 4%, #fff) 100%
+  );
+  border: 1.5px solid color-mix(in srgb, var(--org-color, #7c3aed) 28%, transparent);
+  border-radius: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--org-color, #7c3aed) 12%, transparent);
 }
 
+/* 배경 장식 원 */
+.my-org-welcome-deco {
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--org-color, #7c3aed) 8%, transparent);
+  pointer-events: none;
+}
+
+/* 왼쪽 영역 */
+.my-org-welcome-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 아이콘 감싸개 */
+.my-org-welcome-icon-wrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--org-color, #7c3aed) 14%, #fff);
+  border: 1.5px solid color-mix(in srgb, var(--org-color, #7c3aed) 25%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--org-color, #7c3aed) 15%, transparent);
+}
+
+.my-org-welcome-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* 텍스트 그룹 */
+.my-org-welcome-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.my-org-welcome-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--org-color, #7c3aed) 80%, #666);
+}
+
+.my-org-welcome-name {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.my-org-welcome-name strong {
+  color: var(--org-color, #7c3aed);
+}
+
+.my-org-welcome-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* 오른쪽 영역 */
+.my-org-welcome-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.my-org-welcome-datetime {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.my-org-welcome-date,
+.my-org-welcome-time {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.my-org-welcome-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.my-org-welcome-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.my-org-welcome-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: welcomePulse 2s ease-in-out infinite;
+}
+
+@keyframes welcomePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+@media (max-width: 700px) {
+  .my-org-welcome {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px;
+  }
+  .my-org-welcome-right {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .my-org-welcome-datetime {
+    flex-direction: row;
+    gap: 8px;
+  }
+  .my-org-welcome-name { font-size: 17px; }
+}
