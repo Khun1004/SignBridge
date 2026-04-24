@@ -1,0 +1,48 @@
+/* ── AIPanel 추가 스타일 (TranslatePage.css 에 붙여넣기) ── */
+
+/* 손 모양·동작 칩 */
+.ai-step-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+.ai-meta-chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* 동작 설명 텍스트 */
+.ai-step-desc {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.6;
+    border-left: 3px solid #7c6fff44;
+}
+
+/* 설명 듣기 버튼 */
+.ai-step-tts-btn {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+}
+.ai-step-tts-btn:hover { opacity: 0.75; }

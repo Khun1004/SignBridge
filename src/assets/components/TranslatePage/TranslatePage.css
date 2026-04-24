@@ -1,5 +1,6 @@
 /* ══════════════════════════════════════════════════════
-   TranslatePage.css — 리디자인 v2
+   TranslatePage.css — 3열 레이아웃 v3
+   좌: 수어 인식 | 중: 3D 아바타 | 우: 텍스트 입력
    ══════════════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap');
@@ -29,7 +30,7 @@
 
 /* ── 배경 ── */
 .tp {
-    max-width: 1260px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 20px 24px 52px;
     font-family: var(--font);
@@ -56,17 +57,20 @@
     border-radius: var(--radius-sm); padding: 10px 18px;
     text-align: center; font-size: 13px; font-weight: 700;
     margin-bottom: 12px; background: #fff5f5;
+    position: relative; z-index: 1;
 }
 .error-banner {
     background: #fef2f2; border: 1.5px solid var(--err);
     border-radius: var(--radius-sm); padding: 10px 16px;
     font-size: 13px; color: #991b1b; margin-bottom: 10px;
+    position: relative; z-index: 1;
 }
 .stop-warn {
     background: #fffbeb; border: 1.5px solid #f59e0b;
     border-radius: var(--radius-sm); padding: 10px 16px;
     font-size: 13px; color: #92400e; margin-bottom: 10px;
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    position: relative; z-index: 1;
 }
 .stop-warn button { background:none; border:none; cursor:pointer; font-size:15px; color:#92400e; }
 
@@ -90,7 +94,6 @@
 }
 .btn-end:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(239,68,68,.42); }
 
-/* 장소 뱃지 */
 .place-badge {
     font-size: 12px; font-weight: 700;
     color: var(--accent); background: rgba(91,94,244,.1);
@@ -98,7 +101,6 @@
     border: 1.5px solid rgba(91,94,244,.2);
 }
 
-/* TTS 토글 */
 .tts-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600; color:#555; user-select:none; }
 .tts-toggle input { display:none; }
 .tts-slider {
@@ -113,17 +115,57 @@
 .tts-toggle input:checked + .tts-slider { background:var(--accent); }
 .tts-toggle input:checked + .tts-slider::after { transform:translateX(18px); }
 
-/* ── 2열 그리드 ── */
+/* ── 엔진 토글 ── */
+.engine-toggle-wrap {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(91,94,244,.07); border-radius: 20px;
+    padding: 4px 6px; border: 1.5px solid rgba(91,94,244,.15);
+}
+.engine-btn {
+    font-size: 12px; font-weight: 700; font-family: var(--font);
+    padding: 5px 14px; border-radius: 16px; border: none;
+    background: transparent; color: #888; cursor: pointer;
+    transition: background .18s, color .18s;
+}
+.engine-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.engine-btn-on {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 2px 8px rgba(91,94,244,.28);
+}
+.engine-mode-label {
+    font-size: 11px; color: var(--accent); font-weight: 600;
+    padding: 0 6px 0 2px; white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════
+   3열 메인 그리드
+   좌(수어) | 중(아바타) | 우(텍스트)
+   ══════════════════════════════════════════════════════ */
 .main-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    gap: 16px;
     align-items: start;
     position: relative; z-index: 1;
 }
-@media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+@media (max-width: 1200px) {
+    .main-grid { grid-template-columns: 1fr 1fr; }
+    .col-center { grid-column: 1 / -1; order: -1; }
+}
+@media (max-width: 780px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .col-center { order: -1; }
+}
 
 .col { display: flex; flex-direction: column; gap: 16px; }
+
+/* 가운데 열 — 아바타가 충분히 크게 */
+.col-center {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
 
 /* ── 카드 ── */
 .card {
@@ -227,10 +269,37 @@
 }
 .lstm-conf { font-size:11px; color:#0284c7; background:#e0f2fe; padding:1px 6px; border-radius:8px; }
 
+/* ── pending 카드 ── */
+.pending-card {
+    margin-top: 12px;
+    background: linear-gradient(135deg, #fffbeb, #fff8e0);
+    border: 2px solid #fbbf24;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    animation: slideIn .25s ease;
+}
+@keyframes slideIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.pc-ico  { flex-shrink:0; }
+.pc-info { flex:1; min-width:0; }
+.pc-name { font-size:15px; font-weight:900; color:var(--text); }
+.pc-mean { font-size:12px; color:var(--sub); margin-top:2px; }
+.pc-acts { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+
+.btn-send {
+    padding:8px 16px; border:none; border-radius:var(--radius-sm);
+    font-size:12px; font-weight:800; font-family:var(--font);
+    background: linear-gradient(135deg, var(--sign), #3b82f6);
+    color:#fff; cursor:pointer;
+    box-shadow:0 3px 10px rgba(37,99,235,.3);
+    transition:transform .15s;
+}
+.btn-send:hover { transform:translateY(-1px); }
+
 /* ── 대화 기록 ── */
 .chat-log {
     display:flex; flex-direction:column; gap:11px;
-    max-height:280px; overflow-y:auto; padding-right:4px;
+    max-height:260px; overflow-y:auto; padding-right:4px;
 }
 .chat-log::-webkit-scrollbar { width:4px; }
 .chat-log::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:4px; }
@@ -274,63 +343,7 @@
 .btn-msg-tts { background:none; border:none; cursor:pointer; font-size:13px; color:var(--sub); padding:0; }
 .msg-time  { font-size:10px; color:#ccc; }
 
-/* ── 답장 입력 ── */
-.itabs { display:flex; gap:5px; margin-left:auto; }
-.itab  {
-    padding:5px 12px; border-radius:8px; font-size:12px; font-weight:700;
-    border:1.5px solid var(--border); background:#fff; color:var(--sub);
-    cursor:pointer; font-family:var(--font); transition:all .15s;
-}
-.itab.itab-on {
-    background: linear-gradient(135deg, var(--reply), #10b981);
-    color:#fff; border-color:transparent;
-    box-shadow: 0 2px 8px rgba(5,150,105,.25);
-}
-
-.txt-hint { font-size:12px; color:var(--sub); margin-bottom:8px; }
-.txt-row  { display:flex; gap:8px; align-items:stretch; }
-.txt-area {
-    flex:1; border:1.5px solid var(--border); border-radius:var(--radius-sm);
-    padding:11px 14px; font-size:14px; font-family:var(--font);
-    color:var(--text); resize:none; outline:none; transition:border-color .2s, box-shadow .2s;
-    background: #fafbff;
-}
-.txt-area:focus { border-color:var(--reply); box-shadow:0 0 0 3px rgba(5,150,105,.1); }
-.txt-sub { font-size:11px; color:#bbb; margin-top:5px; }
-
-.btn-prev {
-    flex-shrink:0; width:48px; background:#e8eaf4; color:var(--sub);
-    border:none; border-radius:var(--radius-sm); font-size:11px; font-weight:700;
-    font-family:var(--font); cursor:not-allowed; line-height:1.4; transition:background .15s,color .15s;
-}
-.btn-prev.btn-prev-on {
-    background: linear-gradient(135deg, var(--reply), #10b981);
-    color:#fff; cursor:pointer;
-    box-shadow:0 3px 12px rgba(5,150,105,.28);
-}
-
-.voice-box { display:flex; flex-direction:column; align-items:center; gap:14px; padding:12px 0; }
-.mic-btn {
-    position:relative; width:72px; height:72px; border-radius:50%;
-    background:#f1f5f9; border:none; cursor:pointer; font-size:28px;
-    display:flex; align-items:center; justify-content:center; transition:background .15s, transform .15s;
-}
-.mic-btn:hover { transform:scale(1.05); }
-.mic-btn.mic-on { background: linear-gradient(135deg, var(--reply), #10b981); }
-.mic-ring {
-    position:absolute; inset:-10px; border-radius:50%;
-    border:2px solid var(--reply); animation:mic-ring 1.2s ease-out infinite; opacity:0;
-}
-@keyframes mic-ring { 0%{opacity:.6;transform:scale(.82)} 100%{opacity:0;transform:scale(1.15)} }
-.mic-stat { font-size:13px; color:var(--sub); text-align:center; }
-
-.preview-card { display:flex; flex-direction:column; align-items:center; gap:10px; padding:8px 0; }
-.pv-ico  { font-size:38px; }
-.pv-lbl  { font-size:11px; font-weight:700; color:var(--reply); letter-spacing:.05em; text-transform:uppercase; }
-.pv-txt  { font-size:17px; font-weight:800; text-align:center; line-height:1.55; }
-.pv-q    { font-size:13px; color:var(--sub); }
-.pv-acts { display:flex; gap:10px; width:100%; }
-
+/* ── 음성/텍스트 버튼 공통 ── */
 .btn-tts {
     background:#f4f5fa; color:var(--text); border:1.5px solid var(--border);
     border-radius:var(--radius-sm); padding:8px 16px; font-size:13px; font-weight:600;
@@ -354,158 +367,62 @@
 }
 .btn-send-reply:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(5,150,105,.4); }
 
-/* ══════════════════════════════════════════════
-   AI 수어 시연 패널 (우측 카드) — 크게 리디자인
-══════════════════════════════════════════════ */
-
-/* 우측 전체 카드 */
-.card-ai-redesign {
+/* ══════════════════════════════════════════════════════
+   가운데 열 — 3D 아바타 카드 (크고 강조)
+   ══════════════════════════════════════════════════════ */
+.card-avatar-center {
     background: var(--card);
-    border: 1.5px solid var(--border);
+    border: 2px solid var(--accent);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
+    box-shadow: var(--shadow-lg), 0 0 0 4px rgba(91,94,244,.06);
+    overflow: hidden;     /* ✅ 둥근 모서리가 캔버스/내용물에 적용되도록 */
+    position: relative;
 }
 
-.ai-redesign-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-/* 텍스트 입력 패널 */
-.ai-input-panel {
+.avatar-center-hd {
+    padding: 16px 20px 14px;
+    font-size: 15px; font-weight: 900; color: var(--text);
     border-bottom: 2px solid var(--border);
-    background: linear-gradient(135deg, #fafbff 0%, #f4f6ff 100%);
-}
-.ai-input-hd {
-    padding: 14px 18px 12px;
-    font-size: 14px; font-weight: 800;
-    color: var(--text); border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, #f4f2ff 0%, #eef4ff 100%);
+    display: flex; align-items: center; gap: 10px;
     letter-spacing: -.01em;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
-.ai-input-body { padding: 16px; }
-
-.ai-textarea-wrap { display:flex; flex-direction:column; gap:10px; }
-.ai-textarea {
-    width:100%; border:2px solid var(--border); border-radius:var(--radius-sm);
-    padding:12px 14px; font-size:14px; font-family:var(--font);
-    color:var(--text); resize:none; outline:none;
-    transition:border-color .2s, box-shadow .2s;
-    background: rgba(255,255,255,.8); min-height:80px;
-    line-height: 1.6;
-}
-.ai-textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,94,244,.1); }
-.ai-textarea::placeholder { color:#b0b8d0; }
-
-.ai-suggest-btn {
-    align-self:flex-end; padding:8px 18px;
-    border:1.5px solid var(--border); border-radius:var(--radius-sm);
-    background:#fff; font-size:12px; font-weight:700; color:var(--sub);
-    cursor:pointer; font-family:var(--font); transition:all .15s;
-}
-.ai-suggest-btn.ai-suggest-on {
-    background: linear-gradient(135deg, var(--accent), #7c7fff);
-    color:#fff; border-color:transparent;
-    box-shadow: 0 3px 12px rgba(91,94,244,.28);
-}
-.ai-suggest-btn:hover:not(:disabled) { transform:translateY(-1px); }
-
-/* 수어 단어 칩 */
-.ai-word-chips-wrap { margin-top:4px; }
-.ai-word-chips-label { font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:.06em; }
-.ai-word-chips { display:flex; flex-wrap:wrap; gap:6px; }
-.ai-word-chip {
-    display:inline-flex; align-items:center; gap:5px;
-    padding:4px 11px; border-radius:14px;
-    background: rgba(91,94,244,.08); border:1px solid rgba(91,94,244,.2);
-    font-size:12px; font-weight:700; color:var(--accent);
-    transition: background .15s;
-}
-.ai-word-chip:hover { background: rgba(91,94,244,.14); }
-.chip-arrow { font-size:9px; opacity:.6; }
-
-/* 입력 탭 */
-.ai-input-tabs { display:flex; gap:5px; margin-top:6px; }
-.ai-itab {
-    padding:6px 13px; border-radius:8px; font-size:12px; font-weight:700;
-    border:1.5px solid var(--border); background:#fff; color:var(--sub);
-    cursor:pointer; font-family:var(--font); transition:all .15s;
-}
-.ai-itab.on {
-    background: linear-gradient(135deg, var(--accent), #7c7fff);
-    color:#fff; border-color:transparent;
-    box-shadow: 0 2px 8px rgba(91,94,244,.25);
+.avatar-center-hd::before { content: '🤟'; font-size: 18px; }
+.avatar-center-badge {
+    margin-left: auto;
+    font-size: 10px; font-weight: 800;
+    color: var(--accent); background: rgba(91,94,244,.1);
+    padding: 4px 12px; border-radius: 20px;
+    border: 1.5px solid rgba(91,94,244,.2);
+    text-transform: uppercase; letter-spacing: .06em;
 }
 
-.ai-voice-row { display:flex; align-items:center; gap:14px; margin-top:4px; padding:10px 0; }
-.mic-stat { font-size:13px; color:var(--sub); }
-
-/* 3D 아바타 생성 버튼 */
-.ai-gen-btn {
-    width:100%; margin-top:12px; padding:13px;
-    border:none; border-radius:var(--radius-sm);
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
-    color:#fff; font-size:15px; font-weight:900;
-    cursor:pointer; font-family:var(--font);
-    box-shadow: 0 5px 20px rgba(91,94,244,.35);
-    transition:transform .15s, box-shadow .15s;
-    letter-spacing: .02em;
-}
-.ai-gen-btn:hover:not(:disabled) {
-    transform:translateY(-2px);
-    box-shadow:0 8px 28px rgba(91,94,244,.45);
-}
-.ai-gen-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
-.ai-gen-btn.ai-gen-loading {
-    background: linear-gradient(135deg, #94a3b8, #cbd5e1);
-    box-shadow: none;
-}
-
-.ai-notice { margin-top:10px; padding:10px 12px; background:#f8f9ff; border-radius:8px; }
-.ai-notice p { font-size:11px; color:#9aa; line-height:1.65; }
-
-/* ── AI 아바타 패널 — 크게 ── */
-.ai-avatar-panel {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-.ai-avatar-hd {
-    padding: 14px 18px 12px;
-    font-size: 14px; font-weight: 800; color: var(--text);
-    border-bottom: 1.5px solid var(--border);
-    background: linear-gradient(135deg, #f4f2ff 0%, #f0f4ff 100%);
-    display: flex; align-items: center; gap: 8px;
-}
-.ai-avatar-hd::before {
-    content: '🤟';
-    font-size: 16px;
-}
-.ai-avatar-body {
-    flex: 1;
+/* ★ avatar-center-body: AIPanel 전체를 감싸므로 고정 height 제거
+      높이는 내부 .ai-char-area(520px)가 결정함 */
+.avatar-center-body {
     padding: 0;
+    position: relative;
+    overflow: visible;    /* AIPanel 하단 controls가 잘리지 않도록 */
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
-/* ══════════════════════════════════
-   AI 패널 (AIPanel 컴포넌트)
-══════════════════════════════════ */
+/* ── AI 패널 (AIPanel 컴포넌트) ── */
 .ai-panel { display:flex; flex-direction:column; }
 .ai-panel-loading, .ai-panel-empty { align-items:center; padding-bottom:16px; }
 .ai-empty-txt { font-size:13px; color:var(--sub); text-align:center; line-height:1.7; padding:0 16px 16px; }
 .ai-loading-msg { display:flex; flex-direction:column; align-items:center; gap:8px; padding:12px 0 18px; }
 .ai-loading-msg p { font-size:13px; color:var(--sub); }
 
-/* 아바타 핵심 영역 — 크게 !! */
+/* 아바타 핵심 영역 — Three.js 캔버스 크기 기준점 */
 .ai-char-area {
     position: relative;
     width: 100%;
-    height: 600px;
+    height: 420px;        /* ✅ Three.js containerRef가 이 높이를 읽음 */
     background: linear-gradient(160deg, #e8eeff 0%, #dff0ff 50%, #e8fff5 100%);
     overflow: hidden;
 }
 
-/* 장식 원형 효과 */
 .ai-char-area::before {
     content: '';
     position: absolute;
@@ -529,29 +446,24 @@
     animation: pulseGlow 3s ease-in-out infinite;
 }
 
-@keyframes starFloat {
-    from { transform: translateY(0) translateX(0); }
-    to   { transform: translateY(-8px) translateX(3px); }
-}
-
 @keyframes pulseGlow {
     0%, 100% { opacity:.5; transform:translateX(-50%) scale(1); }
     50%       { opacity:1; transform:translateX(-50%) scale(1.15); }
 }
 
-/* Three.js canvas — 부모를 완전히 채움 */
-.ai-char-area canvas {
+/* Three.js가 주입하는 canvas — 반드시 전체 영역을 채우도록 */
+.ai-char-area canvas,
+.avatar-center-body canvas {
     display: block !important;
     width: 100% !important;
     height: 100% !important;
-    position: absolute;
-    top: 0; left: 0;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
 }
 
-/* 캐릭터 SVG */
 .char-svg { width:220px; height:auto; display:block; }
 
-/* 말풍선 — 더 크고 세련되게 */
 .speech-bubble {
     position: absolute;
     top: 18px;
@@ -588,7 +500,6 @@
     to   { transform:scale(1) translateY(0); opacity:1; }
 }
 
-/* 손 동작 애니메이션 강화 */
 .arm-wave {
     animation: armWave 0.5s ease-in-out infinite alternate;
     transform-box: fill-box;
@@ -599,7 +510,6 @@
     to   { transform: rotate(14deg) translateY(-3px); }
 }
 
-/* 파티클 */
 .char-particle { animation:floatUp 1.6s ease-out infinite; }
 .char-particle.p1 { animation-delay:0s; }
 .char-particle.p2 { animation-delay:.4s; }
@@ -609,7 +519,6 @@
     100% { transform:translateY(-24px) scale(.5); opacity:0; }
 }
 
-/* 손 동작 포즈 표시기 — 아바타 하단 오버레이 */
 .hand-pose-indicator {
     position: absolute;
     bottom: 16px;
@@ -674,22 +583,7 @@
     margin-left:auto; white-space:nowrap;
 }
 
-.ai-step-rows { display:flex; flex-direction:column; gap:10px; }
-.ai-step-row {
-    display:flex; align-items:flex-start; gap:10px; padding:10px 13px;
-    border-radius:var(--radius-sm); background:white;
-    box-shadow:0 2px 8px rgba(0,0,0,.06);
-    transition: transform .15s, box-shadow .15s;
-}
-.ai-step-row:hover { transform:translateX(2px); box-shadow:0 4px 12px rgba(0,0,0,.09); }
-.ai-step-row-hand { border-left:4px solid #7c6fff; }
-.ai-step-row-move { border-left:4px solid #06b6d4; }
-.ai-step-row-face { border-left:4px solid #f59e0b; }
-
-.ai-step-icon    { font-size:19px; flex-shrink:0; margin-top:1px; }
-.ai-step-content { flex:1; min-width:0; }
-.ai-step-label   { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; margin-bottom:3px; }
-.ai-step-desc    { font-size:13.5px; line-height:1.55; color:#1e293b; word-break:keep-all; white-space:pre-wrap; }
+/* 단계 상세 행(손 설명, 동작 설명, 설명 듣기) 숨김 — AIPanel.jsx에서 직접 제거됨 */
 
 /* 컨트롤 */
 .ai-controls { display:flex; flex-direction:column; gap:9px; padding:12px 16px 14px; }
@@ -734,6 +628,104 @@
     margin:0 14px 14px; background:#fffbeb; border:1.5px solid #fbbf24;
     border-radius:8px; padding:9px 13px; font-size:12px; color:#78350f;
 }
+
+/* ══════════════════════════════════════════════════════
+   우측 열 — 텍스트 입력 카드
+   ══════════════════════════════════════════════════════ */
+.card-text-input {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.text-input-hd {
+    padding: 14px 18px 12px;
+    font-size: 14px; font-weight: 800; color: var(--text);
+    border-bottom: 1.5px solid var(--border);
+    background: linear-gradient(135deg, #f0fff8 0%, #e8f9f0 100%);
+    display: flex; align-items: center; gap: 8px;
+}
+.text-input-hd::before { content: '💬'; font-size: 16px; }
+
+.text-input-body { padding: 16px; }
+
+/* 텍스트 영역 */
+.ai-textarea-wrap { display:flex; flex-direction:column; gap:10px; }
+.ai-textarea {
+    width:100%; border:2px solid var(--border); border-radius:var(--radius-sm);
+    padding:12px 14px; font-size:14px; font-family:var(--font);
+    color:var(--text); resize:none; outline:none;
+    transition:border-color .2s, box-shadow .2s;
+    background: rgba(255,255,255,.8); min-height:80px;
+    line-height: 1.6;
+}
+.ai-textarea:focus { border-color:var(--reply); box-shadow:0 0 0 3px rgba(5,150,105,.1); }
+.ai-textarea::placeholder { color:#b0b8d0; }
+
+.ai-suggest-btn {
+    align-self:flex-end; padding:8px 18px;
+    border:1.5px solid var(--border); border-radius:var(--radius-sm);
+    background:#fff; font-size:12px; font-weight:700; color:var(--sub);
+    cursor:pointer; font-family:var(--font); transition:all .15s;
+}
+.ai-suggest-btn.ai-suggest-on {
+    background: linear-gradient(135deg, var(--reply), #10b981);
+    color:#fff; border-color:transparent;
+    box-shadow: 0 3px 12px rgba(5,150,105,.28);
+}
+.ai-suggest-btn:hover:not(:disabled) { transform:translateY(-1px); }
+
+/* 수어 단어 칩 */
+.ai-word-chips-wrap { margin-top:4px; }
+.ai-word-chips-label { font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:.06em; }
+.ai-word-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.ai-word-chip {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 11px; border-radius:14px;
+    background: rgba(5,150,105,.08); border:1px solid rgba(5,150,105,.2);
+    font-size:12px; font-weight:700; color:var(--reply);
+    transition: background .15s;
+}
+.ai-word-chip:hover { background: rgba(5,150,105,.14); }
+.chip-arrow { font-size:9px; opacity:.6; }
+
+/* 입력 탭 */
+.ai-input-tabs { display:flex; gap:5px; margin-top:6px; }
+.ai-itab {
+    padding:6px 13px; border-radius:8px; font-size:12px; font-weight:700;
+    border:1.5px solid var(--border); background:#fff; color:var(--sub);
+    cursor:pointer; font-family:var(--font); transition:all .15s;
+}
+.ai-itab.on {
+    background: linear-gradient(135deg, var(--reply), #10b981);
+    color:#fff; border-color:transparent;
+    box-shadow: 0 2px 8px rgba(5,150,105,.25);
+}
+
+.ai-voice-row { display:flex; align-items:center; gap:14px; margin-top:4px; padding:10px 0; }
+.mic-btn {
+    position:relative; width:72px; height:72px; border-radius:50%;
+    background:#f1f5f9; border:none; cursor:pointer; font-size:28px;
+    display:flex; align-items:center; justify-content:center; transition:background .15s, transform .15s;
+}
+.mic-btn:hover { transform:scale(1.05); }
+.mic-btn.mic-on { background: linear-gradient(135deg, var(--reply), #10b981); }
+.mic-ring {
+    position:absolute; inset:-10px; border-radius:50%;
+    border:2px solid var(--reply); animation:mic-ring 1.2s ease-out infinite; opacity:0;
+}
+@keyframes mic-ring { 0%{opacity:.6;transform:scale(.82)} 100%{opacity:0;transform:scale(1.15)} }
+.mic-stat { font-size:13px; color:var(--sub); text-align:center; }
+
+/* 미리보기 카드 */
+.preview-card { display:flex; flex-direction:column; align-items:center; gap:10px; padding:8px 0; }
+.pv-ico  { font-size:38px; }
+.pv-lbl  { font-size:11px; font-weight:700; color:var(--reply); letter-spacing:.05em; text-transform:uppercase; }
+.pv-txt  { font-size:17px; font-weight:800; text-align:center; line-height:1.55; }
+.pv-q    { font-size:13px; color:var(--sub); }
+.pv-acts { display:flex; gap:10px; width:100%; }
 
 /* ── 자막 패널 ── */
 .subtitle-panel {
@@ -832,3 +824,293 @@
 .typing-dots span:nth-child(2) { animation-delay:.22s; }
 .typing-dots span:nth-child(3) { animation-delay:.44s; }
 @keyframes td { 0%,80%,100%{opacity:.2;transform:translateY(0)} 40%{opacity:1;transform:translateY(-7px)} }
+
+/* ══════════════════════════════════════════════════════
+   하단 대화 기록 — 세련된 채팅 UI (세로 스크롤)
+   ══════════════════════════════════════════════════════ */
+.chat-row-card {
+    margin-top: 20px;
+    position: relative;
+    z-index: 1;
+    border-radius: var(--radius-lg) !important;
+    border: 1.5px solid var(--border) !important;
+    box-shadow: 0 4px 24px rgba(91,94,244,.09) !important;
+    overflow: hidden;
+}
+
+/* 카드 헤더 오버라이드 */
+.chat-row-card .card-hd {
+    background: linear-gradient(120deg, #f5f3ff 0%, #eef4ff 100%);
+    padding: 15px 20px 13px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    border-bottom: 1.5px solid #e9ecf8;
+    gap: 10px;
+}
+
+/* 세로 스크롤 컨테이너 */
+.chat-log-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: 240px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 14px 18px 18px;
+    scroll-behavior: smooth;
+}
+
+.chat-log-row::-webkit-scrollbar { width: 4px; }
+.chat-log-row::-webkit-scrollbar-track { background: transparent; }
+.chat-log-row::-webkit-scrollbar-thumb { background: #d8dcee; border-radius: 4px; }
+
+/* ── 메시지 아이템 ── */
+.chat-log-row .msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 68%;
+    gap: 0;
+    animation: msgFadeUp .28s cubic-bezier(.22,.68,0,1.2) both;
+    margin-bottom: 14px;
+}
+
+@keyframes msgFadeUp {
+    from { opacity: 0; transform: translateY(10px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.chat-log-row .msg-sign  { align-self: flex-start; align-items: flex-start; }
+.chat-log-row .msg-voice { align-self: flex-end;   align-items: flex-end; }
+
+/* 발신자 이름 */
+.chat-log-row .msg-nm {
+    font-size: 10px;
+    font-weight: 700;
+    color: #9ba6c4;
+    margin-bottom: 5px;
+    padding: 0 2px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.chat-log-row .msg-voice .msg-nm {
+    justify-content: flex-end;
+}
+
+/* 아이콘 + 말풍선 묶음 */
+.chat-log-row .msg-bd {
+    display: flex;
+    align-items: flex-end;
+    gap: 7px;
+    max-width: 100%;
+}
+.chat-log-row .msg-sign .msg-bd  { flex-direction: row; }
+.chat-log-row .msg-voice .msg-bd { flex-direction: row-reverse; }
+
+/* 아바타 아이콘 */
+.chat-log-row .msg-ico {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end;
+    position: relative;
+    top: -2px;
+}
+.chat-log-row .msg-sign .msg-ico {
+    background: linear-gradient(135deg, #dbeafe, #c7d7ff);
+    box-shadow: 0 2px 10px rgba(37,99,235,.18);
+}
+.chat-log-row .msg-voice .msg-ico {
+    background: linear-gradient(135deg, #e8e7ff, #d5d3ff);
+    box-shadow: 0 2px 10px rgba(91,94,244,.2);
+}
+
+/* ── 말풍선 본체 ── */
+.chat-log-row .msg-txt {
+    font-size: 13.5px;
+    padding: 10px 15px;
+    word-break: break-word;
+    line-height: 1.6;
+    position: relative;
+    font-weight: 500;
+    max-width: 100%;
+}
+
+/* 청각장애인 (수어) — 왼쪽 말풍선 */
+.chat-log-row .msg-sign .msg-txt {
+    background: #ffffff;
+    color: #1e3565;
+    border: 1.5px solid #d9e6ff;
+    border-radius: 4px 18px 18px 18px;
+    box-shadow: 0 2px 14px rgba(37,99,235,.1), 0 1px 3px rgba(0,0,0,.04);
+}
+
+/* 담당자 (텍스트) — 오른쪽 말풍선 */
+.chat-log-row .msg-voice .msg-txt {
+    background: linear-gradient(135deg, #5b5ef4, #7879f1);
+    color: #ffffff;
+    border: none;
+    border-radius: 18px 4px 18px 18px;
+    box-shadow: 0 3px 16px rgba(91,94,244,.32), 0 1px 4px rgba(0,0,0,.06);
+}
+
+/* MiniHand 미니 손 */
+.chat-log-row .msg-mini {
+    margin-bottom: 5px;
+    opacity: .85;
+}
+
+/* 타임스탬프 + TTS 버튼 */
+.chat-log-row .msg-ft {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    padding: 0 3px;
+}
+.chat-log-row .msg-sign .msg-ft  { flex-direction: row; padding-left: 39px; }
+.chat-log-row .msg-voice .msg-ft { flex-direction: row-reverse; padding-right: 39px; }
+
+.chat-log-row .msg-time {
+    font-size: 10px;
+    color: #bbc3da;
+    white-space: nowrap;
+    letter-spacing: .01em;
+}
+
+.chat-log-row .btn-msg-tts {
+    font-size: 11px;
+    color: #bbc3da;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 2px;
+    transition: color .15s, transform .15s;
+    line-height: 1;
+}
+.chat-log-row .btn-msg-tts:hover {
+    color: var(--accent);
+    transform: scale(1.2);
+}
+
+/* 연속 메시지 — 같은 발신자 간격 줄이기 */
+.chat-log-row .msg + .msg-sign,
+.chat-log-row .msg-sign + .msg-sign { margin-top: -6px; }
+.chat-log-row .msg + .msg-voice,
+.chat-log-row .msg-voice + .msg-voice { margin-top: -6px; }
+
+/* 날짜 구분선 (향후 사용) */
+.chat-date-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0 14px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #c0c8df;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.chat-date-divider::before,
+.chat-date-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e4e8f2, transparent);
+}
+
+/* 빈 상태 */
+.chat-log-row .chat-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 28px 0 20px;
+    width: 100%;
+    color: #b0bace;
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.7;
+}
+.chat-log-row .chat-empty span { font-size: 28px; opacity: .7; }
+/* ── DTW 학습 버튼 ── */
+.dtw-learn-wrap {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(91,94,244,.06);
+    border: 1.5px dashed rgba(91,94,244,.25);
+    border-radius: var(--radius-sm);
+}
+.dtw-learn-label {
+    font-size: 12px; font-weight: 700;
+    color: var(--accent); margin-bottom: 8px;
+}
+.dtw-learn-btns {
+    display: flex; flex-wrap: wrap; gap: 6px;
+}
+.dtw-learn-btn {
+    font-size: 12px; font-weight: 600;
+    font-family: var(--font);
+    padding: 5px 12px; border-radius: 20px;
+    border: 1.5px solid rgba(91,94,244,.3);
+    background: #fff; color: var(--accent);
+    cursor: pointer; transition: all .15s;
+}
+.dtw-learn-btn:hover:not(:disabled) {
+    background: var(--accent); color: #fff;
+}
+.dtw-learn-btn:disabled {
+    opacity: 0.4; cursor: not-allowed;
+}
+.dtw-learn-btn.dtw-learning {
+    background: #10b981; color: #fff;
+    border-color: #10b981;
+}
+.dtw-saved {
+    margin-top: 6px; font-size: 12px;
+    color: #10b981; font-weight: 700;
+}
+
+/* ── 인식 엔진 선택 버튼 ── */
+.engine-toggle-wrap {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(91,94,244,.07);
+    border: 1.5px solid rgba(91,94,244,.2);
+    border-radius: 24px; padding: 4px 8px;
+}
+.engine-toggle-label {
+    font-size: 11px; font-weight: 700;
+    color: var(--accent); padding: 0 4px;
+    white-space: nowrap;
+}
+.engine-btn {
+    font-size: 12px; font-weight: 700;
+    font-family: var(--font);
+    padding: 5px 14px; border-radius: 18px;
+    border: 1.5px solid transparent;
+    background: transparent; color: #888;
+    cursor: pointer; transition: all .18s;
+    white-space: nowrap;
+}
+.engine-btn:hover:not(:disabled) {
+    background: rgba(91,94,244,.1);
+    color: var(--accent);
+}
+.engine-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.engine-btn-on {
+    background: var(--accent); color: #fff !important;
+    border-color: var(--accent);
+    box-shadow: 0 2px 10px rgba(91,94,244,.3);
+}
+.engine-btn-loading { color: #f59e0b; font-size: 11px; }
+.engine-btn-ready   { color: #10b981; font-size: 11px; }
+.engine-btn-err     { color: #ef4444; font-size: 11px; }
