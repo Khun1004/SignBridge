@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 가상환경
+src/assets/ai/venv/
+
+# 용량 큰 모델 파일
+src/assets/ai/hand_landmarker.task
