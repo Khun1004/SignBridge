@@ -330,3 +330,64 @@
   .slc-param:nth-child(4),
   .slc-param:nth-child(5) { border-top: 1px solid #f0f0f8; }
 } 
+/* First part of Hello: Stroking the arm */
+.mv-sweep-diagonal {
+  animation: sweepDiag 2s infinite;
+}
+
+@keyframes sweepDiag {
+  0%, 10% { opacity: 0; stroke-dashoffset: 20; }
+  20%, 40% { opacity: 1; stroke-dashoffset: 0; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Second part of Hello: Dropping the fists */
+.mv-drop-heavy {
+  animation: dropHeavy 2s infinite;
+}
+
+@keyframes dropHeavy {
+  0%, 50% { opacity: 0; transform: translateY(-5px); }
+  60%, 85% { opacity: 1; transform: translateY(0); }
+  90%, 100% { opacity: 0; }
+}
+
+/* Delaying the second part dots so they appear after the stroke */
+.mv-delay-2 {
+  animation: fadeInOut 2s infinite;
+  animation-delay: 1s;
+}
+.slc-hand-box-multi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 140px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.slc-hand-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.slc-hand-label-sub {
+  font-size: 10px;
+  color: #666;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+/* Add a plus sign between hands if needed */
+.slc-hand-item + .slc-hand-item::before {
+  content: "+";
+  position: absolute;
+  left: -5px;
+  top: 40%;
+  color: #ccc;
+  font-weight: bold;
+}
+.slc-hand-item { position: relative; }

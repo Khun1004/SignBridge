@@ -269,3 +269,197 @@
   .gc-score-col  { width: 100%; }
   .cam-wrapper   { padding-top: 75%; }
 }
+/* ═══════════════════════════════════════════
+   ADD THESE TO YOUR EXISTING GestureCheck.css
+═══════════════════════════════════════════ */
+
+/* ── Dynamic sign badge on pill ── */
+.pill-dynamic {
+  font-size: 9px;
+  margin-left: 3px;
+  opacity: 0.6;
+}
+
+/* ── Dynamic badge in camera overlay ── */
+.csp-dynamic-badge {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+  padding: 3px 8px;
+  background: var(--color-background-secondary);
+  border-radius: 10px;
+  display: inline-block;
+}
+
+/* ── Phase progress bar ── */
+.phase-progress {
+  background: var(--color-background-secondary);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.phase-progress-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.phase-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.phase-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.phase-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-border-tertiary);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.phase-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  transition: color 0.2s;
+}
+
+/* Done phase */
+.phase-step.done .phase-dot {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+}
+.phase-step.done .phase-label {
+  color: #10b981;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* Active phase */
+.phase-step.active .phase-dot {
+  background: var(--color-background-primary);
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-primary);
+  animation: phase-pulse 1.2s ease-in-out infinite;
+}
+.phase-step.active .phase-label {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+/* Active + passing */
+.phase-step.active.pass .phase-dot {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+.phase-step.active.pass .phase-label {
+  color: #10b981;
+}
+
+@keyframes phase-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 111, 255, 0.3); }
+  50%       { box-shadow: 0 0 0 5px rgba(124, 111, 255, 0); }
+}
+
+/* Connector line between steps */
+.phase-connector {
+  display: none; /* using flex column gap instead */
+}
+
+/* ── Phase preview (before camera starts) ── */
+.phase-preview {
+  background: var(--color-background-secondary);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.phase-preview-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+.phase-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.phase-preview-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-border-tertiary);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Hold hint success state ── */
+.hold-hint.success {
+  color: #10b981;
+  font-weight: 500;
+}
+.phase-progress {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-left: 4px solid #7c6fff;
+}
+
+.phase-step-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+  transition: all 0.3s ease;
+}
+
+.phase-step-item.done { color: #10b981; opacity: 0.8; }
+.phase-step-item.active-pass { color: #7c6fff; font-weight: bold; transform: translateX(5px); }
+.phase-step-item.active-waiting { color: #f59e0b; }
+
+.step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+}
+
+.done .step-number { background: #10b981; color: white; }
+.active-pass .step-number { background: #7c6fff; color: white; box-shadow: 0 0 10px #7c6fff; }
