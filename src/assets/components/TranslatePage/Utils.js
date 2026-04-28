@@ -63,9 +63,9 @@ export const speak = (text, rate = 0.9) => {
     window.speechSynthesis.speak(u)
 }
 
-/** MediaPipe 등 외부 스크립트 로드 */
+/** MediaPipe Holistic 로드 (손 + 몸 + 얼굴 동시 감지) */
 export const loadMP = () => new Promise((res, rej) => {
-    if (window.Hands) { res(); return }
+    if (window.Holistic) { res(); return }
     const ld = src => new Promise((r, j) => {
         const s = document.createElement('script')
         s.src = src; s.crossOrigin = 'anonymous'
@@ -73,7 +73,7 @@ export const loadMP = () => new Promise((res, rej) => {
         document.head.appendChild(s)
     })
     Promise.all([
-        ld('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'),
+        ld('https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js'),
         ld('https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js')
     ]).then(res).catch(rej)
 })

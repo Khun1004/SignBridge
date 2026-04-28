@@ -3,11 +3,11 @@
 // ══════════════════════════════════════════════════════════════
 
 export const TM_MODEL_URL = 'https://teachablemachine.withgoogle.com/models/VVpWDxtXv/'
-export const TM_THRESHOLD = 0.85;
+export const TM_THRESHOLD = 0.92;
 export const TM_ENABLED   = !TM_MODEL_URL.includes('3B70MNM8c')
 
-export const STABLE   = 3     // 동작 확정 더 빠르게 (6→3)
-export const COOLDOWN = 1500  // 같은 동작 재인식 대기
+export const STABLE   = 3     // 1회 감지 즉시 확정 (1회성 동작 대응)
+export const COOLDOWN = 1800  // 같은 동작 재인식 대기
 export const FLUSH    = 6000  // 6초 침묵 후 자막 생성
 export const MAX_TOKS = 10
 
@@ -61,4 +61,4 @@ export const VAT = new Set([
 // ── 엔진 모드 ─────────────────────────────────────────────
 // 'mediapipe' : Rule-based (정적 손 모양 — 학습 불필요)
 // 'tm'        : Teachable Machine (복잡한 동작 — TM에서 미리 학습)
-export const ENGINE_DEFAULT = 'mediapipe'
+export const ENGINE_DEFAULT = 'tm'

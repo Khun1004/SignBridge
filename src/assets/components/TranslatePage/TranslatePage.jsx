@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════════════════════
 //  TranslatePage — 3열 레이아웃 (수어 인식 | 3D 아바타 | 텍스트 입력)
+//  ✅ TM과 MediaPipe 완전 분리 — 충돌 없음
 // ══════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState, useCallback } from 'react'
 import './TranslatePage.css'
@@ -18,8 +19,7 @@ import { fixAnim, speak, loadMP } from './utils.js'
 import { buildSubtitle, fetchSignGuide } from './translateApis.js'
 import SubPanel from './SubPanel.jsx'
 import AIPanel  from './AIPanel.jsx'
-
-import HandSVG from './HandSVG.jsx'
+import HandSVG  from './HandSVG.jsx'
 
 // ── MiniHand ─────────────────────────────────────────────────
 function MiniHand({ pose, size = 48, running }) {
@@ -40,58 +40,64 @@ function MiniHand({ pose, size = 48, running }) {
 //  메인 컴포넌트
 // ══════════════════════════════════════════════════════════════
 export default function TranslatePage({ onEndConversation, place = 'immigration' }) {
-    const [mpError,      setMpError]      = useState(null)
-    const [cameraOn,     setCameraOn]     = useState(false)
-    const [messages,     setMessages]     = useState([])
-    const [textInput,    setTextInput]    = useState('')
-    const [voiceText,    setVoiceText]    = useState('')
-    const [listening,    setListening]    = useState(false)
-    const [inputMode,    setInputMode]    = useState('text')
-    const [pendingSign,  setPendingSign]  = useState(null)
-    const [signMeaning,  setSignMeaning]  = useState(null)
-    const [signPose,     setSignPose]     = useState('idle')
-    const [pendingReply, setPendingReply] = useState(null)
-    const [aiGuide,      setAiGuide]      = useState(null)
-    const [aiLoading,    setAiLoading]    = useState(false)
+    const [mpError,       setMpError]       = useState(null)
+    const [cameraOn,      setCameraOn]      = useState(false)
+    const [messages,      setMessages]      = useState([])
+    const [textInput,     setTextInput]     = useState('')
+    const [voiceText,     setVoiceText]     = useState('')
+    const [listening,     setListening]     = useState(false)
+    const [inputMode,     setInputMode]     = useState('text')
+    const [pendingSign,   setPendingSign]   = useState(null)
+    const [signMeaning,   setSignMeaning]   = useState(null)
+    const [signPose,      setSignPose]      = useState('idle')
+    const [pendingReply,  setPendingReply]  = useState(null)
+    const [aiGuide,       setAiGuide]       = useState(null)
+    const [aiLoading,     setAiLoading]     = useState(false)
     const [avatarPlaying, setAvatarPlaying] = useState(false)
-    const [showStopWarn, setShowStopWarn] = useState(false)
-    const [liveG,        setLiveG]        = useState(null)
-    const [handDet,      setHandDet]      = useState(false)
-    const [stabProg,     setStabProg]     = useState(0)
-    const [ttsOn,        setTtsOn]        = useState(true)
-    const [subTokens,    setSubTokens]    = useState([])
-    const [subText,      setSubText]      = useState('')
-    const [subLoading,   setSubLoading]   = useState(false)
-    const [subHist,      setSubHist]      = useState([])
-    const [tmStatus,     setTmStatus]     = useState(TM_ENABLED ? 'loading' : 'off')
-    const [engineMode,   setEngineMode]   = useState('mediapipe')  // 'mediapipe' | 'tm'
-    const engineModeRef  = useRef('mediapipe')
+    const [showStopWarn,  setShowStopWarn]  = useState(false)
+    const [liveG,         setLiveG]         = useState(null)
+    const [handDet,       setHandDet]       = useState(false)
+    const [stabProg,      setStabProg]      = useState(0)
+    const [ttsOn,         setTtsOn]         = useState(true)
+    const [subTokens,     setSubTokens]     = useState([])
+    const [subText,       setSubText]       = useState('')
+    const [subLoading,    setSubLoading]    = useState(false)
+    const [subHist,       setSubHist]       = useState([])
+    const [tmStatus,      setTmStatus]      = useState(TM_ENABLED ? 'loading' : 'off')
+    const [engineMode,    setEngineMode]    = useState('tm')  // 'mediapipe' | 'tm'
+    const engineModeRef   = useRef('tm')
 
-    const vRef         = useRef(null)
-    const cvRef        = useRef(null)
-    const handsRef     = useRef(null)
-    const rafRef       = useRef(null)
-    const recRef       = useRef(null)
-    const chatRef      = useRef(null)
-    const taRef        = useRef(null)
-    const lastSignRef  = useRef(null)
-    const lastTimeRef  = useRef(0)
-    const runRef       = useRef(false)
-    const msgsRef      = useRef([])
-    const stabCnt      = useRef(0)
-    const stabName     = useRef(null)
-    const ttsRef       = useRef(true)
-    const dtwRef       = useRef(new DTWRec())
-    const motionRef    = useRef(new MotionTracker(25))  // 손 움직임 추적기
-    const tmRef        = useRef(null)
-    const tmResultRef  = useRef(null)
-    const flushTRef    = useRef(null)
-    const tokRef       = useRef([])
-    const prevSentRef  = useRef('')
-    const tmStatusRef  = useRef(tmStatus)
+    const vRef          = useRef(null)
+    const cvRef         = useRef(null)
+    const handsRef      = useRef(null)
+    const rafRef        = useRef(null)
+    const recRef        = useRef(null)
+    const chatRef       = useRef(null)
+    const taRef         = useRef(null)
+    const lastSignRef   = useRef(null)
+    const lastTimeRef   = useRef(0)
+    const runRef        = useRef(false)
+    const msgsRef       = useRef([])
+    const stabCnt       = useRef(0)
+    const stabName      = useRef(null)
+    const ttsRef        = useRef(true)
+    const dtwRef        = useRef(new DTWRec())
+    const motionRef     = useRef(new MotionTracker(25))
+    const tmRef         = useRef(null)
+    const tmResultRef   = useRef(null)
+    const lstmHitRef    = useRef(null)
+    const flushTRef     = useRef(null)
+    const tokRef        = useRef([])
+    const prevSentRef   = useRef('')
+    const tmStatusRef   = useRef(tmStatus)
+
     const { lstmStatus, lstmGesture, sendLandmarks } = useLSTMSign({
         onGesture: useCallback((name, conf) => {
-            if (name && conf >= 0.75) pushTok(name)
+            if (name && conf >= 0.75) {
+                const r = RULES.find(r => r.name === name)
+                lstmHitRef.current = r || { name, emoji: '🤖', meaning: '', pose: 'idle' }
+                setTimeout(() => { lstmHitRef.current = null }, 2000)
+            }
         }, []),
         onSentence: useCallback((sentence) => {
             if (sentence) setSubText(sentence)
@@ -117,7 +123,10 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                     })
                 }
                 setTmStatus('loading')
-                tmRef.current = await window.tmPose.load(TM_MODEL_URL + 'model.json', TM_MODEL_URL + 'metadata.json')
+                tmRef.current = await window.tmPose.load(
+                    TM_MODEL_URL + 'model.json',
+                    TM_MODEL_URL + 'metadata.json'
+                )
                 setTmStatus('ready')
             } catch (e) {
                 console.error('[TM]', e); setTmStatus('error')
@@ -133,8 +142,8 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
         tokRef.current = []
         const s = await buildSubtitle(toks, place, prevSentRef.current)
         setSubLoading(false)
-        if (s && s !== prevSentRef.current) {   // 이전 문장과 같으면 무시
-            setSubText(s)                        // 덧붙이지 않고 교체
+        if (s && s !== prevSentRef.current) {
+            setSubText(s)
             prevSentRef.current = s
         }
     }, [place])
@@ -143,7 +152,6 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
     const pushTok = useCallback((name) => {
         const w = name.replace(/\p{Emoji}/gu, '').trim()
         if (!w) return
-        // 직전 토큰과 같으면 중복 추가 안 함
         const cur = tokRef.current
         if (cur.length > 0 && cur[cur.length - 1] === w) return
         setSubTokens(prev => {
@@ -161,8 +169,9 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
         }, FLUSH)
     }, [flushSub])
 
-    // ── MediaPipe 결과 콜백 ───────────────────────────────────
-    // ── MediaPipe 결과 콜백 (개선 버전) ───────────────────────────────────
+    // ══════════════════════════════════════════════════════════
+    //  MediaPipe 결과 콜백 — TM / MediaPipe 완전 분리
+    // ══════════════════════════════════════════════════════════
     const onResults = useCallback((results) => {
         if (!runRef.current) return
 
@@ -177,14 +186,21 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
         ctx.drawImage(results.image, -cv.width, 0, cv.width, cv.height)
         ctx.restore()
 
-        if (results.multiHandLandmarks?.length > 0) {
-            setHandDet(true)
+        // ── Holistic: 손 + 포즈 랜드마크 추출 ────────────────
+        const rightHand = results.rightHandLandmarks || null
+        const leftHand  = results.leftHandLandmarks  || null
+        const poseLm    = results.poseLandmarks      || null
 
-            const lm = results.multiHandLandmarks[0]
+        // 감지된 손 (오른손 우선, 없으면 왼손)
+        const lm  = rightHand || leftHand
+        const lm2 = (rightHand && leftHand) ? leftHand : null
+
+        if (lm) {
+            setHandDet(true)
             sendLandmarks(lm)
 
-            // ── 두 손 랜드마크 시각화 ─────────────────────────────
-            const CONNECTIONS = [
+            // ── 손 랜드마크 시각화 ────────────────────────────────
+            const HAND_CONNECTIONS = [
                 [0,1],[1,2],[2,3],[3,4],
                 [0,5],[5,6],[6,7],[7,8],
                 [0,9],[9,10],[10,11],[11,12],
@@ -192,7 +208,7 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                 [0,17],[17,18],[18,19],[19,20],
                 [5,9],[9,13],[13,17],
             ]
-            const W = cv.width, H = cv.height
+            const W        = cv.width, H = cv.height
             const TIP_IDS  = [4, 8, 12, 16, 20]
             const BASE_IDS = [0, 1, 5, 9, 13, 17]
             const COLORS   = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff']
@@ -204,13 +220,11 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                 if (idx <= 16) return COLORS[3]
                 return COLORS[4]
             }
-
-            // 모든 손 그리기 (최대 2개)
             const drawHand = (hand) => {
                 ctx.save()
                 ctx.strokeStyle = 'rgba(255,255,255,0.6)'
                 ctx.lineWidth = 2
-                for (const [a, b] of CONNECTIONS) {
+                for (const [a, b] of HAND_CONNECTIONS) {
                     ctx.beginPath()
                     ctx.moveTo((1 - hand[a].x) * W, hand[a].y * H)
                     ctx.lineTo((1 - hand[b].x) * W, hand[b].y * H)
@@ -231,41 +245,63 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                 }
                 ctx.restore()
             }
+            if (rightHand) drawHand(rightHand)
+            if (leftHand)  drawHand(leftHand)
 
-            // 감지된 모든 손에 색깔 점 표시
-            results.multiHandLandmarks.forEach(hand => drawHand(hand))
-
-            // ── 엔진 분기 ─────────────────────────────────────────
+            // ══════════════════════════════════════════════════
+            //  엔진 실행 — TM / Holistic 분리
+            // ══════════════════════════════════════════════════
             let hit = null
 
             if (engineModeRef.current === 'mediapipe') {
-                // MediaPipe Rule-based + velocity
-                motionRef.current.push(lm)
+                // ── MediaPipe Holistic 전용 모드 ──────────────────
+                // poseLm(몸 랜드마크)을 함께 전달 → 위치 구분 정확도 향상
+                motionRef.current.push(lm, lm2, poseLm)
                 hit = classify(lm, motionRef.current)
 
-            } else if (engineModeRef.current === 'tm' &&
-                tmRef.current && tmStatusRef.current === 'ready') {
-                // Teachable Machine — 비동기, 결과는 tmResultRef에 저장
-                tmRef.current.estimatePose(vRef.current)
-                    .then(({ posenetOutput }) => tmRef.current.predict(posenetOutput))
-                    .then(preds => {
-                        if (!preds?.length) return
-                        const best = preds.reduce((a, b) =>
-                            a.probability > b.probability ? a : b)
-                        if (best.probability >= TM_THRESHOLD) {
-                            tmResultRef.current = { name: best.className, prob: best.probability }
-                        } else {
-                            tmResultRef.current = null
-                        }
-                    }).catch(() => { tmResultRef.current = null })
+            } else {
+                // ── TM 모드: TM 우선, Holistic 보조 ──────────────
+                motionRef.current.push(lm, lm2, poseLm)
 
-                // 이번 프레임엔 이전 TM 결과 사용
-                if (tmResultRef.current) {
-                    const r = RULES.find(r => r.name === tmResultRef.current.name)
-                    hit = r || { name: tmResultRef.current.name, emoji: '🤖', meaning: '', pose: 'idle' }
+                // TM 비동기 추론
+                if (tmRef.current && tmStatusRef.current === 'ready') {
+                    tmRef.current.estimatePose(vRef.current)
+                        .then(({ posenetOutput }) => tmRef.current.predict(posenetOutput))
+                        .then(preds => {
+                            if (!preds?.length) return
+                            const best = preds.reduce((a, b) =>
+                                a.probability > b.probability ? a : b)
+                            if (best.probability >= TM_THRESHOLD) {
+                                tmResultRef.current = {
+                                    name: best.className,
+                                    prob: best.probability,
+                                    ts:   Date.now(),
+                                }
+                            } else {
+                                tmResultRef.current = null
+                            }
+                        }).catch(() => { tmResultRef.current = null })
+                }
+
+                // TM 결과 500ms 이내면 우선 사용, 아니면 Holistic 보조
+                const tmFresh = tmResultRef.current &&
+                    (Date.now() - (tmResultRef.current.ts || 0)) < 500
+                if (tmFresh) {
+                    const tmName = tmResultRef.current.name
+                    const r = RULES.find(r => r.name === tmName)
+                    hit = r || {
+                        name:    tmName,
+                        emoji:   '🤖',
+                        meaning: tmName,
+                        pose:    A2P[tmName] || 'idle',
+                    }
+                } else {
+                    // TM 결과 없으면 Holistic(MediaPipe) 전체 사용
+                    hit = classify(lm, motionRef.current)
                 }
             }
 
+            // ── hit 확정 처리 ─────────────────────────────────
             if (hit) {
                 setLiveG(hit)
                 const name = hit.name
@@ -273,32 +309,35 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                     stabCnt.current++
                 } else {
                     stabName.current = name
-                    stabCnt.current = 1
+                    stabCnt.current  = 1
                 }
                 setStabProg(Math.min((stabCnt.current / STABLE) * 100, 100))
 
                 if (stabCnt.current >= STABLE) {
-                    const now = Date.now()
-                    const isNew = name !== lastSignRef.current || (now - lastTimeRef.current > COOLDOWN)
+                    const now   = Date.now()
+                    const isNew = name !== lastSignRef.current ||
+                        (now - lastTimeRef.current > COOLDOWN)
                     if (isNew) {
-                        lastSignRef.current = name
-                        lastTimeRef.current = now
+                        lastSignRef.current  = name
+                        lastTimeRef.current  = now
+                        motionRef.current.confirmGesture(name)
                         if (ttsRef.current) speak(name)
-                        pushTok(name)              // 자막 버퍼에만 추가
-                        stabCnt.current = 0
+                        pushTok(name)
+                        stabCnt.current  = 0
                         stabName.current = null
                         setStabProg(0)
                     }
                 }
             } else {
                 setLiveG(null)
-                stabCnt.current = 0
+                stabCnt.current  = 0
                 stabName.current = null
                 setStabProg(0)
             }
+
         } else {
             setHandDet(false)
-            stabCnt.current = 0
+            stabCnt.current  = 0
             stabName.current = null
             setStabProg(0)
         }
@@ -309,14 +348,27 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
         setMpError(null)
         try {
             await loadMP()
-            if (handsRef.current) { try { handsRef.current.close() } catch (_) {} handsRef.current = null }
-            const hands = new window.Hands({
-                locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`
+            if (handsRef.current) {
+                try { handsRef.current.close() } catch (_) {}
+                handsRef.current = null
+            }
+            // Holistic: 손 + 몸 + 얼굴 동시 감지
+            const holistic = new window.Holistic({
+                locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${f}`
             })
-            hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.75, minTrackingConfidence: 0.65 })
-            hands.onResults(onResults)
-            handsRef.current = hands
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } })
+            holistic.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                refineFaceLandmarks: false,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.6,
+            })
+            holistic.onResults(onResults)
+            handsRef.current = holistic
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' }
+            })
             vRef.current.srcObject = stream
             await vRef.current.play()
             runRef.current = true
@@ -324,7 +376,8 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
             dtwRef.current.reset()
             const loop = async () => {
                 if (!runRef.current) return
-                if (vRef.current?.readyState >= 2) await handsRef.current?.send({ image: vRef.current })
+                if (vRef.current?.readyState >= 2)
+                    await handsRef.current?.send({ image: vRef.current })
                 rafRef.current = requestAnimationFrame(loop)
             }
             rafRef.current = requestAnimationFrame(loop)
@@ -370,12 +423,13 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
     const confirmSentence = useCallback((sentence) => {
         if (!sentence) return
         addMsg('sign', sentence, null)
-        const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        const t = new Date().toLocaleTimeString('ko-KR', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        })
         setSubHist(p => [...p.slice(-9), { text: sentence, time: t }])
         if (ttsRef.current) speak(sentence)
-        // 전송 후 완전 초기화 — 다음 문장은 새로 시작
         setSubText(''); setSubTokens([]); tokRef.current = []
-        prevSentRef.current = ''   // 초기화해야 다음 문장이 중복으로 막히지 않음
+        prevSentRef.current = ''
         clearTimeout(flushTRef.current)
     }, [])
 
@@ -386,7 +440,7 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
         const data = await fetchSignGuide(text)
         setAiGuide(data)
         setAiLoading(false)
-        setAvatarPlaying(true)   // 수어문 추출 완료 → 아바타 재생 시작
+        setAvatarPlaying(true)
     }
 
     // ── 음성 입력 ─────────────────────────────────────────────
@@ -428,17 +482,18 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
         if (!pendingReply) return
         const text = pendingReply
         addMsg('voice', text)
-        setAvatarPlaying(false)   // 전송하기 → 아바타 일시정지
-        if (!aiGuide && !aiLoading) {
-            getAI(text)
-        }
+        setAvatarPlaying(false)
+        if (!aiGuide && !aiLoading) getAI(text)
         setPendingReply(null)
     }
 
     const addMsg = (type, text, pose = null) => {
         const m = {
-            id: Date.now() + Math.random(), type, text, pose,
-            time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+            id:   Date.now() + Math.random(),
+            type, text, pose,
+            time: new Date().toLocaleTimeString('ko-KR', {
+                hour: '2-digit', minute: '2-digit'
+            }),
         }
         setMessages(p => { const n = [...p, m]; msgsRef.current = n; return n })
     }
@@ -484,16 +539,19 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                     <span className="engine-toggle-label">인식 방식</span>
                     <button
                         className={`engine-btn ${engineMode === 'mediapipe' ? 'engine-btn-on' : ''}`}
-                        onClick={() => { setEngineMode('mediapipe'); tmResultRef.current = null }}
-                        title="정적 손 모양 인식 — OK, V자, 좋아요 등"
+                        onClick={() => {
+                            setEngineMode('mediapipe')
+                            tmResultRef.current  = null
+                            lstmHitRef.current   = null
+                        }}
+                        title="MediaPipe rule-based 단독 모드"
                     >
-                        ✋ MediaPipe
+                        👋 MediaPipe
                     </button>
-
                     <button
                         className={`engine-btn ${engineMode === 'tm' ? 'engine-btn-on' : ''}`}
                         onClick={() => { setEngineMode('tm'); stabCnt.current = 0 }}
-                        title="Teachable Machine 학습 동작"
+                        title="TM 우선 + 사랑합니다만 MediaPipe 전담 (권장)"
                         disabled={!TM_ENABLED || tmStatus === 'error'}
                     >
                         🤖 TM
@@ -523,7 +581,6 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
 
                 {/* ── 좌측: 수어 인식 (청각장애인) ── */}
                 <div className="col col-left">
-                    {/* 카메라 & 인식 카드 */}
                     <div className="card">
                         <div className="card-hd">
                             <span>🖐 수어 인식</span>
@@ -532,15 +589,17 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                         </div>
                         <div className="card-bd">
                             <div className="cam-row">
-                                <button className="btn-start" onClick={init} disabled={cameraOn}>▶ Start</button>
+                                <button className="btn-start" onClick={init}    disabled={cameraOn}>▶ Start</button>
                                 <button className="btn-stop"  onClick={stopCam} disabled={!cameraOn}>⏹ Stop</button>
                             </div>
 
-                            {/* ── DTW 학습 버튼 — DTW 모드일 때만 표시 ── */}
-
                             <div className="vid-box">
-                                <canvas ref={cvRef} width={640} height={480} className="cam-cv"
-                                        style={{ display: cameraOn ? 'block' : 'none' }}/>
+                                <canvas
+                                    ref={cvRef}
+                                    width={640} height={480}
+                                    className="cam-cv"
+                                    style={{ display: cameraOn ? 'block' : 'none' }}
+                                />
                                 {!cameraOn && (
                                     <div className="vid-ph">
                                         <span>🤟</span>
@@ -570,9 +629,20 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                                                     </div>
                                                 </div>
                                             )
-                                            : <p className="live-idle">🔍 동작을 인식하고 있어요...</p>}
+                                            : <p className="live-idle">🔍 동작을 인식하고 있어요...</p>
+                                }
                             </div>
 
+                            {/* ── 엔진 상태 표시 ── */}
+                            <div className="engine-status-bar">
+                                <span className={`engine-badge ${tmStatus === 'ready' ? 'on' : tmStatus === 'loading' ? 'loading' : 'off'}`}>
+                                    TM {tmStatus === 'ready' ? '✅' : tmStatus === 'loading' ? '⏳' : '❌'}
+                                </span>
+                                <span className={`engine-badge ${lstmStatus === 'ready' ? 'on' : lstmStatus === 'connecting' ? 'loading' : 'off'}`}>
+                                    LSTM {lstmStatus === 'ready' ? '✅' : lstmStatus === 'connecting' ? '⏳' : '❌'}
+                                </span>
+                                <span className="engine-badge on">MP ✅</span>
+                            </div>
                             {lstmGesture && lstmStatus === 'ready' && (
                                 <div className="lstm-badge">
                                     🤖 LSTM: <strong>{lstmGesture.name}</strong>
@@ -588,7 +658,7 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                                     </div>
                                     <div className="pc-acts">
                                         <button className="btn-retake" onClick={retakeSign}>↩ 재인식</button>
-                                        <button className="btn-send" onClick={sendSign}>전송 →</button>
+                                        <button className="btn-send"   onClick={sendSign}>전송 →</button>
                                     </div>
                                 </div>
                             )}
@@ -610,10 +680,9 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                             />
                         </div>
                     </div>
-
                 </div>
 
-                {/* ── 가운데: 3D 아바타 생성 결과 (메인) ── */}
+                {/* ── 가운데: 3D 아바타 생성 결과 ── */}
                 <div className="col col-center">
                     <div className="card-avatar-center">
                         <div className="avatar-center-hd">
@@ -653,7 +722,8 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                                         <button
                                             className={`ai-suggest-btn ${textInput.trim() ? 'ai-suggest-on' : ''}`}
                                             onClick={subTxt}
-                                            disabled={!textInput.trim()}>
+                                            disabled={!textInput.trim()}
+                                        >
                                             수어문 추출 →
                                         </button>
                                     </div>
@@ -672,20 +742,28 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                                     )}
 
                                     <div className="ai-input-tabs" style={{ marginTop: 14 }}>
-                                        <button className={`ai-itab ${inputMode === 'text' ? 'on' : ''}`}
-                                                onClick={() => setInputMode('text')}>⌨️ 텍스트</button>
-                                        <button className={`ai-itab ${inputMode === 'voice' ? 'on' : ''}`}
-                                                onClick={() => setInputMode('voice')}>🎙️ 음성</button>
+                                        <button
+                                            className={`ai-itab ${inputMode === 'text' ? 'on' : ''}`}
+                                            onClick={() => setInputMode('text')}
+                                        >⌨️ 텍스트</button>
+                                        <button
+                                            className={`ai-itab ${inputMode === 'voice' ? 'on' : ''}`}
+                                            onClick={() => setInputMode('voice')}
+                                        >🎙️ 음성</button>
                                     </div>
 
                                     {inputMode === 'voice' && (
                                         <div className="ai-voice-row">
-                                            <button className={`mic-btn ${listening ? 'mic-on' : ''}`}
-                                                    onClick={listening ? stopV : startV}>
+                                            <button
+                                                className={`mic-btn ${listening ? 'mic-on' : ''}`}
+                                                onClick={listening ? stopV : startV}
+                                            >
                                                 <span>🎙️</span>
                                                 {listening && <div className="mic-ring"/>}
                                             </button>
-                                            <p className="mic-stat">{listening ? voiceText || '듣고 있어요...' : '버튼을 눌러 말하세요'}</p>
+                                            <p className="mic-stat">
+                                                {listening ? voiceText || '듣고 있어요...' : '버튼을 눌러 말하세요'}
+                                            </p>
                                         </div>
                                     )}
                                 </>
@@ -697,8 +775,8 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                                     <button className="btn-tts" onClick={() => speak(pendingReply)}>🔊 음성으로 듣기</button>
                                     <p className="pv-q">이 내용을 전송할까요?</p>
                                     <div className="pv-acts">
-                                        <button className="btn-retake" onClick={() => setPendingReply(null)}>↩ 다시 입력</button>
-                                        <button className="btn-send-reply" onClick={sendReply}>전송하기 →</button>
+                                        <button className="btn-retake"      onClick={() => setPendingReply(null)}>↩ 다시 입력</button>
+                                        <button className="btn-send-reply"  onClick={sendReply}>전송하기 →</button>
                                     </div>
                                 </div>
                             )}
@@ -729,7 +807,11 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                                         <span className="msg-ico">
                                             {msg.type === 'sign' ? '🧏' : '🙋'}
                                         </span>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.type === 'voice' ? 'flex-end' : 'flex-start' }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: msg.type === 'voice' ? 'flex-end' : 'flex-start'
+                                        }}>
                                             {msg.pose && msg.type === 'sign' && (
                                                 <div className="msg-mini">
                                                     <MiniHand pose={msg.pose} size={36} running={false}/>
@@ -739,14 +821,15 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                                         </div>
                                     </div>
                                     <div className="msg-ft">
-                                        <button className="btn-msg-tts"
-                                                onClick={() => speak(msg.text.replace(/\p{Emoji}/gu, '').trim())}>
-                                            🔊
-                                        </button>
+                                        <button
+                                            className="btn-msg-tts"
+                                            onClick={() => speak(msg.text.replace(/\p{Emoji}/gu, '').trim())}
+                                        >🔊</button>
                                         <span className="msg-time">{msg.time}</span>
                                     </div>
                                 </div>
-                            ))}
+                            ))
+                        }
                         <div ref={chatRef}/>
                     </div>
                 </div>
