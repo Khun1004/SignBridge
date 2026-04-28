@@ -20,7 +20,7 @@ import SignupPage from './assets/components/SignupPage/SignupPage.jsx'
 import DemoPage from "./assets/components/DemoPage/DemoPage.jsx";
 
 const MENUS = [
-    { id: 'home',     label: '홈' },
+    { id: 'home',     label: '홈123' },
     { id: 'practice', label: '연습하기' },
     { id: 'trans',    label: '번역기' },
     { id: 'dict',     label: '수어사전' },
