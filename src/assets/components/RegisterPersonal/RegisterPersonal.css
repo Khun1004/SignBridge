@@ -100,3 +100,215 @@
     .rp-page { padding: 20px 16px 60px; }
     .rp-form { padding: 20px 16px; }
 }
+/* ════════════════════════════════════════
+   영상 섹션
+════════════════════════════════════════ */
+.rp-videos {
+    background: #13131c;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #2a2a38;
+}
+
+.rp-videos-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 18px;
+    background: #1a1a26;
+    border-bottom: 1px solid #2a2a38;
+    font-size: 13px;
+    font-weight: 800;
+    color: #c0c0e0;
+    letter-spacing: 0.2px;
+}
+.rp-videos-count {
+    background: rgba(37,99,235,0.2);
+    color: #93c5fd;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(37,99,235,0.3);
+}
+
+.rp-videos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0;
+}
+
+.rp-video-card {
+    padding: 14px;
+    border-right: 1px solid #1e1e2a;
+    border-bottom: 1px solid #1e1e2a;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.rp-video-card:last-child { border-right: none; }
+
+.rp-video-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.rp-video-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6060a0;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.rp-video-status {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+.rp-video-status-done      { background: rgba(0,184,148,0.15); color: #00b894; border: 1px solid rgba(0,184,148,0.3); }
+.rp-video-status-uploading { background: rgba(240,165,0,0.15); color: #f0a500; border: 1px solid rgba(240,165,0,0.3); animation: rp-pulse 1.2s ease-in-out infinite; }
+.rp-video-status-error     { background: rgba(229,83,83,0.15); color: #e55353; border: 1px solid rgba(229,83,83,0.3); }
+@keyframes rp-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.rp-video-player {
+    width: 100%;
+    border-radius: 8px;
+    background: #000;
+    outline: none;
+    display: block;
+    max-height: 160px;
+    object-fit: contain;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+.rp-video-placeholder {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #0a0a12;
+    border-radius: 8px;
+    border: 1px dashed #2a2a38;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #404058;
+    font-size: 11px;
+}
+.rp-video-placeholder span { font-size: 20px; opacity: 0.4; }
+
+.rp-video-actions { display: flex; gap: 6px; }
+
+.rp-video-btn {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.rp-video-btn-play {
+    background: rgba(37,99,235,0.18);
+    color: #93c5fd;
+    border: 1px solid rgba(37,99,235,0.28);
+}
+.rp-video-btn-play:hover { background: rgba(37,99,235,0.28); transform: translateY(-1px); }
+
+/* ── 자동 입력 힌트 ── */
+.rp-autofill-hint {
+    font-size: 11px;
+    font-weight: 500;
+    color: #2563eb;
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+/* ── 에러 메시지 ── */
+.rp-error {
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1.5px solid #fca5a5;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #991b1b;
+}
+
+/* ── 영상 전체화면 모달 ── */
+.rp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8,8,16,0.88);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(6px);
+    animation: rp-overlay 0.2s ease;
+}
+@keyframes rp-overlay { from{opacity:0} to{opacity:1} }
+
+.rp-modal {
+    background: #16161e;
+    border: 1px solid #2a2a38;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 860px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+    animation: rp-modal-up 0.25s cubic-bezier(0.34,1.2,0.64,1);
+}
+@keyframes rp-modal-up {
+    from{opacity:0;transform:translateY(24px) scale(0.96)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+.rp-modal-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: #1e1e2a;
+    border-bottom: 1px solid #2a2a38;
+    font-size: 14px;
+    font-weight: 800;
+    color: #e2e2f0;
+}
+.rp-modal-close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.07);
+    color: #888; font-size: 12px;
+    cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: all 0.15s;
+}
+.rp-modal-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+.rp-modal-body {
+    padding: 16px;
+    background: #0a0a10;
+    display: flex;
+    justify-content: center;
+}
+.rp-modal-video {
+    width: 100%;
+    max-width: 820px;
+    border-radius: 8px;
+    outline: none;
+    background: #000;
+    display: block;
+}
+
+/* ── 반응형 ── */
+@media (max-width: 640px) {
+    .rp-videos-grid { grid-template-columns: 1fr; }
+    .rp-modal { border-radius: 14px; }
+    .rp-modal-body { padding: 10px; }
+}

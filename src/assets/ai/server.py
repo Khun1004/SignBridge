@@ -1,3 +1,9 @@
+# ══════════════════════════════════════════════════════════════
+#  필수 패키지 설치 (최초 1회)
+#  pip install fastapi uvicorn websockets numpy httpx
+#  pip install tensorflow   (CUDA 없으면 CPU 버전)
+#  pip install tf-keras     ← "No module named 'keras'" 오류 해결
+# ══════════════════════════════════════════════════════════════
 import os, json, asyncio, numpy as np
 from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -81,7 +87,7 @@ class SignSession:
         self.last_word = ''
         self.prev_lm   = None   # velocity 계산용 이전 프레임
         self.lock      = asyncio.Lock()
-        self.place     = 'immigration'  # 로그인 시 선택한 장소 (기본값: 출입국)
+        self.place     = 'personal'     # 로그인 시 선택한 장소 (기본값: 개인)
 
     def push_frame(self, lm_norm: np.ndarray):
         self.seq_buf.append(lm_norm)
@@ -109,12 +115,37 @@ class SignSession:
 #  자막 생성 — Claude API
 # ══════════════════════════════════════════════════════════════
 PLACE_CONTEXT = {
+    # ── 영문 키 (SignupPage orgType 값) ──────────────────────
+    'personal':    ('개인 사용자', '청각장애인 개인 사용자와의 대화 상황. 일상적이고 친근한 어휘를 사용하세요.'),
     'hospital':    ('병원', '의사·간호사에게 증상을 설명하는 상황. 진료, 처방, 통증 관련 어휘를 우선 사용하세요.'),
     'immigration': ('출입국관리사무소', '담당자에게 비자·체류·여권 업무를 요청하는 상황. 행정 용어를 명확하게 사용하세요.'),
     'school':      ('학교', '선생님·교직원과 대화하는 상황. 학습·수업·학교생활 관련 어휘를 우선 사용하세요.'),
     'airport':     ('공항', '항공사·출입국 직원에게 탑승·수화물·이동을 문의하는 상황. 항공 용어를 명확하게 사용하세요.'),
     'police':      ('경찰서', '경찰관에게 사건·신고·피해를 전달하는 상황. 정확하고 간결하게 사실을 전달하세요.'),
+    # ── 한글 키 fallback (DB에 한글로 저장된 경우 대비) ──────
+    '개인':            ('개인 사용자', '청각장애인 개인 사용자와의 대화 상황. 일상적이고 친근한 어휘를 사용하세요.'),
+    '출입국관리사무소': ('출입국관리사무소', '담당자에게 비자·체류·여권 업무를 요청하는 상황. 행정 용어를 명확하게 사용하세요.'),
+    '출입국외국인사무소': ('출입국관리사무소', '담당자에게 비자·체류·여권 업무를 요청하는 상황. 행정 용어를 명확하게 사용하세요.'),
+    '공항':            ('공항', '항공사·출입국 직원에게 탑승·수화물·이동을 문의하는 상황. 항공 용어를 명확하게 사용하세요.'),
+    '병원':            ('병원', '의사·간호사에게 증상을 설명하는 상황. 진료, 처방, 통증 관련 어휘를 우선 사용하세요.'),
+    '경찰서':          ('경찰서', '경찰관에게 사건·신고·피해를 전달하는 상황. 정확하고 간결하게 사실을 전달하세요.'),
 }
+
+# ── orgType 정규화 (한글 → 영문) ─────────────────────────────
+ORG_TYPE_NORMALIZE = {
+    '개인':              'personal',
+    '출입국관리사무소':   'immigration',
+    '출입국외국인사무소': 'immigration',
+    '공항':              'airport',
+    '병원':              'hospital',
+    '경찰서':            'police',
+}
+
+def normalize_place(place: str) -> str:
+    """한글 orgType을 영문 키로 변환. 이미 영문이면 그대로 반환."""
+    if not place:
+        return 'personal'
+    return ORG_TYPE_NORMALIZE.get(place, place)
 
 async def build_sentence(words: list[str], place: str = 'immigration', prev_sentence: str = '') -> str:
     if not words:
@@ -199,10 +230,12 @@ async def ws_sign(ws: WebSocket):
 
             # 장소 변경 메시지 처리
             if data.get('type') == 'set_place':
-                new_place = data.get('place', 'immigration')
-                if new_place in PLACE_CONTEXT:
-                    session.place = new_place
-                    print(f'[ws] 장소 설정: {PLACE_CONTEXT[new_place][0]}')
+                raw_place = data.get('place', 'personal')
+                new_place = normalize_place(raw_place)   # 한글→영문 정규화
+                # personal은 PLACE_CONTEXT에 있으므로 get으로 안전하게
+                session.place = new_place if new_place in PLACE_CONTEXT else 'personal'
+                label = PLACE_CONTEXT.get(session.place, ('알 수 없음',))[0]
+                print(f'[ws] 장소 설정: {label} (raw={raw_place} → {session.place})')
                 continue
 
             lm   = data.get('landmarks')   # [[x,y,z] × 21]

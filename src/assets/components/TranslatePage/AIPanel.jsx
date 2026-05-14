@@ -1,10 +1,12 @@
 // ══════════════════════════════════════════════════════════════
 //  AIPanel — GLB 아바타 수어 시연 패널
 // ══════════════════════════════════════════════════════════════
-import { useState, useEffect, useRef } from 'react'
-import Person3D from './Person3D.jsx'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { A2P, POSE_CFG } from './constants.js'
 import { fixAnim, speak } from './utils.js'
+
+// Person3D는 Three.js 등 무거운 라이브러리를 포함하므로 lazy load
+const Person3D = lazy(() => import('./Person3D.jsx'))
 
 const VALID_POSES = new Set(Object.keys(POSE_CFG))
 
@@ -101,10 +103,13 @@ export default function AIPanel({
 
             {/* ── 아바타 영역 ── */}
             <div className="ai-char-area" style={{ position: 'relative' }}>
-                <Person3D
-                    pose={activePose}
-                    playing={play}
-                />
+                <Suspense fallback={
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200, color:'#94a3b8', fontSize:13 }}>
+                        🤟 아바타 로딩 중...
+                    </div>
+                }>
+                    <Person3D pose={activePose} playing={play} />
+                </Suspense>
                 {loading && (
                     <div style={{
                         position: 'absolute', inset: 0, display: 'flex',

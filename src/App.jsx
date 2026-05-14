@@ -10,7 +10,6 @@ import Home             from './assets/components/Home/Home.jsx'
 import MyPage           from './assets/components/MyPage/MyPage.jsx'
 import TranslatePage    from './assets/components/TranslatePage/TranslatePage.jsx'
 
-import RegisterPage        from './assets/components/RegisterPage/RegisterPage.jsx'
 import RegisterPersonal    from './assets/components/RegisterPersonal/RegisterPersonal.jsx'
 import RegisterImmigration from './assets/components/RegisterImmigration/RegisterImmigration.jsx'
 import RegisterPolice      from './assets/components/RegisterPolice/RegisterPolice.jsx'
@@ -126,6 +125,8 @@ export default function App() {
     const [searchInput,    setSearchInput]    = useState('')
     const [query,          setQuery]          = useState('')
     const [convMessages,   setConvMessages]   = useState([])
+    const [convVideoBlobs, setConvVideoBlobs] = useState([])   // 여러 세션의 blob 배열
+    const [convVideos,     setConvVideos]     = useState([])   // ConversationPage의 videos 배열
     const [showConv,       setShowConv]       = useState(false)
     const [registerScreen, setRegisterScreen] = useState(null)
 
@@ -166,23 +167,31 @@ export default function App() {
         setTab('dict')
     }
 
-    const handleEndConversation = (messages) => {
+    const handleEndConversation = (messages, videoBlob) => {
         setConvMessages(Array.isArray(messages) ? messages : [])
-        setShowConv(true)
         setRegisterScreen(null)
-    }
 
-    const handleBackToTranslate      = () => { setShowConv(false); setConvMessages([]);  setRegisterScreen(null); setTab('trans') }
-    const handleGoRegister = () => {
-        if (orgType && orgType !== '') {
-            setRegisterScreen(`register_${orgType}`)
+        if (videoBlob) {
+            // blob을 먼저 배열에 추가한 뒤 화면 전환
+            // → ConversationPage 마운트 시점에 videoBlobs가 이미 채워져 있음
+            setConvVideoBlobs(prev => {
+                const next = [...prev, videoBlob]
+                // 다음 tick에 showConv 전환 → state 배치 업데이트 보장
+                setTimeout(() => setShowConv(true), 0)
+                return next
+            })
         } else {
-            setRegisterScreen('registerSelect')
+            setShowConv(true)
         }
     }
-    const handleSelectRegisterType   = (type) => setRegisterScreen(`register_${type}`)
+
+    const handleBackToTranslate      = () => { setShowConv(false); setRegisterScreen(null); setTab('trans') }
+    const handleGoRegister = (videos) => {
+        if (videos && Array.isArray(videos)) setConvVideos(videos)
+        const type = orgType || 'personal'
+        setRegisterScreen(`register_${type}`)
+    }
     const handleBackToConv           = () => setRegisterScreen(null)
-    const handleBackFromRegisterSelect = () => setRegisterScreen(null)
     const handleLogoClick            = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('home'); setQuery('') }
 
     // 로그인 성공
@@ -224,16 +233,15 @@ export default function App() {
     const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
 
     const renderMain = () => {
-        if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} onBack={handleBackToConv} userEmail={userEmail} />
-        if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} onBack={handleBackToConv} userEmail={userEmail} />
+        if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
+        if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} onBack={handleBackToConv} userEmail={userEmail} />
-        if (registerScreen === 'registerSelect')       return <RegisterPage messages={convMessages} onBack={handleBackFromRegisterSelect} onSelect={handleSelectRegisterType} />
-        if (showConv)  return <ConversationPage messages={convMessages} onBack={handleBackToTranslate} onRegister={handleGoRegister} orgType={orgType} />
+        if (showConv)  return <ConversationPage messages={convMessages} videoBlobs={convVideoBlobs} onBack={handleBackToTranslate} onRegister={handleGoRegister} orgType={orgType} userEmail={userEmail} place={orgType || 'immigration'} onVideosChange={setConvVideos} />
         if (showDemo)  return <DemoPage  onBack={() => { setShowDemo(false); setTab('home') }} />
         if (showAbout) return <About onBack={() => { setShowAbout(false); setTab('home') }} />
         if (tab === 'home')     return <Home onDemo={() => setShowDemo(true)} onAbout={() => setShowAbout(true)} />
         if (tab === 'practice') return <Practice />
-        if (tab === 'trans')    return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} />
+        if (tab === 'trans')    return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} userEmail={userEmail} initialMessages={convMessages} />
         if (tab === 'dict')     return <DictPage query={query} />
         if (tab === 'about')    return <About onBack={() => setTab('home')} />
         if (tab === 'my') return (
