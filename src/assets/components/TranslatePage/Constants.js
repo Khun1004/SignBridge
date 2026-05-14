@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════════════════════════
 
 export const TM_MODEL_URL = 'https://teachablemachine.withgoogle.com/models/VVpWDxtXv/'
-export const TM_THRESHOLD = 0.92;
+export const TM_THRESHOLD = 0.80;
 export const TM_ENABLED   = !TM_MODEL_URL.includes('3B70MNM8c')
 
 export const STABLE   = 3     // 1회 감지 즉시 확정 (1회성 동작 대응)

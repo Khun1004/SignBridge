@@ -19,20 +19,34 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
             : `${displayName}님, 환영합니다.`
         : 'SignBridge에 오신 것을 환영합니다.'
 
+    // ── 한글 orgType → 영문 키 정규화 (DB가 한글로 저장된 경우 대비) ──
+    const normalizeOrgType = (raw) => {
+        const map = {
+            '개인':              'personal',
+            '출입국관리사무소':   'immigration',
+            '출입국외국인사무소': 'immigration',
+            '공항':              'airport',
+            '병원':              'hospital',
+            '경찰서':            'police',
+        }
+        return map[raw] || raw || 'personal'
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
         try {
-            // api.tsx의 login 함수 사용
             const data = await authApi.login(form);
 
-            // 성공 시 App.jsx에서 전달받은 onLogin 실행
-            onLogin(data.name, data.orgType, data.email);
+            // orgType이 한글로 오더라도 영문 키로 정규화
+            const normalizedType = normalizeOrgType(data.orgType)
+            console.log('[Login] orgType raw:', data.orgType, '→ normalized:', normalizedType)
+
+            onLogin(data.name, normalizedType, data.email);
             onClose();
         } catch (err) {
-            // api.tsx에서 throw한 에러 메시지가 여기 잡힙니다.
             setError(err.message);
         } finally {
             setLoading(false);
