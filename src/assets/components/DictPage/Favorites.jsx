@@ -10,7 +10,23 @@ import { HandIllustration } from '../Practice/SignLearnCard'
 const safeSigns      = SIGNS      || []
 const safeCategories = CATEGORIES || []
 
-const DEFAULT_FAVS = new Set(['g01', 'g02', 'e01', 'e02', 'fd01'])
+const KNOWN_SHAPES = new Set([
+  'fist','open','point1','point2','thumb','ily','bhand','chand','flato',
+  'uhand','lhand','thumbring','thumbmiddle','pinky','threefinger','fourfinger',
+  'sixhand','sevenhand','eighthand','ninehand','thumbtwofinger','dislikehand',
+  'thumbdown','thumb_slant',
+])
+
+function parseFirstShape(수형str = '') {
+  const key = 수형str
+    .split(/[+→]/)[0]
+    .trim()
+    .toLowerCase()
+    .split(/[\s(]/)[0]
+  return KNOWN_SHAPES.has(key) ? key : 'open'
+}
+
+const DEFAULT_FAVS = new Set()
 
 export default function Favorites() {
   const [favIds,    setFavIds]    = useState(DEFAULT_FAVS)
@@ -33,110 +49,139 @@ export default function Favorites() {
 
   const cats = ['all', ...new Set(favSigns.map(s => s.cat))]
 
+  const addableSigns = safeSigns
+    .filter(s => !favIds.has(s.id))
+    .filter(s => catFilter === 'all' || s.cat === catFilter)
+    .slice(0, 8)
+
   return (
     <div className="tool-panel">
       <div className="tool-header">
         <span className="tool-icon-lg">🔖</span>
         <div>
-          <h3 className="tool-title">즐겨찾기 수어</h3>
+          <h3 className="tool-title">
+            즐겨찾기 수어
+            {favIds.size > 0 && (
+              <span style={{
+                marginLeft: '8px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#7c6fff',
+                background: '#ede9fe',
+                borderRadius: '10px',
+                padding: '2px 8px',
+                verticalAlign: 'middle',
+              }}>
+                {favIds.size}개 저장됨
+              </span>
+            )}
+          </h3>
           <p className="tool-desc">자주 쓰는 수어를 저장하고 메모를 남겨보세요</p>
         </div>
       </div>
 
       {/* 검색 + 카테고리 필터 */}
-      <div className="fav-controls">
-        <input
-          className="fav-search"
-          type="text"
-          placeholder="🔍 수어 이름 검색..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        <div className="fav-cats">
-          {cats.map(c => {
-            const cat = safeCategories.find(x => x.id === c)
-            return (
-              <button
-                key={c}
-                className={`fav-cat-btn ${catFilter === c ? 'active' : ''}`}
-                onClick={() => setCatFilter(c)}
-              >
-                {c === 'all' ? '전체' : `${cat?.icon} ${cat?.label}`}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* 즐겨찾기 카드 목록 */}
-      {filtered.length === 0 ? (
-        <div className="fav-empty">
-          <div className="fav-empty-icon">🔖</div>
-          <p>즐겨찾기한 수어가 없습니다.</p>
-          <p className="fav-empty-sub">학습 모드에서 수어를 저장해보세요</p>
-        </div>
-      ) : (
-        <div className="fav-grid">
-          {filtered.map(s => (
-            <div key={s.id} className="fav-card" style={{ '--fc': s.color }}>
-              <div className="fav-card-top">
-                <HandIllustration
-                  shapeKey={s.params?.수형 || 'open'}
-                  color={s.color}
-                  size={44}
-                />
-                <div className="fav-card-info">
-                  <div className="fav-card-label">{s.label}</div>
-                  <div className="fav-card-cat">
-                    {safeCategories.find(c => c.id === s.cat)?.icon}{' '}
-                    {safeCategories.find(c => c.id === s.cat)?.label}
-                  </div>
-                </div>
+      {favSigns.length > 0 && (
+        <div className="fav-controls">
+          <input
+            className="fav-search"
+            type="text"
+            placeholder="🔍 수어 이름 검색..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <div className="fav-cats">
+            {cats.map(c => {
+              const cat = safeCategories.find(x => x.id === c)
+              return (
                 <button
-                  className="fav-remove-btn"
-                  onClick={() => toggleFav(s.id)}
-                  title="즐겨찾기 해제"
+                  key={c}
+                  className={`fav-cat-btn ${catFilter === c ? 'active' : ''}`}
+                  onClick={() => setCatFilter(c)}
                 >
-                  ✕
+                  {c === 'all' ? '전체' : `${cat?.icon} ${cat?.label}`}
                 </button>
-              </div>
-
-              <div className="fav-card-move">{s.params?.수동}</div>
-
-              {/* 메모 편집 */}
-              {editId === s.id ? (
-                <div className="fav-note-edit">
-                  <textarea
-                    className="fav-note-input"
-                    placeholder="메모를 입력하세요..."
-                    value={note[s.id] || ''}
-                    onChange={e => setNote(n => ({ ...n, [s.id]: e.target.value }))}
-                    rows={2}
-                  />
-                  <button className="fav-note-save" onClick={() => setEditId(null)}>저장</button>
-                </div>
-              ) : (
-                <div className="fav-note-row" onClick={() => setEditId(s.id)}>
-                  {note[s.id]
-                    ? <span className="fav-note-text">{note[s.id]}</span>
-                    : <span className="fav-note-placeholder">+ 메모 추가</span>
-                  }
-                </div>
-              )}
-            </div>
-          ))}
+              )
+            })}
+          </div>
         </div>
       )}
 
-      {/* 추가 섹션 */}
+      {/* 즐겨찾기 카드 목록 */}
+      {favSigns.length === 0 ? (
+        <div className="fav-empty">
+          <div className="fav-empty-icon">🔖</div>
+          <p>아직 저장된 수어가 없어요</p>
+          <p className="fav-empty-sub">아래에서 수어를 추가해보세요 👇</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="fav-empty">
+          <div className="fav-empty-icon">🔍</div>
+          <p>검색 결과가 없습니다</p>
+        </div>
+      ) : (
+        <div className="fav-grid">
+          {filtered.map(s => {
+            const shapeKey = parseFirstShape(s.params?.수형)
+            const catInfo  = safeCategories.find(c => c.id === s.cat)
+            return (
+              <div key={s.id} className="fav-card" style={{ '--fc': s.color }}>
+                <div className="fav-card-top">
+                  <div className="fav-card-info">
+                    <div className="fav-card-label">{s.label}</div>
+                    <div className="fav-card-cat">
+                      {catInfo?.icon} {catInfo?.label}
+                    </div>
+                  </div>
+                  <button
+                    className="fav-remove-btn"
+                    onClick={() => toggleFav(s.id)}
+                    title="즐겨찾기 해제"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0 4px' }}>
+                  <HandIllustration shapeKey={shapeKey} color={s.color} size={64} />
+                </div>
+
+                <div className="fav-card-move">{s.params?.수동}</div>
+
+                {editId === s.id ? (
+                  <div className="fav-note-edit">
+                    <textarea
+                      className="fav-note-input"
+                      placeholder="메모를 입력하세요..."
+                      value={note[s.id] || ''}
+                      onChange={e => setNote(n => ({ ...n, [s.id]: e.target.value }))}
+                      rows={2}
+                    />
+                    <button className="fav-note-save" onClick={() => setEditId(null)}>저장</button>
+                  </div>
+                ) : (
+                  <div className="fav-note-row" onClick={() => setEditId(s.id)}>
+                    {note[s.id]
+                      ? <span className="fav-note-text">{note[s.id]}</span>
+                      : <span className="fav-note-placeholder">+ 메모 추가</span>
+                    }
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       <div className="fav-add-section">
         <div className="fav-add-title">➕ 수어 추가하기</div>
-        <div className="fav-add-grid">
-          {safeSigns
-            .filter(s => !favIds.has(s.id))
-            .filter(s => catFilter === 'all' || s.cat === catFilter)
-            .slice(0, 8)
-            .map(s => (
+        {addableSigns.length === 0 ? (
+          <div style={{ fontSize: '13px', color: '#aaa', padding: '8px 0' }}>
+            모든 수어가 즐겨찾기에 추가되었습니다 🎉
+          </div>
+        ) : (
+          <div className="fav-add-grid">
+            {addableSigns.map(s => (
               <button
                 key={s.id}
                 className="fav-add-btn"
@@ -146,7 +191,8 @@ export default function Favorites() {
                 + {s.label}
               </button>
             ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )

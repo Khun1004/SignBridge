@@ -14,12 +14,14 @@ const TOOLS = [
 
 export default function DictPage() {
   const [active, setActive] = useState('sentence')
+
   return (
     <div className="tools-page">
       <div className="tools-header">
         <h2 className="tools-title">🛠 수어 도구함</h2>
         <p className="tools-sub">어순 변환 · 수형 검색 · 상황별 표현 · 즐겨찾기</p>
       </div>
+
       <nav className="tools-nav">
         {TOOLS.map(t => (
           <button
@@ -33,6 +35,7 @@ export default function DictPage() {
           </button>
         ))}
       </nav>
+
       <div className="tools-content">
         {active === 'sentence'  && <SentenceBuilder />}
         {active === 'shape'     && <ShapeSearch />}

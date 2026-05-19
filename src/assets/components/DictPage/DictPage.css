@@ -6,13 +6,10 @@
   margin: 0 auto;
   padding: 32px 24px 80px;
 }
-
-/* ── 헤더 ── */
 .tools-header { text-align: center; margin-bottom: 28px; }
 .tools-title  { font-size: 26px; font-weight: 900; color: #1a1a2e; margin-bottom: 6px; }
 .tools-sub    { font-size: 13px; color: #aaa; }
 
-/* ── 도구 내비게이션 ── */
 .tools-nav {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -35,7 +32,6 @@
 .tools-nav-btn.active .tnb-sub { color: #888; }
 .tools-content { min-height: 500px; }
 
-/* ── 공통 패널 ── */
 .tool-panel { display: flex; flex-direction: column; gap: 16px; animation: tool-fade 0.25s ease; }
 @keyframes tool-fade {
   from { opacity: 0; transform: translateY(8px); }
@@ -182,17 +178,46 @@
 .sit-kr    { font-size: 14px; font-weight: 700; color: #1a1a2e; }
 .sit-arrow { font-size: 10px; color: #bbb; }
 .sit-phrase-detail {
-  padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 12px;
   border-top: 1px solid #f0f0f8; animation: tool-fade 0.2s ease;
 }
-.sit-ksl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.sit-ksl-token {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 14px; font-weight: 800; color: #fff;
-  background: var(--sc); padding: 5px 12px; border-radius: 20px;
+
+/* ── 손 모양 나란히 ── */
+.sit-hands-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex-wrap: wrap;
 }
-.sit-ksl-arrow { font-size: 10px; opacity: 0.7; }
-.sit-tip { font-size: 12px; color: #666; padding: 7px 12px; background: rgba(0,0,0,0.03); border-radius: 8px; }
+.sit-hand-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sit-hand-svg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sit-hand-word {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sc);
+  text-align: center;
+  margin-top: 4px;
+  max-width: 60px;
+  line-height: 1.2;
+}
+.sit-hand-arrow {
+  font-size: 16px;
+  color: #ccc;
+  padding: 0 2px;
+  margin-bottom: 20px; /* align with hand center, offset for word below */
+}
+.sit-tip {
+  font-size: 12px; color: #666;
+  padding: 7px 12px; background: rgba(0,0,0,0.03); border-radius: 8px;
+}
 
 /* ══════════════════════════════════════
    TOOL 4 — 즐겨찾기

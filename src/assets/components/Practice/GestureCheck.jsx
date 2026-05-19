@@ -2,10 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import './GestureCheck.css'
 import SignAnimator from './SignAnimator'
 
-/* ══════════════════════════════════════════════════════════
-   GESTURE_SIGNS — aligned to corrected signs.js IDs
-   Instructions and checkParams match SignLearnCard + signs.js
-══════════════════════════════════════════════════════════ */
 export const GESTURE_SIGNS = [
   /* ── 인사 ── */
   {
@@ -18,16 +14,21 @@ export const GESTURE_SIGNS = [
   {
     id: 'g02', cat: 'greet', label: '감사합니다', english: 'Thank you',
     color: '#7c6fff', difficulty: 'easy',
-    instruction: '왼손을 펴서 가슴 앞에 눕히고, 오른손 날로 왼손 등을 두 번 두드립니다.',
+    instruction: '왼손을 펴서 가슴 앞에 눕히고, 오른손도 펴서 왼손 위에 올린 뒤 오른손 날로 왼손 등을 두 번 두드립니다.',
     checker: 'thankyou',
-    checkParams: { 수형: '편손 양손', 수위: '가슴 앞', 수향: '왼손 바닥이 아래', 수동: '오른손 날로 두드리기 2회' },
+    checkParams: {
+      수형: '편손 (양손)',
+      수위: '가슴 앞',
+      수향: '왼손 바닥이 아래',
+      수동: '오른손 날로 왼손 등 두드리기 2회',
+    },
   },
   {
     id: 'g12', cat: 'greet', label: '죄송합니다', english: 'Sorry',
     color: '#7c6fff', difficulty: 'easy',
     instruction: '오른손 엄지+검지로 O형을 만들어 이마에 댔다가 내리며 왼 손등 위에 얹습니다.',
     checker: 'sorry',
-    checkParams: { 수형: 'O형 핀치 (엄지+검지)', 수위: '이마 → 왼 손등', 수향: '손바닥이 앞', 수동: '이마 터치 → 내리며 왼 손등 얹기', },
+    checkParams: { 수형: 'O형 핀치 (엄지+검지)', 수위: '이마 → 왼 손등', 수향: '손바닥이 앞', 수동: '이마 터치 → 내리며 왼 손등 얹기' },
   },
   {
     id: 'g13', cat: 'greet', label: '괜찮아요', english: 'Okay',
@@ -39,21 +40,20 @@ export const GESTURE_SIGNS = [
   {
     id: 'g14', cat: 'greet', label: '이름', english: 'Name',
     color: '#7c6fff', difficulty: 'easy',
-    instruction: '엄지·검지를 펴서 L형으로 만들고 가슴 높이에서 아래로 짧게 내립니다.',
+    instruction: '엄지와 검지를 펴서 L형을 만들고, 왼쪽 가슴을 엄지+검지 끝으로 두 번 터치합니다.',
     checker: 'name',
-    checkParams: { 수형: '엄지+검지 (L형)', 수위: '가슴 높이', 수향: '손가락 끝이 옆', 수동: '짧게 아래로' },
+    checkParams: { 수형: 'L형 (엄지+검지)', 수위: '왼쪽 가슴', 수향: '손바닥이 가슴 방향', 수동: '왼쪽 가슴 두 번 터치' },
   },
 
   /* ── 긴급 ── */
   {
     id: 'e01', cat: 'emergency', label: '도움', english: 'Help',
     color: '#ef4444', difficulty: 'medium',
-    instruction: '왼손 엄지 위에 오른손을 얹고 두 손을 함께 위로 올리세요.',
+    instruction: '왼손 엄지만 펴서 오른손 손바닥에 가볍게 두 번 두드립니다.',
     checker: 'help',
-    checkParams: { 수형: '엄지 세움 + 편손', 수위: '가슴 앞', 수향: '편손 손바닥이 아래', 수동: '위로 올리기' },
+    checkParams: { 수형: '왼 엄지 + 오른 편손', 수위: '가슴 앞', 수동: '왼 엄지로 손바닥 두드리기 ×2' },
   },
   {
-    // FIXED: 손바닥이 옆 → 손등이 밖; motion: 앞으로 내밀기 (forward push)
     id: 'e02', cat: 'emergency', label: '신고', english: 'Report',
     color: '#ef4444', difficulty: 'medium',
     instruction: '검지를 입 앞에 세우고(손등이 밖), 앞쪽으로 내밉니다.',
@@ -61,7 +61,6 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '1형 (검지만)', 수위: '입 앞', 수향: '손등이 밖을 향함', 수동: '앞으로 내밀기' },
   },
   {
-    // FIXED: C형으로 가슴 두 번 두드리기 (not head wave)
     id: 'e03', cat: 'emergency', label: '위험', english: 'Danger',
     color: '#ef4444', difficulty: 'medium',
     instruction: '오른손을 C형으로 구부려 가슴을 가볍게 두 번 두드립니다.',
@@ -71,15 +70,13 @@ export const GESTURE_SIGNS = [
 
   /* ── 의료 ── */
   {
-    // FIXED: 두 단계 명시 — 손등 ×2 → 손목 ×2
     id: 'm01', cat: 'medical', label: '의사', english: 'Doctor',
     color: '#10b981', difficulty: 'medium',
-    instruction: '왼 손등(손등이 밖)을 V형으로 두 번 친 후, 왼 주먹 손목 옆면을 두 번 칩니다.',
+    instruction: '왼손 주먹(손등이 밖), 오른 V형으로 손등 한 번 → 손목 두 번 칩니다.',
     checker: 'doctor',
-    checkParams: { 수형: 'V형 (검지+중지)', 수위: '왼 손등 → 왼 손목', 수향: '손등이 밖을 향함', 수동: '손등 두드리기 ×2 → 손목 두드리기 ×2' },
+    checkParams: { 수형: 'fist + V형 (검지+중지)', 수위: '왼 손등 → 왼 손목', 수향: '손등이 밖을 향함', 수동: '손등 ×1 → 손목 ×2' },
   },
   {
-    // FIXED: 손바닥 위로 오므려 좌우 흔들기 (C형)
     id: 'm02', cat: 'medical', label: '아프다', english: 'Pain',
     color: '#10b981', difficulty: 'easy',
     instruction: '손바닥을 위로 하여 살짝 오므리고(C형), 가슴/배 앞에서 좌우로 가볍게 흔듭니다.',
@@ -87,20 +84,18 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: 'C형 (살짝 오므림)', 수위: '가슴/배 앞', 수향: '손바닥이 위', 수동: '좌우로 흔들기' },
   },
   {
-    // FIXED: V형으로 왼 손바닥 위를 앞뒤로 문지르기 (갈기 동작)
     id: 'm03', cat: 'medical', label: '약', english: 'Medicine',
     color: '#10b981', difficulty: 'easy',
     instruction: '왼 손바닥을 위로 펴고, 오른 V형(검지+중지)으로 손바닥 위를 앞뒤로 문지릅니다.',
     checker: 'medicine',
-    checkParams: { 수형: 'V형 (검지+중지)', 수위: '왼 손바닥 위', 수향: '손바닥이 아래', 수동: '앞뒤로 문지르기 (갈기 동작)' },
+    checkParams: { 수형: 'V형 (검지+중지)', 수위: '왼 손바닥 위', 수향: '손바닥이 아래', 수동: '앞뒤로 문지르기' },
   },
   {
-    // FIXED: 이마에 댔다 → 왼 손바닥으로 이동
     id: 'm04', cat: 'medical', label: '열', english: 'Fever',
     color: '#10b981', difficulty: 'easy',
-    instruction: '오른 손바닥을 이마에 댔다 뗀 후, 왼 손바닥 위로 내려 대기.',
+    instruction: '오른 손바닥을 이마에 댔다가 떼어 왼 손바닥에 댔다가 빠르게 뗍니다.',
     checker: 'fever',
-    checkParams: { 수형: '편손 (5형)', 수위: '이마 → 왼 손바닥', 수향: '손바닥이 아래', 수동: '이마 터치 후 왼 손바닥으로 이동' },
+    checkParams: { 수형: '편손 + 편손 (양손)', 수위: '이마 → 왼 손바닥', 수향: '손바닥이 아래', 수동: '이마 터치 후 왼 손바닥으로 이동' },
   },
 
   /* ── 여행 ── */
@@ -112,7 +107,6 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '주먹 (S형)', 수위: '왼 손바닥 위', 수향: '손등이 위', 수동: '도장 찍기' },
   },
   {
-    // FIXED: 검지 끝 뒤로 향했다가 빙글 돌리며 전진
     id: 'tr02', cat: 'travel', label: '여행', english: 'Travel',
     color: '#f59e0b', difficulty: 'medium',
     instruction: '양손 검지 끝을 어깨 뒤(자기 쪽)로 향했다가, 빙글빙글 돌리며 앞으로 전진합니다.',
@@ -191,23 +185,22 @@ export const GESTURE_SIGNS = [
 
   /* ── 감정 ── */
   {
-    id: 'f23', cat: 'feeling', label: '좋다', english: 'Good',
+    id: 'f23', cat: 'feeling', label: '좋다', english: 'Good / Like',
     color: '#ec4899', difficulty: 'easy',
-    instruction: '오른 주먹의 엄지 쪽을 코에 가볍게 댑니다.',
+    instruction: '한 손으로 엄지손가락만 위로 세웁니다 👍',
     checker: 'good',
-    checkParams: { 수형: '주먹 (S형)', 수위: '코', 수향: '엄지 쪽이 코 방향', 수동: '코에 가볍게 대기' },
+    checkParams: { 수형: '엄지 위로 👍', 수위: '가슴 앞', 수향: '엄지가 위를 향함', 수동: '엄지 세우고 유지' },
   },
   {
     id: 'f24', cat: 'feeling', label: '싫다', english: 'Dislike',
     color: '#ec4899', difficulty: 'easy',
-    instruction: '손을 가슴 앞에서 바깥쪽으로 밀어냅니다.',
+    instruction: '한 손으로 엄지손가락을 아래로 향하게 합니다 👎',
     checker: 'dislike',
-    checkParams: { 수형: '편손 (5형)', 수위: '가슴 앞', 수향: '손바닥이 앞', 수동: '밖으로 밀어내기' },
+    checkParams: { 수형: '엄지 아래로 👎', 수위: '가슴 앞', 수향: '엄지가 아래를 향함', 수동: '엄지 아래로 세우고 유지' },
   },
 
   /* ── 숫자 1–10 ── */
   {
-    // 1: 검지만, 손등이 밖
     id: 'n27', cat: 'number', label: '1', english: 'One',
     color: '#6366f1', difficulty: 'easy',
     instruction: '검지만 세우고 나머지는 주먹. 손등이 밖(상대방)을 향하게.',
@@ -215,7 +208,6 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '검지만', 수동: '정지' },
   },
   {
-    // FIXED: 2는 엄지+검지 모로(thumbindex), 손등이 밖 — NOT V형
     id: 'n28', cat: 'number', label: '2', english: 'Two',
     color: '#6366f1', difficulty: 'easy',
     instruction: '엄지와 검지를 펴고 손을 45° 모로 기울여 손등이 밖을 향하게 합니다.',
@@ -223,7 +215,6 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '검지+중지 (엄지 접음)', 수동: '정지' },
   },
   {
-    // FIXED: 3은 엄지+검지+중지(thumbtwofinger), 손등이 밖 — NOT V형+약지
     id: 'n29', cat: 'number', label: '3', english: 'Three',
     color: '#6366f1', difficulty: 'easy',
     instruction: '엄지·검지·중지 세 손가락을 펴고 손등이 밖을 향하게 합니다.',
@@ -231,7 +222,6 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '검지+중지+약지 (엄지·소지 접음)', 수동: '정지' },
   },
   {
-    // FIXED: 4는 엄지+검지+중지+약지(thumbthreefinger), 손등이 밖 — NOT 네손가락 편손
     id: 'n30', cat: 'number', label: '4', english: 'Four',
     color: '#6366f1', difficulty: 'easy',
     instruction: '엄지·검지·중지·약지 네 손가락을 펴고(소지 접음) 손등이 밖을 향하게 합니다.',
@@ -239,15 +229,13 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '검지+중지+약지+소지 (엄지만 접음)', 수동: '정지' },
   },
   {
-    // FIXED: 5는 다섯 손가락 전부, 손바닥이 안으로 비스듬히 — NOT 손바닥이 앞
     id: 'n31', cat: 'number', label: '5', english: 'Five',
     color: '#6366f1', difficulty: 'easy',
-    instruction: '다섯 손가락을 모두 펴고 손바닥이 안(자기 쪽)을 향하도록 비스듬히 기울입니다.',
+    instruction: '엄지만 위로 세웁니다. 나머지 손가락은 주먹 쥡니다.',
     checker: 'five',
-    checkParams: { 수형: '엄지만 수직', 수동: '정지' },
+    checkParams: { 수형: '엄지만 (살짝 기울어짐)', 수동: '정지' },
   },
   {
-    // 6: Y형 엄지+소지, 손등이 밖
     id: 'n32', cat: 'number', label: '6', english: 'Six',
     color: '#6366f1', difficulty: 'easy',
     instruction: '엄지와 새끼손가락(소지)만 펴서 Y자 모양을 만들고, 손등이 밖을 향하게.',
@@ -255,7 +243,6 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '엄지+검지 수직, 손등이 밖', 수동: '정지' },
   },
   {
-    // 7: 엄지+약지
     id: 'n33', cat: 'number', label: '7', english: 'Seven',
     color: '#6366f1', difficulty: 'easy',
     instruction: '엄지와 약지를 펴고 나머지는 접습니다.',
@@ -263,7 +250,6 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '엄지+검지+중지 수직, 손등이 밖', 수동: '정지' },
   },
   {
-    // 8: 엄지+중지
     id: 'n34', cat: 'number', label: '8', english: 'Eight',
     color: '#6366f1', difficulty: 'easy',
     instruction: '엄지와 중지를 펴고 나머지는 접습니다.',
@@ -271,7 +257,6 @@ export const GESTURE_SIGNS = [
     checkParams: { 수형: '엄지+검지+중지+약지 수직, 손등이 밖', 수동: '정지' },
   },
   {
-    // FIXED: 9는 엄지+검지 O형 핀치 (flato/F형) — NOT L형
     id: 'n35', cat: 'number', label: '9', english: 'Nine',
     color: '#6366f1', difficulty: 'easy',
     instruction: '엄지와 검지 끝을 맞대어 O형(핀치)을 만들고, 나머지 손가락은 위로 폅니다.',
@@ -283,22 +268,16 @@ export const GESTURE_SIGNS = [
     color: '#6366f1', difficulty: 'easy',
     instruction: '오른 주먹에서 검지만 펴서 약간 구부리고, 끝이 밖을 향하게 하여 좌우로 살짝 흔듭니다.',
     checker: 'ten',
-    checkParams: {
-      수형: '1형 검지 (오른손)',
-      수위: '가슴 앞',
-      수향: '손등이 밖을 향함',
-      수동: '좌우로 살짝 흔들기',
-    },
+    checkParams: { 수형: '1형 검지 (오른손)', 수위: '가슴 앞', 수향: '손등이 밖을 향함', 수동: '좌우로 살짝 흔들기' },
   },
 
   /* ── 일상 ── */
   {
-    // FIXED: 컵 모양(flato/O형)으로 입쪽으로 기울이기
     id: 'd37', cat: 'daily', label: '물', english: 'Water',
     color: '#3b82f6', difficulty: 'easy',
-    instruction: '손가락 끝을 모아 컵 모양(O형)을 만들고, 마시는 동작처럼 입 쪽으로 기울입니다.',
+    instruction: '엄지와 검지를 펴고(나머지 접음), 컵을 잡듯 입 쪽으로 기울입니다.',
     checker: 'water',
-    checkParams: { 수형: 'O형/컵 모양 (flato)', 수위: '입 주변', 수향: '손바닥이 위', 수동: '마시기 동작' },
+    checkParams: { 수형: '엄지+검지 펴기 (나머지 접음)', 수위: '입 주변', 수향: '엄지+검지가 위', 수동: '마시기 동작' },
   },
 
   /* ── 신체 ── */
@@ -307,23 +286,23 @@ export const GESTURE_SIGNS = [
     color: '#f97316', difficulty: 'easy',
     instruction: '손으로 머리 부분을 가리킵니다.',
     checker: 'head',
-    checkParams: { 수형: '편손 또는 검지 (1형)', 수위: '머리', 수향: '손바닥이 아래', 수동: '머리 가리키기' },
+    checkParams: { 수형: '검지 (1형)', 수위: '머리', 수동: '머리 가리키기' },
   },
   {
     id: 'b39', cat: 'body', label: '눈', english: 'Eyes',
     color: '#f97316', difficulty: 'easy',
     instruction: '검지로 눈 아래 주변을 가리킵니다.',
     checker: 'eyes',
-    checkParams: { 수형: '1형 (검지만)', 수위: '눈', 수향: '손바닥이 얼굴 방향', 수동: '눈 가리키기' },
+    checkParams: { 수형: '1형 (검지만)', 수위: '눈', 수동: '눈 가리키기' },
   },
 ]
 
 /* ══════════════════════════════════════════════════════════
-   STATIC CHECKERS — signs where 수동 = 정지 (hold shape)
+   STATIC CHECKERS
 ══════════════════════════════════════════════════════════ */
 const STATIC_CHECKERS = new Set([
   'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
-  'eyes', 'why', 'water'
+  'eyes', 'why', 'water', 'good', 'dislike',
 ])
 
 /* ══════════════════════════════════════════════════════════
@@ -338,43 +317,48 @@ const LM = {
   PINKY_MCP: 17, PINKY_PIP: 18, PINKY_DIP: 19, PINKY_TIP: 20,
 }
 
-const dist = (a, b) => Math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2 + ((a.z||0)-(b.z||0))**2)
+const dist = (a, b) => Math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2)  // z removed — unreliable
 
 function isExtended(lm, tipIdx, mcpIdx) {
-  return dist(lm[tipIdx], lm[LM.WRIST]) > dist(lm[mcpIdx], lm[LM.WRIST]) * 1.15
+  return dist(lm[tipIdx], lm[LM.WRIST]) > dist(lm[mcpIdx], lm[LM.WRIST]) * 0.85
 }
 
 const indexUp   = lm => isExtended(lm, LM.INDEX_TIP,  LM.INDEX_MCP)
 const middleUp  = lm => isExtended(lm, LM.MIDDLE_TIP, LM.MIDDLE_MCP)
 const ringUp    = lm => isExtended(lm, LM.RING_TIP,   LM.RING_MCP)
 const pinkyUp   = lm => isExtended(lm, LM.PINKY_TIP,  LM.PINKY_MCP)
-const thumbUp   = lm => lm[LM.THUMB_TIP].y < lm[LM.THUMB_MCP].y - 0.04
-const thumbDown = lm => lm[LM.THUMB_TIP].y > lm[LM.THUMB_MCP].y + 0.04
+const thumbUp       = lm => lm[LM.THUMB_TIP].y < lm[LM.THUMB_MCP].y - 0.04
+const thumbDown     = lm => lm[LM.THUMB_TIP].y > lm[LM.THUMB_MCP].y + 0.04
+const thumbExtended = lm => dist(lm[LM.THUMB_TIP], lm[LM.WRIST]) > dist(lm[LM.THUMB_MCP], lm[LM.WRIST]) * 0.9
 
 function palmFacingCamera(lm) {
+  // Primary: z-axis (finger tips closer to camera than wrist = palm facing camera)
   const tips = [LM.INDEX_TIP, LM.MIDDLE_TIP, LM.RING_TIP, LM.PINKY_TIP]
   const avgTipZ = tips.reduce((s, i) => s + (lm[i].z || 0), 0) / 4
-  return (lm[LM.WRIST].z || 0) > avgTipZ
+  const zCheck = (lm[LM.WRIST].z || 0) > avgTipZ
+  // Secondary: thumb position - if thumb is to the LEFT of index MCP, palm faces camera (in mirror)
+  const thumbLeft = lm[LM.THUMB_TIP].x < lm[LM.INDEX_MCP].x
+  // Accept if either check passes (z unreliable when hand sideways)
+  return zCheck || thumbLeft
 }
 
-// Back of hand facing camera (opposite of palm-facing)
 function backFacingCamera(lm) {
   return !palmFacingCamera(lm)
 }
 
 function wristZone(lm) {
   const wy = lm[LM.WRIST].y
-  if (wy < 0.25) return 'head'
-  if (wy < 0.42) return 'face'
-  if (wy < 0.65) return 'chest'
+  if (wy < 0.45) return 'head'   // wide — covers temple, side of head, forehead
+  if (wy < 0.62) return 'face'
+  if (wy < 0.78) return 'chest'
   return 'low'
 }
 
 function tipZone(lm, tipIdx) {
   const ty = lm[tipIdx].y
-  if (ty < 0.25) return 'head'
-  if (ty < 0.42) return 'face'
-  if (ty < 0.65) return 'chest'
+  if (ty < 0.45) return 'head'
+  if (ty < 0.62) return 'face'
+  if (ty < 0.78) return 'chest'
   return 'low'
 }
 
@@ -382,23 +366,18 @@ const fourFingersUp = lm => indexUp(lm) && middleUp(lm) && ringUp(lm) && pinkyUp
 const isFist        = lm => !indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm)
 const isYHand       = lm => thumbUp(lm) && pinkyUp(lm) && !indexUp(lm) && !middleUp(lm) && !ringUp(lm)
 const isPinch       = lm => dist(lm[LM.THUMB_TIP], lm[LM.INDEX_TIP]) < 0.06
+const isCHand       = lm => {
+  // C형: fingers curled but not fist — at least 2 fingers partially extended
+  // tip is farther from wrist than MCP (not fist) but closer than fully extended
+  const partialIndex  = dist(lm[LM.INDEX_TIP],  lm[LM.WRIST]) > dist(lm[LM.INDEX_MCP],  lm[LM.WRIST]) * 0.7
+  const partialMiddle = dist(lm[LM.MIDDLE_TIP], lm[LM.WRIST]) > dist(lm[LM.MIDDLE_MCP], lm[LM.WRIST]) * 0.7
+  const partialRing   = dist(lm[LM.RING_TIP],   lm[LM.WRIST]) > dist(lm[LM.RING_MCP],   lm[LM.WRIST]) * 0.7
+  const notFist       = !isFist(lm)
+  const notOpen       = !fourFingersUp(lm)
+  return notFist && notOpen && (partialIndex || partialMiddle || partialRing)
+}
 const isLooseGather = lm => dist(lm[LM.THUMB_TIP], lm[LM.MIDDLE_TIP]) < 0.10
-
-// FIXED: thumbindex — thumb + index extended, middle/ring/pinky folded
-const isThumbIndex = lm =>
-  thumbUp(lm) && indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm)
-
-// FIXED: thumbtwofinger — thumb + index + middle extended
-const isThumbTwoFinger = lm =>
-  thumbUp(lm) && indexUp(lm) && middleUp(lm) && !ringUp(lm) && !pinkyUp(lm)
-
-// FIXED: thumbthreefinger — thumb + index + middle + ring, pinky folded
-const isThumbThreeFinger = lm =>
-  thumbUp(lm) && indexUp(lm) && middleUp(lm) && ringUp(lm) && !pinkyUp(lm)
-
-// FIXED: nine (9) — O형 pinch (thumb + index tips touching), others extended
-const isNinePinch = lm =>
-  isPinch(lm) && middleUp(lm) && ringUp(lm) && pinkyUp(lm)
+const isThumbIndex  = lm => thumbUp(lm) && indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm)
 
 /* ══════════════════════════════════════════════════════════
    MOTION DETECTORS
@@ -417,210 +396,291 @@ const detectCircularMotion = h => { if (h.length < 12) return false; const r = h
 const detectUpwardMove     = h => h.length >= 8 && (h.slice(-8)[0].y - h.slice(-8).at(-1).y) > 0.05
 const detectNodding        = h => { if (h.length < 10) return false; const r = h.slice(-10); return (Math.max(...r.map(p=>p.y))-Math.min(...r.map(p=>p.y))) > 0.04 }
 const detectLateralShake   = h => { if (h.length < 10) return false; return (Math.max(...h.slice(-10).map(p=>p.x))-Math.min(...h.slice(-10).map(p=>p.x))) > 0.06 }
-const detectLateralSwipe   = h => h.length >= 8 && Math.abs(h.slice(-8).at(-1).x - h.slice(-8)[0].x) > 0.05
 const detectBackwardSwipe  = h => h.length >= 8 && Math.abs(h.slice(-8).at(-1).x - h.slice(-8)[0].x) > 0.05
 const detectStrongDownward = h => h.length >= 6 && (h.slice(-6).at(-1).y - h.slice(-6)[0].y) > 0.08
 const detectBackAndForth   = h => { if (h.length < 12) return false; const xs = h.slice(-12).map(p=>p.x); const mid = Math.floor(xs.length/2); return (Math.max(...xs)-Math.min(...xs)) > 0.05 && Math.sign(xs[mid]-xs[0]) !== Math.sign(xs[xs.length-1]-xs[mid]) }
+function detectDoubleKnock(h) {
+  if (h.length < 10) return false
+  const recent = h.slice(-24)
+  
+  let knocks = 0
+  let inKnock = false
 
+  for (let i = 1; i < recent.length; i++) {
+    const dy = recent[i].y - recent[i - 1].y
+    if (dy > 0.012) {          // moving down fast enough
+      if (!inKnock) {
+        knocks++               // count each new downstroke
+        inKnock = true
+      }
+    } else if (dy < -0.008) { // moving back up
+      inKnock = false          // ready to detect next knock
+    }
+  }
+
+  // must have 2 knocks AND hand is now still
+  const last4 = recent.slice(-4)
+  const stillNow = (Math.max(...last4.map(p => p.y)) - Math.min(...last4.map(p => p.y))) < 0.01
+
+  return knocks >= 2 && stillNow
+}
 /* ══════════════════════════════════════════════════════════
-   PHASE DEFINITIONS — dynamic signs
+   PHASE DEFINITIONS
 ══════════════════════════════════════════════════════════ */
 const PHASE_DEFS = {
   hello: [
-    { label: '① B형(편손) 관자놀이 대기',   check: (lm) => fourFingersUp(lm) && !thumbUp(lm) && (wristZone(lm) === 'head' || wristZone(lm) === 'face') },
+    { label: '① B형(편손) 관자놀이 대기',   check: (lm) => fourFingersUp(lm) && !thumbUp(lm) && (wristZone(lm) === 'head' || wristZone(lm) === 'face' || tipZone(lm, LM.INDEX_TIP) === 'head' || tipZone(lm, LM.INDEX_TIP) === 'face') },
     { label: '② 아래로 쓸어내리기',          check: (lm, h) => detectDownwardSwipe(h) },
-    { label: '③ 주먹 쥐고 가슴 앞 멈춤',    check: (lm, h) => isFist(lm) && wristZone(lm) === 'chest' && isStill(h) },
+    { label: '③ 양손 주먹 가슴 앞 멈춤',    check: (lm, h, lm2) => isFist(lm) && wristZone(lm) === 'chest' && isStill(h) && (!lm2 || isFist(lm2)) },
   ],
   thankyou: [
-    { label: '① 편손 가슴 앞에',     check: (lm) => fourFingersUp(lm) && !thumbUp(lm) && wristZone(lm) === 'chest' && !palmFacingCamera(lm) },
-    { label: '② 손등 두드리기',      check: (lm, h) => detectNodding(h) },
+    {
+      label: '① 왼손 편손으로 가슴 앞에',
+      check: (lm, h, lm2) => {
+        // lm2 = left hand: four fingers up, chest height
+        return lm2 != null
+          && fourFingersUp(lm2)
+          && wristZone(lm2) === 'chest'
+      },
+    },
+    {
+      label: '② 오른손 편손을 왼손 위에',
+      check: (lm, h, lm2) => {
+        // right hand: four fingers up, chest height
+        // right wrist lower than left wrist (on top of left hand)
+        const rightOk = fourFingersUp(lm) && wristZone(lm) === 'chest'
+        const aboveLeft = lm2 != null
+          ? lm[LM.WRIST].y > lm2[LM.WRIST].y - 0.08
+          : true
+        return rightOk && aboveLeft
+      },
+    },
+    {
+      label: '③ 오른손 날로 두 번 두드리기',
+      check: (lm, h, lm2) => {
+        const rightStillOpen = fourFingersUp(lm) && wristZone(lm) === 'chest'
+        const knocking = detectDoubleKnock(h)
+        return rightStillOpen && knocking
+      },
+    },
   ],
   sorry: [
-    { label: '① O형(엄지+검지) 이마에 대기',
-      check: (lm) => isPinch(lm) && (wristZone(lm) === 'face' || wristZone(lm) === 'head') },
-    { label: '② 가슴 앞으로 내리기',
-      check: (lm, h) => detectDownwardSwipe(h) },
-    { label: '③ 왼 손등 위에 얹기 (멈춤)',
-      check: (lm, h) => wristZone(lm) === 'chest' && isStill(h) },
+    { label: '① O형(엄지+검지) 이마에 대기', check: (lm) => isPinch(lm) && (wristZone(lm) === 'face' || wristZone(lm) === 'head' || tipZone(lm, LM.INDEX_TIP) === 'face' || tipZone(lm, LM.INDEX_TIP) === 'head') },
+    { label: '② 가슴 앞으로 내리기',          check: (lm, h) => detectDownwardSwipe(h) },
+    { label: '③ 왼 손등 위에 얹기 (멈춤)',    check: (lm, h) => wristZone(lm) === 'chest' && isStill(h) },
   ],
   okay: [
-    { label: '① 소지 펴고 턱 아래', check: (lm) => pinkyUp(lm) && !indexUp(lm) && !middleUp(lm) && !ringUp(lm) && wristZone(lm) === 'face' },
+    { label: '① 소지 펴고 턱 아래', check: (lm) => pinkyUp(lm) && !indexUp(lm) && !middleUp(lm) && !ringUp(lm) && (wristZone(lm) === 'face' || wristZone(lm) === 'chest') },
     { label: '② 톡톡 두드리기',     check: (lm, h) => detectNodding(h) },
   ],
   name: [
-    { label: '① L형 가슴 높이에',   check: (lm) => thumbUp(lm) && indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 짧게 아래로 내리기', check: (lm, h) => detectDownwardSwipe(h) },
+    { label: '① L형 (엄지+검지) 왼쪽 가슴 앞',
+      check: (lm) => thumbUp(lm) && indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest' },
+    { label: '② 왼쪽 가슴 두 번 터치',
+      check: (lm, h) => detectNodding(h) },
   ],
   help: [
-    { label: '① 편손 가슴 앞에',    check: (lm) => fourFingersUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 위로 올리기',       check: (lm, h) => detectUpwardMove(h) },
+    { label: '① 왼손 엄지만 세우기',
+      check: (lm, h, lm2) =>
+        lm2 != null && thumbUp(lm2) && !indexUp(lm2) && !middleUp(lm2) && !ringUp(lm2) && !pinkyUp(lm2) &&
+        wristZone(lm2) === 'chest'
+    },
+    { label: '② 오른 손바닥 가슴 앞에 펴기',
+      check: (lm) =>
+        fourFingersUp(lm) && wristZone(lm) === 'chest'
+    },
+    { label: '③ 오른 손바닥에 왼 엄지로 톡톡',
+      check: (lm, h, lm2) => {
+        const tapping   = detectNodding(h)
+        const thumbBelow = lm2 != null && lm2[LM.WRIST].y > lm[LM.WRIST].y - 0.05
+        return tapping && thumbBelow
+      }
+    },
   ],
-  // FIXED: e02 신고 — 검지 입 앞, 손등이 밖, 앞으로 내밀기
   report: [
-    { label: '① 검지 입 앞 (손등이 밖)', check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'face' && backFacingCamera(lm) },
-    { label: '② 앞으로 내밀기',          check: (lm, h) => detectForwardPush(h) },
+    { label: '① 검지 입 앞에 세우기',
+      check: (lm) =>
+        indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) &&
+        (wristZone(lm) === 'face' || wristZone(lm) === 'chest' ||
+         tipZone(lm, LM.INDEX_TIP) === 'face')
+    },
+    { label: '② 앞으로 내밀기',
+      check: (lm, h) => {
+        // z unreliable — detect any wrist movement (lateral or depth)
+        if (h.length < 6) return false
+        const recent = h.slice(-6)
+        const dx = Math.abs(recent.at(-1).x - recent[0].x)
+        const dy = Math.abs(recent.at(-1).y - recent[0].y)
+        const dz = Math.abs((recent[0].z || 0) - (recent.at(-1).z || 0))
+        return dx > 0.04 || dy > 0.03 || dz > 0.02
+      }
+    },
   ],
-  // FIXED: e03 위험 — C형으로 가슴 두드리기 (not head wave)
   danger: [
-    { label: '① C형 손 가슴에 대기',  check: (lm) => !fourFingersUp(lm) && !isFist(lm) && wristZone(lm) === 'chest' },
-    { label: '② 가슴 두드리기 2회',   check: (lm, h) => detectNodding(h) },
+    { label: '① C형 손 가슴 앞에',
+      check: (lm) => isCHand(lm) && wristZone(lm) === 'chest'
+    },
+    { label: '② 가슴 두드리기 2회',
+      check: (lm, h) => detectNodding(h) && wristZone(lm) === 'chest'
+    },
   ],
-  // FIXED: m01 의사 — V형 손등(손등이 밖) 2회, 그 후 손목 2회
   doctor: [
-    { label: '① V형, 왼 손등 앞 (손등이 밖)', check: (lm) => indexUp(lm) && middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 손등 두드리기 →',              check: (lm, h) => detectNodding(h) },
-    { label: '③ 왼 손목 두드리기',             check: (lm, h) => detectNodding(h) },
+    { label: '① 왼손 주먹 + 오른 V형 준비', check: (lm, h, lm2) => {
+        const rightV  = indexUp(lm) && middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest'
+        const leftFist = !lm2 || (isFist(lm2) && wristZone(lm2) === 'chest')
+        return rightV && leftFist
+      }
+    },
+    { label: '② 왼 손등 한 번 두드리기',  check: (lm, h) => detectNodding(h) },
+    { label: '③ 왼 손목 두 번 두드리기',  check: (lm, h) => detectNodding(h) },
   ],
-  // FIXED: m02 아프다 — C형 손바닥 위로, 좌우 흔들기
   pain: [
     { label: '① C형, 손바닥 위 (가슴/배 앞)', check: (lm) => !fourFingersUp(lm) && !isFist(lm) && wristZone(lm) === 'chest' },
     { label: '② 좌우로 흔들기',                check: (lm, h) => detectLateralShake(h) },
   ],
-  // FIXED: m03 약 — V형으로 왼 손바닥 위 앞뒤 문지르기
   medicine: [
-    { label: '① 검지만, 왼 손바닥 위에', check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 앞뒤로 문지르기',        check: (lm, h) => detectBackAndForth(h) },
+    { label: '① 오른 검지 + 왼 손바닥 위에', check: (lm, h, lm2) => {
+        const rightOk = indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest'
+        const leftOk  = !lm2 || (fourFingersUp(lm2) && wristZone(lm2) === 'chest')
+        return rightOk && leftOk
+      }
+    },
+    { label: '② 앞뒤로 문지르기', check: (lm, h) => detectBackAndForth(h) },
   ],
-  // FIXED: m04 열 — 이마 → 왼손바닥으로 이동
   fever: [
-    { label: '① 편손 이마에 대기',    check: (lm) => fourFingersUp(lm) && (wristZone(lm) === 'head' || wristZone(lm) === 'face') },
+    { label: '① 오른손 이마 + 왼 손바닥 준비', check: (lm, h, lm2) => {
+        const rightFace = fourFingersUp(lm) && (wristZone(lm) === 'head' || wristZone(lm) === 'face' || tipZone(lm, LM.INDEX_TIP) === 'head' || tipZone(lm, LM.INDEX_TIP) === 'face')
+        const leftReady = !lm2 || wristZone(lm2) === 'chest'
+        return rightFace && leftReady
+      }
+    },
     { label: '② 왼 손바닥으로 내리기', check: (lm, h) => detectDownwardSwipe(h) },
   ],
   visa: [
-    { label: '① 왼손 펴서 위로',        check: (lm) => fourFingersUp(lm) && palmFacingCamera(lm) },
-    { label: '② 주먹으로 도장 찍기',    check: (lm, h) => detectNodding(h) },
+    { label: '① 왼손 펴서 위로 + 오른 주먹 준비', check: (lm, h, lm2) => {
+        const leftFlat = lm2 && fourFingersUp(lm2) && wristZone(lm2) === 'chest'
+        const rightFist = isFist(lm) && wristZone(lm) === 'chest'
+        return leftFlat || rightFist  // accept either: some do left dominant
+      }
+    },
+    { label: '② 주먹으로 도장 찍기', check: (lm, h) => detectNodding(h) },
   ],
-  // FIXED: tr02 여행 — 검지 끝 뒤(어깨)로, 빙글 돌리며 전진
   travel: [
-    { label: '① 검지 어깨 앞 (끝이 뒤쪽)', check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 빙글빙글 돌리며 전진',     check: (lm, h) => detectCircularMotion(h) },
+    { label: '① 양손 검지 어깨 앞', check: (lm, h, lm2) => {
+        const rightOk = indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest'
+        const leftOk  = !lm2 || (indexUp(lm2) && !middleUp(lm2) && wristZone(lm2) === 'chest')
+        return rightOk && leftOk
+      }
+    },
+    { label: '② 빙글빙글 돌리며 전진', check: (lm, h) => detectCircularMotion(h) },
   ],
   what: [
-    { label: '① 검지 몸 앞에',     check: (lm) => indexUp(lm) && !middleUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 좌우로 흔들기',    check: (lm, h) => detectLateralShake(h) },
+    { label: '① 검지 몸 앞에',  check: (lm) => indexUp(lm) && !middleUp(lm) && wristZone(lm) === 'chest' },
+    { label: '② 좌우로 흔들기', check: (lm, h) => detectLateralShake(h) },
   ],
   where: [
-    { label: '① 검지 몸 앞에',     check: (lm) => indexUp(lm) && !middleUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 흔든 후 아래로',   check: (lm, h) => detectDownwardSwipe(h) },
+    { label: '① 검지 몸 앞에',   check: (lm) => indexUp(lm) && !middleUp(lm) && wristZone(lm) === 'chest' },
+    { label: '② 흔든 후 아래로', check: (lm, h) => detectDownwardSwipe(h) },
   ],
   again: [
-    { label: '① 편손 앞으로',      check: (lm) => fourFingersUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 당기기',           check: (lm, h) => detectBackwardSwipe(h) },
+    { label: '① 편손 앞으로', check: (lm) => fourFingersUp(lm) && wristZone(lm) === 'chest' },
+    { label: '② 당기기',      check: (lm, h) => detectBackwardSwipe(h) },
   ],
   yes: [
-    { label: '① 주먹 가슴 앞에',       check: (lm) => isFist(lm) && wristZone(lm) === 'chest' },
-    { label: '② 위아래로 끄덕이기',    check: (lm, h) => detectNodding(h) },
+    { label: '① 주먹 가슴 앞에',    check: (lm) => isFist(lm) && wristZone(lm) === 'chest' },
+    { label: '② 위아래로 끄덕이기', check: (lm, h) => detectNodding(h) },
   ],
   no: [
-    { label: '① 편손 몸 앞에',     check: (lm) => fourFingersUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 좌우로 흔들기',    check: (lm, h) => detectLateralShake(h) },
+    { label: '① 편손 몸 앞에',  check: (lm) => fourFingersUp(lm) && wristZone(lm) === 'chest' },
+    { label: '② 좌우로 흔들기', check: (lm, h) => detectLateralShake(h) },
   ],
   yesterday: [
-    { label: '① 검지 어깨 앞에',   check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) },
-    { label: '② 뒤로 넘기기',      check: (lm, h) => detectBackwardSwipe(h) },
+    { label: '① 검지 어깨 앞에', check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) },
+    { label: '② 뒤로 넘기기',    check: (lm, h) => detectBackwardSwipe(h) },
   ],
   now: [
-    { label: '① 편손 양손 가슴 앞에', check: (lm) => fourFingersUp(lm) && !thumbUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 아래로 내리기',       check: (lm, h) => detectStrongDownward(h) },
+    { label: '① 양손 펴서 가슴 앞에', check: (lm, h, lm2) => {
+        const rightOk = fourFingersUp(lm) && !thumbUp(lm) && wristZone(lm) === 'chest'
+        const leftOk  = !lm2 || (fourFingersUp(lm2) && wristZone(lm2) === 'chest')
+        return rightOk && leftOk
+      }
+    },
+    { label: '② 동시에 아래로 내리기', check: (lm, h) => detectStrongDownward(h) },
   ],
   tomorrow: [
-    { label: '① 검지 눈 옆에',     check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && (wristZone(lm) === 'face' || wristZone(lm) === 'head') },
-    { label: '② 앞으로 내밀기',    check: (lm, h) => detectForwardPush(h) },
-  ],
-  good: [
-    { label: '① 주먹 코 앞에',         check: (lm) => isFist(lm) && (wristZone(lm) === 'face' || tipZone(lm, LM.THUMB_TIP) === 'face') },
-    { label: '② 코에 대기 (멈춤)',     check: (lm, h) => isFist(lm) && isStill(h) },
-  ],
-  dislike: [
-    { label: '① 편손 가슴 앞에',   check: (lm) => fourFingersUp(lm) && wristZone(lm) === 'chest' },
-    { label: '② 밖으로 밀어내기',  check: (lm, h) => detectForwardPush(h) },
+    { label: '① 검지 눈 옆에',  check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && (wristZone(lm) === 'face' || wristZone(lm) === 'head' || tipZone(lm, LM.INDEX_TIP) === 'face' || tipZone(lm, LM.INDEX_TIP) === 'head') },
+    { label: '② 앞으로 내밀기', check: (lm, h) => detectForwardPush(h) },
   ],
   ten: [
-    {
-      label: '① 오른 주먹에서 검지만 펴기',
-      check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm)
-                    && wristZone(lm) === 'chest',
-    },
-    {
-      label: '② 좌우로 살짝 흔들기',
-      check: (lm, h) => detectLateralShake(h),
-    },
+    { label: '① 오른 주먹에서 검지만 펴기',
+      check: (lm) => indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && wristZone(lm) === 'chest' },
+    { label: '② 좌우로 살짝 흔들기',
+      check: (lm, h) => detectLateralShake(h) },
   ],
   head: [
-    { label: '① 편손 머리 위에',       check: (lm) => fourFingersUp(lm) && wristZone(lm) === 'head' },
-    { label: '② 머리 가리키기 (멈춤)', check: (lm, h) => isStill(h) },
+    { label: '① 검지 머리 위에',
+      check: (lm) => indexUp(lm) &&
+                     (wristZone(lm) === 'head' || wristZone(lm) === 'face' ||
+                      tipZone(lm, LM.INDEX_TIP) === 'head' || tipZone(lm, LM.INDEX_TIP) === 'face') },
+    { label: '② 멈춤', check: (lm, h) => isStill(h) },
   ],
 }
 
 /* ══════════════════════════════════════════════════════════
    STATIC CHECKER
-   FIXED: number shapes aligned to KSL standard
 ══════════════════════════════════════════════════════════ */
-function checkStatic(checker, lm, h) {
+function checkStatic(checker, lm, h, lm2 = null) {
   if (!lm || lm.length < 21) return null
   switch (checker) {
-
     case 'one':
-      return {
-        수형: indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm),
-        수동: isStill(h),
-      }
+      return { 수형: indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm), 수동: isStill(h) }
     case 'two':
-      return {
-        수형: indexUp(lm) && middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && !thumbUp(lm),
-        수동: isStill(h),
-      }
+      return { 수형: indexUp(lm) && middleUp(lm) && !ringUp(lm) && !pinkyUp(lm), 수동: isStill(h) }
     case 'three':
-      return {
-        수형: indexUp(lm) && middleUp(lm) && ringUp(lm) && !pinkyUp(lm) && !thumbUp(lm),
-        수동: isStill(h),
-      }
+      return { 수형: indexUp(lm) && middleUp(lm) && ringUp(lm) && !pinkyUp(lm), 수동: isStill(h) }
     case 'four':
-      return {
-        수형: indexUp(lm) && middleUp(lm) && ringUp(lm) && pinkyUp(lm) && !thumbUp(lm),
-        수동: isStill(h),
-      }
+      return { 수형: indexUp(lm) && middleUp(lm) && ringUp(lm) && pinkyUp(lm) && !thumbUp(lm), 수동: isStill(h) }
     case 'five':
-      return {
-        수형: thumbUp(lm) && !indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm),
-        수동: isStill(h),
-      }
+      return { 수형: thumbExtended(lm) && !indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm), 수동: isStill(h) }
     case 'six':
-      return {
-        수형: thumbUp(lm) && indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && backFacingCamera(lm),
-        수동: isStill(h),
-      }
+      return { 수형: thumbExtended(lm) && indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm), 수동: isStill(h) }
     case 'seven':
-      return {
-        수형: thumbUp(lm) && indexUp(lm) && middleUp(lm) && !ringUp(lm) && !pinkyUp(lm) && backFacingCamera(lm),
-        수동: isStill(h),
-      }
+      return { 수형: thumbExtended(lm) && indexUp(lm) && middleUp(lm) && !ringUp(lm) && !pinkyUp(lm), 수동: isStill(h) }
     case 'eight':
-      return {
-        수형: thumbUp(lm) && indexUp(lm) && middleUp(lm) && ringUp(lm) && !pinkyUp(lm) && backFacingCamera(lm),
-        수동: isStill(h),
-      }
+      return { 수형: thumbExtended(lm) && indexUp(lm) && middleUp(lm) && ringUp(lm) && !pinkyUp(lm), 수동: isStill(h) }
     case 'nine':
-      return {
-        수형: thumbUp(lm) && indexUp(lm) && middleUp(lm) && ringUp(lm) && pinkyUp(lm) && backFacingCamera(lm),
-        수동: isStill(h),
-      }
+      return { 수형: thumbExtended(lm) && indexUp(lm) && middleUp(lm) && ringUp(lm) && pinkyUp(lm), 수동: isStill(h) }
     case 'eyes':
       return {
         수형: indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm),
-        수위: wristZone(lm) === 'face' || tipZone(lm, LM.INDEX_TIP) === 'face',
+        수위: wristZone(lm) === 'face' || wristZone(lm) === 'head'
+              || tipZone(lm, LM.INDEX_TIP) === 'face' || tipZone(lm, LM.INDEX_TIP) === 'head',
         수동: isStill(h),
       }
     case 'why':
       return {
         수형: indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm),
-        수위: wristZone(lm) === 'face' || wristZone(lm) === 'head',
+        수위: wristZone(lm) === 'face' || wristZone(lm) === 'head'
+              || tipZone(lm, LM.INDEX_TIP) === 'face' || tipZone(lm, LM.INDEX_TIP) === 'head',
         수동: isStill(h),
       }
     case 'water':
+      // 엄지+검지 펴기 (나머지 접음) — isThumbIndex
       return {
-        수형: !fourFingersUp(lm) && !isFist(lm) && (isLooseGather(lm) || isPinch(lm)),
+        수형: thumbUp(lm) && indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm),
         수위: wristZone(lm) === 'face',
+        수동: isStill(h),
+      }
+    case 'good':
+      // 👍 엄지만 위로
+      return {
+        수형: thumbUp(lm) && !indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm),
+        수동: isStill(h),
+      }
+    case 'dislike':
+      // 👎 엄지만 아래로
+      return {
+        수형: thumbDown(lm) && !indexUp(lm) && !middleUp(lm) && !ringUp(lm) && !pinkyUp(lm),
         수동: isStill(h),
       }
     default:
@@ -631,13 +691,13 @@ function checkStatic(checker, lm, h) {
 /* ══════════════════════════════════════════════════════════
    PHASE ENGINE
 ══════════════════════════════════════════════════════════ */
-function runPhaseEngine(checker, lm, motionHistory, phaseRef) {
+function runPhaseEngine(checker, lm, motionHistory, phaseRef, lm2 = null) {
   const phases = PHASE_DEFS[checker]
   if (!phases) return null
   const currentPhase = phaseRef.current[checker] || 0
   const phaseDef     = phases[currentPhase]
   if (!phaseDef) return null
-  const passed = phaseDef.check(lm, motionHistory)
+  const passed = phaseDef.check(lm, motionHistory, lm2)
   if (passed && currentPhase < phases.length - 1) {
     phaseRef.current = { ...phaseRef.current, [checker]: currentPhase + 1 }
   }
@@ -693,7 +753,6 @@ function PhaseProgress({ phaseLabels, currentPhase, scores }) {
     </div>
   )
 }
-
 /* ══════════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
@@ -707,6 +766,7 @@ export default function GestureCheck() {
   const signIdxRef   = useRef(0)
   const submittedRef = useRef(false)
   const phaseRef     = useRef({})
+  const activeRef    = useRef(false)   // ← gate: only process when camera is truly active
 
   const [loaded,     setLoaded]     = useState(false)
   const [error,      setError]      = useState('')
@@ -727,7 +787,6 @@ export default function GestureCheck() {
   useEffect(() => { signIdxRef.current = signIdx }, [signIdx])
   useEffect(() => { submittedRef.current = submitted }, [submitted])
 
-  /* ── Load MediaPipe ── */
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -737,7 +796,7 @@ export default function GestureCheck() {
         const hands = new Hands({
           locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
         })
-        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.6 })
+        hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 })
         hands.onResults(results => onResults(results, HAND_CONNECTIONS))
         handsRef.current = hands
         if (!cancelled) setLoaded(true)
@@ -749,20 +808,21 @@ export default function GestureCheck() {
     return () => { cancelled = true }
   }, [])
 
-  /* ── Camera ── */
   const startCamera = useCallback(async () => {
     if (!loaded || !videoRef.current) return
+    if (cameraRef.current) return        // ← already running, don't create duplicate
     try {
       const { Camera } = await import('@mediapipe/camera_utils')
       const cam = new Camera(videoRef.current, {
         onFrame: async () => {
-          if (handsRef.current && videoRef.current)
+          if (handsRef.current && videoRef.current && activeRef.current)
             await handsRef.current.send({ image: videoRef.current })
         },
         width: 640, height: 480,
       })
       await cam.start()
       cameraRef.current = cam
+      activeRef.current = true         // ← now allow processing
       setCamOn(true)
     } catch {
       setError('카메라 접근 권한이 필요합니다.')
@@ -770,7 +830,9 @@ export default function GestureCheck() {
   }, [loaded])
 
   const stopCamera = useCallback(() => {
+    activeRef.current = false          // ← stop processing immediately
     cameraRef.current?.stop()
+    cameraRef.current = null
     setCamOn(false)
     setScores(null)
     setPhaseState(null)
@@ -781,7 +843,6 @@ export default function GestureCheck() {
 
   useEffect(() => () => stopCamera(), [stopCamera])
 
-  /* ── Per-frame handler ── */
   const onResults = useCallback((results, HAND_CONNECTIONS) => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -794,9 +855,16 @@ export default function GestureCheck() {
       setScores(null); setPhaseState(null); motionRef.current = []; ctx.restore(); return
     }
 
-    const lm    = results.multiHandLandmarks[0]
+    // ── just use index order — [0] = first detected, [1] = second ──
+    const lm  = results.multiHandLandmarks[0]
+    const lm2 = results.multiHandLandmarks[1] || null
+
     drawConnections(ctx, lm, HAND_CONNECTIONS, canvas.width, canvas.height)
     drawLandmarks(ctx, lm, canvas.width, canvas.height)
+    if (lm2) {
+      drawConnections(ctx, lm2, HAND_CONNECTIONS, canvas.width, canvas.height)
+      drawLandmarks(ctx, lm2, canvas.width, canvas.height)
+    }
 
     const wrist = lm[LM.WRIST]
     motionRef.current = [...motionRef.current.slice(-29), { x: wrist.x, y: wrist.y, z: wrist.z || 0 }]
@@ -809,13 +877,13 @@ export default function GestureCheck() {
     let allPass    = false
 
     if (isStatic) {
-      const result = checkStatic(checker, lm, motionRef.current)
+      const result = checkStatic(checker, lm, motionRef.current, lm2)
       if (!result) { ctx.restore(); return }
       setScores(result)
       setPhaseState(null)
       allPass = Object.values(result).every(v => v === true)
     } else {
-      const phaseResult = runPhaseEngine(checker, lm, motionRef.current, phaseRef)
+      const phaseResult = runPhaseEngine(checker, lm, motionRef.current, phaseRef, lm2)
       if (!phaseResult) { ctx.restore(); return }
       setPhaseState(phaseResult)
       setScores(phaseResult.scores)
@@ -844,7 +912,6 @@ export default function GestureCheck() {
     ctx.restore()
   }, [])
 
-  /* ── Auto-submit ── */
   const autoSubmit = useCallback(async (currentSign) => {
     setSubmitted(true); setHoldPct(100); stopCamera()
     setStreak(s => s + 1)
@@ -877,10 +944,11 @@ export default function GestureCheck() {
     setAiLoad(false)
   }, [stopCamera])
 
-  /* ── Reset ── */
   const resetSign = useCallback((newIdx) => {
     const s = GESTURE_SIGNS[newIdx]
     phaseRef.current = { ...phaseRef.current, [s?.checker]: 0 }
+    submittedRef.current = false
+    activeRef.current = false           // ← ensure inactive until startCamera
     setSignIdx(newIdx)
     setScores(null)
     setPhaseState(null)
@@ -894,11 +962,10 @@ export default function GestureCheck() {
   const nextSign = () => {
     const pool = filter === 'all' ? GESTURE_SIGNS : GESTURE_SIGNS.filter(s => s.difficulty === filter)
     const next = pool[Math.floor(Math.random() * pool.length)]
-    if (camOn) stopCamera()
+    stopCamera()                        // ← always stop (safe even if already stopped)
     resetSign(GESTURE_SIGNS.indexOf(next))
   }
 
-  /* ── Draw helpers ── */
   function drawConnections(ctx, lm, CONNECTIONS, w, h) {
     ctx.strokeStyle = 'rgba(124,111,255,0.6)'; ctx.lineWidth = 2
     for (const [a, b] of CONNECTIONS) {
@@ -951,7 +1018,6 @@ export default function GestureCheck() {
 
       {loaded && (
         <div className="gc-body">
-          {/* Sign selector */}
           <div className="sign-selector">
             {GESTURE_SIGNS
               .filter(s => filter === 'all' || s.difficulty === filter)
@@ -974,7 +1040,6 @@ export default function GestureCheck() {
           </div>
 
           <div className="gc-main">
-            {/* Camera column */}
             <div className="gc-cam-col">
               <div className="cam-wrapper">
                 <video ref={videoRef} className="cam-video" playsInline muted />
@@ -1027,7 +1092,6 @@ export default function GestureCheck() {
               )}
             </div>
 
-            {/* Score column */}
             <div className="gc-score-col">
               <SignAnimator signId={sign.id} color={sign.color} />
 
