@@ -17,7 +17,7 @@ const SLIDES = [
     tag: 'LIVE',
     title: '카메라 하나로 즉시 번역',
     desc: '웹캠을 켜는 순간 번역이 시작됩니다. 청각장애인과의 대화를 실시간 텍스트로 중계합니다.',
-    link: '데모 체험하기',
+    link: '실시간 번역 하기',
   },
   {
     img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80',
@@ -48,7 +48,7 @@ const STEPS = [
 ]
 
 /* ── 이미지 슬라이더 ── */
-function ImageSlider({ onDemo }) {
+function ImageSlider({ onDemo, onCommunity, onPractice, onTranslate }) {
   const [current, setCurrent] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
   const total = SLIDES.length
@@ -105,7 +105,12 @@ function ImageSlider({ onDemo }) {
                     <div className="slide-body-tag">{slide.tag}</div>
                     <h3 className="slide-title">{slide.title}</h3>
                     <p className="slide-desc">{slide.desc}</p>
-                    <button className="slide-link" onClick={slide.link === "데모 체험하기" ? onDemo : undefined}>{slide.link} <span>→</span></button>
+                    <button className="slide-link" onClick={
+                      slide.link === "커리큘럼 보기"   ? onPractice :
+                          slide.link === "실시간 번역 하기" ? onTranslate :
+                              slide.link === "커뮤니티 참여"   ? onCommunity :
+                                  undefined
+                    }>{slide.link} <span>→</span></button>
                   </div>
                 </div>
             ))}
@@ -120,7 +125,7 @@ function ImageSlider({ onDemo }) {
 }
 
 /* ── 메인 컴포넌트 ── */
-export default function Home({ onDemo, onAbout }) {
+export default function Home({ onDemo, onAbout, onCommunity, onPractice, onTranslate }) {
   return (
       <div className="home-page">
 
@@ -201,7 +206,7 @@ export default function Home({ onDemo, onAbout }) {
         </section>
 
         {/* ── 이미지 슬라이더 ── */}
-        <ImageSlider onDemo={onDemo} />
+        <ImageSlider onDemo={onDemo} onCommunity={onCommunity} onPractice={onPractice} onTranslate={onTranslate} />
 
         {/* ── 작동 원리 ── */}
         <div className="section-divider" />
@@ -239,7 +244,7 @@ export default function Home({ onDemo, onAbout }) {
             </p>
           </div>
           <div className="cta-right">
-            <button className="btn-white">🤟 프로젝트 참여하기</button>
+            <button className="btn-white" onClick={onCommunity}>🤟 프로젝트 참여하기</button>
             <span className="cta-note">무료 오픈소스 프로젝트</span>
           </div>
         </section>

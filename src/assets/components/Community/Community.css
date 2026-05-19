@@ -1,0 +1,465 @@
+/* ── 전체 페이지 ── */
+.community-page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+}
+
+/* ── 헤더 ── */
+.cm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+}
+
+.cm-header-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #6366f1;
+    background: #eef2ff;
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+}
+
+.cm-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin: 0 0 4px;
+}
+
+.cm-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.cm-register-btn {
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.18s, transform 0.12s;
+    margin-top: 4px;
+}
+.cm-register-btn:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+}
+
+/* ── 필터 ── */
+.cm-filters {
+    background: #f8f9ff;
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cm-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cm-filter-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    min-width: 28px;
+}
+
+.cm-filter-btn {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.cm-filter-btn:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+.cm-filter-btn.active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* ── 카드 목록 ── */
+.cm-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.cm-empty {
+    text-align: center;
+    padding: 60px 0;
+    color: #9ca3af;
+    font-size: 15px;
+}
+
+/* ── 멤버 카드 ── */
+.cm-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: border-color 0.18s, box-shadow 0.18s, transform 0.12s;
+}
+.cm-card:hover {
+    border-color: #6366f1;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+    transform: translateY(-2px);
+}
+
+.cm-card-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff;
+    font-size: 20px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cm-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cm-card-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e1b4b;
+    margin-bottom: 4px;
+}
+
+.cm-card-meta {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.cm-role-badge {
+    font-size: 11px;
+    font-weight: 600;
+    background: #eef2ff;
+    color: #6366f1;
+    border-radius: 20px;
+    padding: 2px 9px;
+}
+
+.cm-region-badge {
+    font-size: 11px;
+    color: #6b7280;
+    background: #f3f4f6;
+    border-radius: 20px;
+    padding: 2px 9px;
+}
+
+.cm-card-intro {
+    font-size: 13px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cm-card-arrow {
+    background: #f3f4f6;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+}
+.cm-card:hover .cm-card-arrow {
+    background: #6366f1;
+    color: #fff;
+}
+
+/* ── 모달 공통 ── */
+.cm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: cm-fade-in 0.18s ease;
+}
+
+@keyframes cm-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.cm-modal {
+    background: #fff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    animation: cm-slide-up 0.22s ease;
+    overflow: hidden;
+}
+
+@keyframes cm-slide-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+.cm-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 24px 18px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.cm-modal-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin: 0;
+}
+
+.cm-modal-close {
+    background: #f3f4f6;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.cm-modal-close:hover { background: #e5e7eb; }
+
+/* ── 등록 모달 바디 ── */
+.cm-modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.cm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cm-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.cm-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.cm-input, .cm-select, .cm-textarea {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #1f2937;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+    background: #fff;
+}
+.cm-input:focus, .cm-select:focus, .cm-textarea:focus {
+    border-color: #6366f1;
+}
+.cm-textarea { resize: vertical; min-height: 72px; }
+
+.cm-contact-type {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.cm-type-btn {
+    flex: 1;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.cm-type-btn.active {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+    font-weight: 700;
+}
+
+.cm-error {
+    font-size: 13px;
+    color: #ef4444;
+    background: #fef2f2;
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+/* ── 모달 푸터 ── */
+.cm-modal-footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.cm-btn-cancel {
+    flex: 1;
+    border: 1.5px solid #e5e7eb;
+    background: #fff;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.cm-btn-cancel:hover { background: #f9fafb; }
+
+.cm-btn-submit {
+    flex: 2;
+    background: #6366f1;
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.18s;
+}
+.cm-btn-submit:hover { background: #4f46e5; }
+
+/* ── 상세 모달 ── */
+.cm-detail-modal { max-width: 420px; }
+
+.cm-detail-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.cm-detail-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.cm-detail-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff;
+    font-size: 26px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cm-detail-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin-bottom: 6px;
+}
+
+.cm-detail-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.cm-detail-intro-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #9ca3af;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.cm-detail-intro-text {
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.6;
+    margin: 0;
+    background: #f8f9ff;
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.cm-contact-value {
+    font-size: 14px;
+    color: #374151;
+    background: #f8f9ff;
+    border-radius: 10px;
+    padding: 10px 14px;
+}
+
+/* ── 반응형 ── */
+@media (max-width: 600px) {
+    .community-page { padding: 24px 16px 60px; }
+    .cm-header { flex-direction: column; gap: 14px; }
+    .cm-register-btn { width: 100%; }
+    .cm-field-row { grid-template-columns: 1fr; }
+}

@@ -16,14 +16,16 @@ import RegisterPolice      from './assets/components/RegisterPolice/RegisterPoli
 
 import LoginPage  from './assets/components/LoginPage/LoginPage.jsx'
 import SignupPage from './assets/components/SignupPage/SignupPage.jsx'
-import DemoPage from "./assets/components/DemoPage/DemoPage.jsx";
+import DemoPage    from "./assets/components/DemoPage/DemoPage.jsx";
+import Community  from './assets/components/Community/Community.jsx'
 
 const MENUS = [
-    { id: 'home',     label: '홈' },
-    { id: 'practice', label: '연습하기' },
-    { id: 'trans',    label: '번역기' },
-    { id: 'dict',     label: '수어사전' },
-    { id: 'about',    label: 'About' },
+    { id: 'home',      label: '홈' },
+    { id: 'practice',  label: '연습하기' },
+    { id: 'trans',     label: '번역기' },
+    { id: 'dict',      label: '수어사전' },
+    { id: 'community', label: '커뮤니티' },
+    { id: 'about',     label: 'About' },
 ]
 
 const SAMPLE_NOTIFICATIONS = [
@@ -239,11 +241,12 @@ export default function App() {
         if (showConv)  return <ConversationPage messages={convMessages} videoBlobs={convVideoBlobs} onBack={handleBackToTranslate} onRegister={handleGoRegister} orgType={orgType} userEmail={userEmail} place={orgType || 'immigration'} onVideosChange={setConvVideos} />
         if (showDemo)  return <DemoPage  onBack={() => { setShowDemo(false); setTab('home') }} />
         if (showAbout) return <About onBack={() => { setShowAbout(false); setTab('home') }} />
-        if (tab === 'home')     return <Home onDemo={() => setShowDemo(true)} onAbout={() => setShowAbout(true)} />
-        if (tab === 'practice') return <Practice />
-        if (tab === 'trans')    return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} userEmail={userEmail} initialMessages={convMessages} />
-        if (tab === 'dict')     return <DictPage query={query} />
-        if (tab === 'about')    return <About onBack={() => setTab('home')} />
+        if (tab === 'home')      return <Home onDemo={() => setShowDemo(true)} onAbout={() => setShowAbout(true)} onCommunity={() => setTab('community')} onPractice={() => setTab('practice')} onTranslate={() => setTab('trans')} />
+        if (tab === 'practice')  return <Practice />
+        if (tab === 'trans')     return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} userEmail={userEmail} initialMessages={convMessages} />
+        if (tab === 'dict')      return <DictPage query={query} />
+        if (tab === 'community') return <Community />
+        if (tab === 'about')     return <About onBack={() => setTab('home')} />
         if (tab === 'my') return (
             <MyPage
                 displayName={displayName}
