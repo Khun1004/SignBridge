@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react'
+
 /* ─── Shared API call ─── */
 export async function callClaude(prompt, system = '') {
   const body = {
@@ -22,25 +24,17 @@ export function signsForCat(signs, id) {
 
 /**
  * Extracts the first valid hand-shape key from a 수형 string.
- * Handles formats like:
- *   "bhand → fist"     → "bhand"
- *   "point1"           → "point1"
- *   "point2"           → "point2"
- *   "open (양손)"      → "open"
- *   "lhand"            → "lhand"
- *   "thumb + open"     → "thumb"
- *   "고개 끄덕임"       → "open"  (fallback)
  */
 export function extractShapeKey(수형 = '') {
   const validKeys = [
     'fist', 'open', 'point1', 'point2', 'thumb',
     'ily', 'bhand', 'chand', 'flato', 'yhand', 'lhand',
-    // ← these were missing:
     'threefinger', 'fourfinger', 'sixhand', 'sevenhand',
     'eighthand', 'ninehand', 'thumbtwofinger', 'dislikehand',
     'thumbring', 'thumbmiddle', 'pinky',
+    // New shapes
+    'lhandtouch', 'waterhand', 'thumbdown', 'thumb_slant',
   ]
-
   const first = 수형.split(/[\s+→(]/)[0].trim().toLowerCase()
   return validKeys.includes(first) ? first : 'open'
 }
@@ -64,9 +58,11 @@ export function ParamBadge({ k, v }) {
     </div>
   )
 }
-// Utils.jsx — add this export
+
 export const KNOWN_SHAPES = new Set([
   'fist','open','point1','point2','thumb','ily','bhand','chand','flato',
   'yhand','lhand','thumbring','thumbmiddle','pinky','threefinger','fourfinger',
   'sixhand','sevenhand','eighthand','ninehand','thumbtwofinger','dislikehand',
+  // New shapes
+  'lhandtouch','waterhand','thumbdown','thumb_slant',
 ])
