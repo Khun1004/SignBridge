@@ -571,3 +571,290 @@
     .case-card-right   { padding: 14px 12px 14px 8px; }
     .case-title        { font-size: 22px; }
 }
+/* ── 새 대화 기록 등록 버튼 ── */
+.case-btn-register {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 3px 12px rgba(124,58,237,0.3);
+    white-space: nowrap;
+}
+.case-btn-register:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 18px rgba(124,58,237,0.4);
+}
+
+/* ════════════════════════════════════════
+   영상 카드 그리드
+════════════════════════════════════════ */
+.case-video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.case-video-card {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--accent-border, rgba(124,58,237,0.2));
+    background: #13131c;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.case-video-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent, #7c3aed);
+}
+
+.case-video-thumb {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: #0a0a12;
+    cursor: pointer;
+    overflow: hidden;
+}
+.case-video-preview {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+.case-video-thumb:hover .case-video-preview { opacity: 0.5; }
+
+.case-video-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.case-video-play {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #fff; backdrop-filter: blur(4px);
+    transition: all 0.15s;
+}
+.case-video-thumb:hover .case-video-play {
+    background: rgba(124,58,237,0.6);
+    border-color: rgba(124,58,237,0.8);
+    transform: scale(1.1);
+}
+.case-video-num {
+    position: absolute; top: 6px; left: 8px;
+    font-size: 10px; font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    background: rgba(0,0,0,0.5);
+    padding: 2px 7px; border-radius: 20px;
+    backdrop-filter: blur(2px);
+}
+
+.case-video-actions {
+    display: flex; gap: 0;
+    border-top: 1px solid #2a2a38;
+}
+.case-video-btn {
+    flex: 1; padding: 8px 6px;
+    font-size: 11px; font-weight: 700;
+    font-family: inherit; border: none;
+    cursor: pointer; transition: background 0.15s;
+    text-align: center; text-decoration: none;
+    display: flex; align-items: center;
+    justify-content: center; gap: 4px;
+}
+.case-video-btn-play {
+    background: rgba(124,58,237,0.15); color: #c4b5fd;
+    border-right: 1px solid #2a2a38;
+}
+.case-video-btn-play:hover { background: rgba(124,58,237,0.28); }
+.case-video-btn-dl {
+    background: rgba(255,255,255,0.05); color: #6060a0;
+}
+.case-video-btn-dl:hover { background: rgba(255,255,255,0.1); color: #c0c0e0; }
+
+/* ── 영상 모달 ── */
+.case-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(8,8,16,0.88); z-index: 9000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; backdrop-filter: blur(6px);
+    animation: caseOverlay 0.2s ease;
+}
+@keyframes caseOverlay { from{opacity:0} to{opacity:1} }
+
+.case-modal {
+    background: #16161e; border: 1px solid #2a2a38;
+    border-radius: 18px; width: 100%; max-width: 900px;
+    overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+    animation: caseModalUp 0.25s cubic-bezier(0.34,1.2,0.64,1);
+}
+@keyframes caseModalUp {
+    from{opacity:0;transform:translateY(24px) scale(0.96)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+}
+.case-modal-hd {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; background: #1e1e2a;
+    border-bottom: 1px solid #2a2a38;
+    font-size: 14px; font-weight: 800; color: #e2e2f0;
+}
+.case-modal-dl {
+    padding: 6px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; font-family: inherit;
+    background: rgba(124,58,237,0.2); color: #c4b5fd;
+    border: 1px solid rgba(124,58,237,0.3);
+    text-decoration: none; transition: all 0.15s;
+}
+.case-modal-dl:hover { background: rgba(124,58,237,0.32); transform: translateY(-1px); }
+.case-modal-close {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.07); color: #888;
+    font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+}
+.case-modal-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.case-modal-body { padding: 16px; background: #0a0a10; display: flex; justify-content: center; }
+.case-modal-video {
+    width: 100%; max-width: 860px; border-radius: 8px;
+    outline: none; background: #000; display: block; max-height: 70vh;
+}
+
+@media (max-width: 640px) {
+    .case-video-grid { grid-template-columns: 1fr 1fr; }
+    .case-modal { border-radius: 14px; }
+    .case-modal-body { padding: 10px; }
+}
+
+/* ════════════════════════════════════════
+   수어 통역 대화 기록 — 채팅 버블 스타일
+════════════════════════════════════════ */
+
+/* 섹션 타이틀 카운트 배지 */
+.case-conv-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent, #7c3aed);
+    background: var(--accent-light, rgba(124,58,237,0.07));
+    border: 1px solid var(--accent-border, rgba(124,58,237,0.2));
+    padding: 2px 9px;
+    border-radius: 20px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* 채팅 목록 */
+.case-chat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 0 4px;
+}
+
+/* 빈 상태 */
+.case-chat-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px;
+    color: #aaa;
+    font-size: 13px;
+}
+.case-chat-empty span { font-size: 32px; opacity: 0.35; }
+.case-chat-empty p { margin: 0; }
+
+/* 개별 메시지 */
+.case-chat-msg {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    animation: caseChatIn 0.25s ease;
+}
+@keyframes caseChatIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.case-chat-sign  { flex-direction: row; }
+.case-chat-voice { flex-direction: row-reverse; }
+
+/* 아바타 */
+.case-chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+}
+.case-chat-sign  .case-chat-avatar {
+    background: rgba(124,58,237,0.08);
+    border: 1.5px solid rgba(124,58,237,0.2);
+}
+.case-chat-voice .case-chat-avatar {
+    background: rgba(37,99,235,0.08);
+    border: 1.5px solid rgba(37,99,235,0.2);
+}
+
+/* 버블 묶음 */
+.case-chat-bubble-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 68%;
+}
+.case-chat-sign  .case-chat-bubble-wrap { align-items: flex-start; }
+.case-chat-voice .case-chat-bubble-wrap { align-items: flex-end; }
+
+/* 이름 */
+.case-chat-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+    padding: 0 4px;
+}
+
+/* 버블 */
+.case-chat-bubble {
+    padding: 11px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.65;
+    word-break: break-word;
+    font-weight: 500;
+}
+
+/* 수어(청각장애인) — 연보라, 왼쪽 */
+.case-chat-bubble-sign {
+    background: rgba(124,58,237,0.07);
+    color: #1a1a2e;
+    border: 1.5px solid rgba(124,58,237,0.18);
+    border-radius: 4px 18px 18px 18px;
+}
+
+/* 담당자 — 보라 그라디언트, 오른쪽 */
+.case-chat-bubble-voice {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: #ffffff;
+    border-radius: 18px 4px 18px 18px;
+    box-shadow: 0 2px 12px rgba(124,58,237,0.3);
+}
+
+@media (max-width: 640px) {
+    .case-chat-bubble-wrap { max-width: 82%; }
+    .case-chat-list { padding: 12px 0 4px; }
+}

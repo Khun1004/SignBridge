@@ -10,6 +10,8 @@ export default function RegisterImmigration({
                                                 displayName = '',
                                             }) {
     const [officerName,   setOfficerName]   = useState(displayName || '')
+    const [officerPos,    setOfficerPos]    = useState('')
+    const [officerDept,   setOfficerDept]   = useState('')
     const [applicantName, setApplicantName] = useState('')
     const [caseNumber,    setCaseNumber]    = useState('')
     const [purpose,       setPurpose]       = useState('')
@@ -42,13 +44,15 @@ export default function RegisterImmigration({
             const videoIds = videos.filter(v => v.serverId).map(v => Number(v.serverId))
 
             await immigrationApi.saveRecord({
-                userEmail:     userEmail?.trim() || null,
-                officerName:   officerName.trim(),
-                applicantName: applicantName.trim(),
-                caseNumber:    caseNumber.trim(),
-                purpose:       purpose.trim(),
-                videoId:       videoIds[0] ?? null,
-                extraVideoIds: videoIds.slice(1),
+                userEmail:       userEmail?.trim() || null,
+                officerName:     officerName.trim(),
+                officerPosition: officerPos.trim(),
+                officerDept:     officerDept.trim(),
+                applicantName:   applicantName.trim(),
+                caseNumber:      caseNumber.trim(),
+                purpose:         purpose.trim(),
+                videoId:         videoIds[0] ?? null,
+                extraVideoIds:   videoIds.slice(1),
                 signs,
                 voice,
             })
@@ -178,6 +182,18 @@ export default function RegisterImmigration({
                         <label className="ri-label">신청인 이름 <span className="ri-required">*</span></label>
                         <input className="ri-input" placeholder="신청인 이름"
                                value={applicantName} onChange={e => setApplicantName(e.target.value)}/>
+                    </div>
+                </div>
+                <div className="ri-form-row">
+                    <div className="ri-field">
+                        <label className="ri-label">담당 직원 직책</label>
+                        <input className="ri-input" placeholder="예: 심사관, 통역관"
+                               value={officerPos} onChange={e => setOfficerPos(e.target.value)}/>
+                    </div>
+                    <div className="ri-field">
+                        <label className="ri-label">담당 직원 소속 부서</label>
+                        <input className="ri-input" placeholder="예: 비자심사과, 체류관리과"
+                               value={officerDept} onChange={e => setOfficerDept(e.target.value)}/>
                     </div>
                 </div>
                 <div className="ri-form-row">

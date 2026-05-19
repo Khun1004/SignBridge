@@ -1,62 +1,6 @@
 import { useState } from 'react'
 import './PoliceCasePage.css'
-
-const CASES = [
-    {
-        id: 'POL-2025-001',
-        subject: {
-            name: '이호민', birth: '1990.04.12', disability: '청각장애 1급',
-            nationality: '대한민국', phone: '010-1234-5678',
-            address: '서울시 강남구 테헤란로 123', role: '피해자', avatar: '🧏',
-        },
-        officer: {
-            name: '박민수', badge: '12-4892', rank: '경장',
-            department: '형사과 1팀', station: '서울 강남경찰서', avatar: '👮',
-        },
-        caseType: '피해신고', caseNum: '2025-강남-4421',
-        date: '2025.05.12', time: '16:10',
-        location: '서울 강남경찰서 조사실 2호', duration: '15분 22초',
-        status: '조사 완료', statusType: 'ok', flagged: false,
-        signs:  ['안녕하세요 👋', '도움이 필요해요 🤲', '잠깐만요 ✋'],
-        voice:  ['사건 경위를 말씀해주세요', '언제 발생한 일인가요?', '진술서에 서명해 주세요'],
-    },
-    {
-        id: 'POL-2025-002',
-        subject: {
-            name: '장민호', birth: '1988.07.05', disability: '청각장애 2급',
-            nationality: '대한민국', phone: '010-8765-4321',
-            address: '경기도 성남시 분당구 정자동 456', role: '참고인', avatar: '🧏',
-        },
-        officer: {
-            name: '최지훈', badge: '08-2211', rank: '경위',
-            department: '형사과 2팀', station: '서울 강남경찰서', avatar: '👮',
-        },
-        caseType: '참고인 조사', caseNum: '2025-강남-3901',
-        date: '2025.05.10', time: '11:30',
-        location: '서울 강남경찰서 조사실 3호', duration: '22분 05초',
-        status: '검토 중', statusType: 'warn', flagged: true,
-        signs:  ['안녕하세요 👋', '괜찮아요 😊', '감사합니다 🙏'],
-        voice:  ['목격한 내용을 말씀해주세요', '정확한 시간을 기억하시나요?'],
-    },
-    {
-        id: 'POL-2025-003',
-        subject: {
-            name: '윤서연', birth: '1993.11.30', disability: '청각장애 1급',
-            nationality: '대한민국', phone: '010-3333-6666',
-            address: '서울시 서초구 반포대로 789', role: '피해자', avatar: '🧏',
-        },
-        officer: {
-            name: '김현우', badge: '15-7731', rank: '순경',
-            department: '생활안전과', station: '서울 서초경찰서', avatar: '👮',
-        },
-        caseType: '분실물 신고', caseNum: '2025-서초-1102',
-        date: '2025.05.09', time: '13:45',
-        location: '서울 서초경찰서 민원실', duration: '8분 10초',
-        status: '접수 완료', statusType: 'ok', flagged: false,
-        signs:  ['도움이 필요해요 🤲', '감사합니다 🙏'],
-        voice:  ['분실 신고를 도와드리겠습니다', '분실한 물건의 특징을 말씀해주세요'],
-    },
-]
+import { conversationApi } from '../../../../assets/components/api/api.jsx'
 
 const ACCENT = '#dc2626'
 
@@ -70,7 +14,8 @@ function Arrow() {
 
 /* ── 상세 화면 ── */
 function CaseDetail({ c, onBack }) {
-    const { subject: sb, officer: of_, signs, voice } = c
+    const { subject: sb, officer: of_, signs = [], voice = [] } = c
+    const [modalUrl, setModalUrl] = useState(null)
     return (
         <div className="case-detail" style={{ '--accent': ACCENT, '--accent-light': 'rgba(220,38,38,0.07)', '--accent-border': 'rgba(220,38,38,0.2)' }}>
             <button className="case-btn-back" onClick={onBack}>← 목록으로 돌아가기</button>
@@ -123,23 +68,68 @@ function CaseDetail({ c, onBack }) {
                 </div>
             </div>
 
+            {/* ── 수어 통역 대화 기록 — 채팅 버블 ── */}
             <div className="case-section">
-                <div className="case-section-title">💬 수어 통역 대화 기록</div>
-                <div className="case-conv-list">
-                    {signs.map((s, i) => (
-                        <div className="case-conv-msg case-conv-sign" key={'s'+i}>
-                            <span className="case-conv-who">🧏 {sb.name} ({sb.role})</span>
-                            <span className="case-conv-text">{s}</span>
-                        </div>
-                    ))}
-                    {voice.map((v, i) => (
-                        <div className="case-conv-msg case-conv-voice" key={'v'+i}>
-                            <span className="case-conv-who">👮 {of_.name} {of_.rank}</span>
-                            <span className="case-conv-text">{v}</span>
-                        </div>
-                    ))}
+                <div className="case-section-title">
+                    💬 수어 통역 대화 기록
+                    <span className="case-conv-count">{signs.length + voice.length}개</span>
+                </div>
+                <div className="case-chat-list">
+                    {signs.length === 0 && voice.length === 0 ? (
+                        <div className="case-chat-empty"><span>💬</span><p>대화 기록이 없습니다.</p></div>
+                    ) : (
+                        <>
+                            {signs.map((s, i) => (
+                                <div key={'s'+i} className="case-chat-msg case-chat-sign">
+                                    <div className="case-chat-avatar">🧏</div>
+                                    <div className="case-chat-bubble-wrap">
+                                        <div className="case-chat-name">{sb.name} ({sb.role || '당사자'})</div>
+                                        <div className="case-chat-bubble case-chat-bubble-sign">{s}</div>
+                                    </div>
+                                </div>
+                            ))}
+                            {voice.map((v, i) => (
+                                <div key={'v'+i} className="case-chat-msg case-chat-voice">
+                                    <div className="case-chat-bubble-wrap">
+                                        <div className="case-chat-name">{of_.name} {of_.rank || '경찰관'}</div>
+                                        <div className="case-chat-bubble case-chat-bubble-voice">{v}</div>
+                                    </div>
+                                    <div className="case-chat-avatar">👮</div>
+                                </div>
+                            ))}
+                        </>
+                    )}
                 </div>
             </div>
+
+            {/* ── 녹화 영상 ── */}
+            {(() => {
+                const allVids = c.videoIds?.length > 0 ? c.videoIds : c.videoId ? [c.videoId] : []
+                if (allVids.length === 0) return null
+                return (
+                    <div className="case-section">
+                        <div className="case-section-title">🎬 녹화 영상 ({allVids.length}개)</div>
+                        <div className="case-video-grid">
+                            {allVids.map((vid, vi) => {
+                                const url = conversationApi.getVideoUrl(vid)
+                                return (
+                                    <div key={vid} className="case-video-card">
+                                        <div className="case-video-thumb" onClick={() => setModalUrl({ url, idx: vi })}>
+                                            <video src={url} className="case-video-preview" preload="metadata" muted playsInline/>
+                                            <div className="case-video-overlay"><div className="case-video-play">▶</div></div>
+                                            <div className="case-video-num">영상 {vi+1}</div>
+                                        </div>
+                                        <div className="case-video-actions">
+                                            <button className="case-video-btn case-video-btn-play" onClick={() => setModalUrl({ url, idx: vi })}>▶ 재생</button>
+                                            <a href={url} download={`POL_${c.id}_${vi+1}.webm`} className="case-video-btn case-video-btn-dl">⬇ 저장</a>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )
+            })()}
 
             <div className="case-actions">
                 <button className="case-btn-primary">📄 수어 통역 조서 출력</button>
@@ -147,6 +137,23 @@ function CaseDetail({ c, onBack }) {
                 <button className="case-btn-secondary">📥 증거 저장</button>
                 {c.flagged && <button className="case-btn-danger">🚨 검토 요청</button>}
             </div>
+
+            {modalUrl && (
+                <div className="case-modal-overlay" onClick={() => setModalUrl(null)}>
+                    <div className="case-modal" onClick={e => e.stopPropagation()}>
+                        <div className="case-modal-hd">
+                            <span>🎬 영상 {modalUrl.idx+1} 재생</span>
+                            <div style={{display:'flex',gap:8}}>
+                                <a href={modalUrl.url} download={`POL_${c.id}_${modalUrl.idx+1}.webm`} className="case-modal-dl">⬇ 다운로드</a>
+                                <button className="case-modal-close" onClick={() => setModalUrl(null)}>✕</button>
+                            </div>
+                        </div>
+                        <div className="case-modal-body">
+                            <video src={modalUrl.url} controls autoPlay className="case-modal-video" playsInline/>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
@@ -154,20 +161,20 @@ function CaseDetail({ c, onBack }) {
 /* ── 목록 화면 ── */
 // displayName : 회원가입의 officeName (경찰서명)
 // profile     : 회원가입 전체 정보 { name, email, orgCode, address, addressDetail, zonecode, ... }
-export default function PoliceCasePage({ onBack, displayName = '', profile = null }) {
+export default function PoliceCasePage({ onBack, displayName = '', profile = null, cases = [], loading = false, onRegister }) {
     const [selected, setSelected] = useState(null)
     const [search,   setSearch]   = useState('')
 
     if (selected) return <CaseDetail c={selected} onBack={() => setSelected(null)} />
 
-    const filtered = CASES.filter(c =>
+    const filtered = cases.filter(c =>
         c.subject.name.includes(search) || c.id.includes(search) ||
         c.caseType.includes(search) || c.caseNum.includes(search)
     )
 
-    const total    = CASES.length
-    const flagged  = CASES.filter(c => c.flagged).length
-    const complete = CASES.filter(c => c.statusType === 'ok').length
+    const total    = cases.length
+    const flagged  = cases.filter(c => c.flagged).length
+    const complete = cases.filter(c => c.statusType === 'ok').length
 
     // 회원가입 정보에서 표시할 값 추출
     const officeName    = displayName || profile?.officeName || '경찰서'
@@ -183,7 +190,14 @@ export default function PoliceCasePage({ onBack, displayName = '', profile = nul
             {/* 헤더 */}
             <div className="case-header">
                 <div className="case-official-bar">👮 대한민국 경찰청</div>
-                <h1 className="case-title">청각장애인 당사자 목록</h1>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+                    <h1 className="case-title" style={{margin:0}}>청각장애인 당사자 목록</h1>
+                    {onRegister && (
+                        <button className="case-btn-register" onClick={onRegister}>
+                            ✏️ 새 대화 기록 등록
+                        </button>
+                    )}
+                </div>
                 <p className="case-subtitle">이름을 선택하면 당사자와 담당 경찰관 정보를 확인할 수 있습니다.</p>
             </div>
 
@@ -269,7 +283,14 @@ export default function PoliceCasePage({ onBack, displayName = '', profile = nul
                         </div>
                     </button>
                 ))}
-                {filtered.length === 0 && <div className="case-empty">검색 결과가 없습니다.</div>}
+                {loading && <div className="case-empty">⏳ 케이스를 불러오는 중...</div>}
+                {!loading && filtered.length === 0 && (
+                    <div className="case-empty">
+                        {cases.length === 0
+                            ? <span>등록된 케이스가 없습니다.<br/><span style={{fontSize:12,color:'#aaa'}}>번역기에서 대화 후 저장하기를 누르면 여기에 표시됩니다.</span></span>
+                            : '검색 결과가 없습니다.'}
+                    </div>
+                )}
             </div>
         </div>
     )

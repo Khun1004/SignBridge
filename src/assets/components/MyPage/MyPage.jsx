@@ -490,6 +490,16 @@ export default function MyPage({ displayName = '', orgType = '', userEmail = '' 
     const [caseList,    setCaseList]    = useState([])
     const [loading,     setLoading]     = useState(false)
 
+    // orgType 정규화 (한글 → 영문)
+    const normalizeOrgType = (raw) => {
+        const map = {
+            '개인': 'personal', '출입국관리사무소': 'immigration',
+            '출입국외국인사무소': 'immigration', '경찰서': 'police',
+            '병원': 'hospital', '공항': 'airport',
+        }
+        return map[raw] || raw || 'personal'
+    }
+
     useEffect(() => {
         if (!userEmail) return
         setLoading(true)
@@ -497,10 +507,17 @@ export default function MyPage({ displayName = '', orgType = '', userEmail = '' 
             try {
                 const profile = await myPageApi.getProfile(userEmail)
                 setProfileData(profile)
-                const type = profile?.orgType || orgType
-                let cases  = []
-                if (type === 'immigration') cases = await immigrationApi.getCases(userEmail)
-                else if (type === 'police') cases = await policeApi.getCases(userEmail)
+                // DB에서 한글로 저장된 orgType도 처리
+                const rawType  = profile?.orgType || orgType
+                const normType = normalizeOrgType(rawType)
+                console.log('[MyPage] orgType raw:', rawType, '→ norm:', normType, '| email:', userEmail)
+                let cases = []
+                if (normType === 'immigration') {
+                    cases = await immigrationApi.getCases(userEmail)
+                    console.log('[MyPage] immigration cases 수:', cases?.length, cases)
+                } else if (normType === 'police') {
+                    cases = await policeApi.getCases(userEmail)
+                }
                 setCaseList(cases)
             } catch (e) {
                 console.error('[MyPage load]', e)
@@ -562,10 +579,22 @@ export default function MyPage({ displayName = '', orgType = '', userEmail = '' 
         <div className="my-page">
             <div className="view-wrap">
                 {!orgType && <button className="back-btn" onClick={() => setView('select')}>← 용도 선택으로</button>}
-                <OrgWelcomeHeader displayName={displayName} orgLabel={meta.label} orgIcon={meta.icon} orgColor={meta.color}/>
-                <ImmigrationCasePage onBack={orgType ? undefined : () => setView('select')}
-                                     displayName={profileData?.officeName || displayName}
-                                     profile={profileData} cases={caseList}/>
+                <OrgWelcomeHeader displayName={profileData?.officeName || displayName} orgLabel={meta.label} orgIcon={meta.icon} orgColor={meta.color}/>
+                <ImmigrationCasePage
+                    onBack={orgType ? undefined : () => setView('select')}
+                    displayName={profileData?.officeName || displayName}
+                    profile={{
+                        officeName:    profileData?.officeName    || '',
+                        orgCode:       profileData?.orgCode       || '',
+                        address:       profileData?.address       || '',
+                        addressDetail: profileData?.addressDetail || '',
+                        zonecode:      profileData?.zonecode      || '',
+                        email:         profileData?.email         || userEmail,
+                    }}
+                    cases={caseList}
+                    loading={loading}
+                    onRegister={() => setView('register_immigration')}
+                />
             </div>
         </div>
     )
@@ -575,12 +604,75 @@ export default function MyPage({ displayName = '', orgType = '', userEmail = '' 
             <div className="view-wrap">
                 {!orgType && <button className="back-btn" onClick={() => setView('select')}>← 용도 선택으로</button>}
                 <OrgWelcomeHeader displayName={displayName} orgLabel={meta.label} orgIcon={meta.icon} orgColor={meta.color}/>
-                <PoliceCasePage onBack={orgType ? undefined : () => setView('select')}
-                                displayName={profileData?.officeName || displayName}
-                                profile={profileData} cases={caseList}/>
+                <PoliceCasePage
+                    onBack={orgType ? undefined : () => setView('select')}
+                    displayName={profileData?.officeName || displayName}
+                    profile={{
+                        officeName:    profileData?.officeName    || '',
+                        orgCode:       profileData?.orgCode       || '',
+                        address:       profileData?.address       || '',
+                        addressDetail: profileData?.addressDetail || '',
+                        zonecode:      profileData?.zonecode      || '',
+                        email:         profileData?.email         || userEmail,
+                    }}
+                    cases={caseList}
+                    loading={loading}
+                    onRegister={() => setView('register_police')}
+                />
             </div>
         </div>
     )
+
+    if (view === 'register_police') {
+        const RegisterPolice = require('../Register/RegisterPolice/RegisterPolice.jsx').default
+        return (
+            <div className="my-page">
+                <div className="view-wrap">
+                    <RegisterPolice
+                        messages={[]}
+                        videos={[]}
+                        onBack={() => setView('police')}
+                        userEmail={userEmail}
+                        displayName={profileData?.name || displayName}
+                    />
+                </div>
+            </div>
+        )
+    }
+
+    if (view === 'register_police') {
+        const RegisterPolice = require('../Register/RegisterPolice/RegisterPolice.jsx').default
+        return (
+            <div className="my-page">
+                <div className="view-wrap">
+                    <RegisterPolice
+                        messages={[]}
+                        videos={[]}
+                        onBack={() => setView('police')}
+                        userEmail={userEmail}
+                        displayName={profileData?.name || displayName}
+                    />
+                </div>
+            </div>
+        )
+    }
+
+    if (view === 'register_immigration') {
+        const RegisterImmigration = require('../Register/RegisterImmigration/RegisterImmigration.jsx').default
+        return (
+            <div className="my-page">
+                <div className="view-wrap">
+                    <RegisterImmigration
+                        messages={[]}
+                        videos={[]}
+                        onBack={() => setView('immigration')}
+                        userEmail={userEmail}
+                        displayName={profileData?.name || displayName}
+                    />
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="my-page">
