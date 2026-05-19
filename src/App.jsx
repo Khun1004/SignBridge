@@ -235,7 +235,7 @@ export default function App() {
     const renderMain = () => {
         if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
-        if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} onBack={handleBackToConv} userEmail={userEmail} />
+        if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (showConv)  return <ConversationPage messages={convMessages} videoBlobs={convVideoBlobs} onBack={handleBackToTranslate} onRegister={handleGoRegister} orgType={orgType} userEmail={userEmail} place={orgType || 'immigration'} onVideosChange={setConvVideos} />
         if (showDemo)  return <DemoPage  onBack={() => { setShowDemo(false); setTab('home') }} />
         if (showAbout) return <About onBack={() => { setShowAbout(false); setTab('home') }} />
