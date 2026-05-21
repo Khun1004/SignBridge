@@ -46,6 +46,7 @@ export default function AIPanel({
     const [idx,        setIdx]       = useState(0)
     const [play,       setPlay]      = useState(false)
     const [activePose, setActivePose] = useState('idle')
+    const [done,       setDone]       = useState(false)  // 전체 재생 완료
     const autoRef = useRef(null)
     const prevExternalRef = useRef(externalPlaying)
 
@@ -55,6 +56,7 @@ export default function AIPanel({
         prevExternalRef.current = externalPlaying
         if (externalPlaying) {
             setIdx(0)
+            setDone(false)
             setPlay(true)
         } else {
             setPlay(false)
@@ -64,6 +66,7 @@ export default function AIPanel({
     // guide 바뀌면 처음부터
     useEffect(() => {
         setIdx(0)
+        setDone(false)
         setPlay(!!externalPlaying)
     }, [guide])
 
@@ -85,18 +88,29 @@ export default function AIPanel({
         setActivePose(po)
     }, [idx, guide])
 
-    // 자동 재생 타이머
+    // 자동 재생 타이머 — 각 단어마다 FBX 재생 시간 고려
     useEffect(() => {
         clearTimeout(autoRef.current)
-        if (!play || !guide?.steps?.length) return
+        if (!play || !guide?.steps?.length || done) return
+        const total = guide.steps.length
+        // 마지막 단어면 완료 처리
+        if (idx >= total - 1) {
+            autoRef.current = setTimeout(() => {
+                setPlay(false)
+                setDone(true)
+            }, 2800)
+            return
+        }
+        // 다음 단어로 (2.8초마다 — FBX 한 사이클 기준)
         autoRef.current = setTimeout(() => {
-            setIdx(s => (s + 1) % guide.steps.length)
-        }, 3000)
+            setIdx(s => s + 1)
+        }, 2800)
         return () => clearTimeout(autoRef.current)
-    }, [play, idx, guide])
+    }, [play, idx, guide, done])
 
     const cfg   = POSE_CFG[activePose] || POSE_CFG.idle
     const total = guide?.steps?.length || 0
+    const progress = total > 0 ? Math.round(((idx + 1) / total) * 100) : 0
 
     return (
         <div className="ai-panel">
@@ -136,21 +150,42 @@ export default function AIPanel({
 
             {/* ── guide 있을 때: 컨트롤 버튼만 ── */}
             {guide && (
-                <div className="ai-ctrl-row">
-                    <button className="ai-nav-btn"
-                            disabled={idx === 0}
-                            onClick={() => { setIdx(i => Math.max(0, i - 1)); setPlay(false) }}>
-                        ◀ 이전
-                    </button>
-                    <button className="ai-play-btn" style={{ background: cfg.c }}
-                            onClick={() => setPlay(p => !p)}>
-                        {play ? '⏸ 일시정지' : '▶ 재생'}
-                    </button>
-                    <button className="ai-nav-btn"
-                            disabled={idx === total - 1}
-                            onClick={() => { setIdx(i => Math.min(total - 1, i + 1)); setPlay(false) }}>
-                        다음 ▶
-                    </button>
+                <div className="ai-ctrl-col">
+                    {/* 진행 바 */}
+                    <div className="ai-progress-wrap">
+                        <div className="ai-progress-bar" style={{ width: `${progress}%` }}/>
+                        <span className="ai-progress-label">
+                            {done ? '✅ 완료' : `${idx + 1} / ${total}`}
+                        </span>
+                    </div>
+                    {/* 현재 단어 */}
+                    <div className="ai-current-word">
+                        {guide.steps[idx]?.word || ''}
+                    </div>
+                    {/* 버튼 */}
+                    <div className="ai-ctrl-row">
+                        <button className="ai-nav-btn"
+                                disabled={idx === 0}
+                                onClick={() => { setIdx(i => Math.max(0, i - 1)); setPlay(false); setDone(false) }}>
+                            ◀ 이전
+                        </button>
+                        {done ? (
+                            <button className="ai-play-btn" style={{ background: '#10b981' }}
+                                    onClick={() => { setIdx(0); setDone(false); setPlay(true) }}>
+                                🔄 다시 재생
+                            </button>
+                        ) : (
+                            <button className="ai-play-btn" style={{ background: cfg.c }}
+                                    onClick={() => { setPlay(p => !p); if (done) { setIdx(0); setDone(false); } }}>
+                                {play ? '⏸ 일시정지' : '▶ 재생'}
+                            </button>
+                        )}
+                        <button className="ai-nav-btn"
+                                disabled={idx === total - 1}
+                                onClick={() => { setIdx(i => Math.min(total - 1, i + 1)); setPlay(false); setDone(false) }}>
+                            다음 ▶
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

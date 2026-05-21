@@ -18,7 +18,7 @@ LABEL_PATH  = 'models/label_map.json'
 SEQ_LEN     = 30
 N_FEATURES  = 21 * 3          # 63
 CONF_THRESH = 0.75             # LSTM 신뢰도 임계값
-FLUSH_SEC   = 5.0              # 침묵 N초 후 자막 생성
+FLUSH_SEC   = 4.0              # 침묵 N초 후 자막 생성
 
 # Claude API (선택 — 없으면 단순 단어 연결로 fallback)
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
@@ -51,6 +51,11 @@ except Exception as e:
 # ══════════════════════════════════════════════════════════════
 def normalize(lm: list, prev_lm: list = None) -> np.ndarray:
     """랜드마크 + velocity + 손가락 굴곡각 → (63+63+5,) = 131차원"""
+    # 딕셔너리 형태 {x, y, z} 또는 배열 형태 [x, y, z] 모두 처리
+    if lm and isinstance(lm[0], dict):
+        lm = [[p['x'], p['y'], p['z']] for p in lm]
+    if prev_lm and prev_lm[0] and isinstance(prev_lm[0], dict):
+        prev_lm = [[p['x'], p['y'], p['z']] for p in prev_lm]
     pts   = np.array(lm, dtype=np.float32)   # (21, 3)
     wrist = pts[0]
     mcp   = pts[9]
@@ -252,7 +257,7 @@ async def ws_sign(ws: WebSocket):
                 name, conf = result
                 now = asyncio.get_event_loop().time()
                 # 같은 단어가 2.5초 내 반복되면 무시
-                if name != session.last_word or (now - session.last_det) > 2.5:
+                if name != session.last_word or (now - session.last_det) > 1.5:
                     session.last_word = name
                     session.last_det  = now
                     async with session.lock:

@@ -54,7 +54,7 @@ function fmtTime(sec) {
  *   place   — 'immigration' | 'police' 등
  *   userEmail — 현재 로그인 사용자 이메일 (녹화 업로드 시 사용)
  */
-export default function TranslatePage({ onEndConversation, place = 'immigration', userEmail, initialMessages = [] }) {
+export default function TranslatePage({ onEndConversation, place = 'immigration', userEmail, initialMessages = [], onLoginRequired }) {
     const [mpError,       setMpError]       = useState(null)
     const [cameraOn,      setCameraOn]      = useState(false)
     const [messages,      setMessages]      = useState(initialMessages)
@@ -79,8 +79,8 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
     const [subText,       setSubText]       = useState('')
     const [subLoading,    setSubLoading]    = useState(false)
     const [subHist,       setSubHist]       = useState([])
-    const [tmStatus,      setTmStatus]      = useState('off')  // ← 'loading'으로 시작하면 StrictMode 2차 마운트 시 guard에 막힘
-    const [engineMode,    setEngineMode]    = useState('tm')  // 'mediapipe' | 'tm'
+    const [tmStatus,      setTmStatus]      = useState(TM_ENABLED ? 'loading' : 'off')
+    const [engineMode,    setEngineMode]    = useState('tm')  // 'mediapipe' | 'tm' | 'lstm'
     const engineModeRef   = useRef('tm')
     const [tmDebugPreds,  setTmDebugPreds]  = useState([])
     const [tmDebugShow,   setTmDebugShow]   = useState(true)
@@ -124,16 +124,25 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
     const recChunksRef  = useRef([])     // 녹화 청크 배열
     const recTimerRef   = useRef(null)   // 초 카운터 interval
 
+    const pushTokRef = useRef(null)
+    const confirmSentenceRef = useRef(null)
     const { lstmStatus, lstmGesture, sendLandmarks } = useLSTMSign({
         onGesture: useCallback((name, conf) => {
             if (name && conf >= 0.75) {
                 const r = RULES.find(r => r.name === name)
-                lstmHitRef.current = r || { name, emoji: '🤖', meaning: '', pose: 'idle' }
+                lstmHitRef.current = r || { name, emoji: '🧠', meaning: name, pose: A2P[name] || 'idle' }
                 setTimeout(() => { lstmHitRef.current = null }, 2000)
+                // LSTM 모드: 단어를 자막 박스에 쌓기 (자동 flush 없이)
+                // 사용자가 전송하기 버튼을 누를 때 문장 완성
+                if (engineModeRef.current === 'lstm' && pushTokRef.current) {
+                    pushTokRef.current(name)
+                }
             }
         }, []),
         onSentence: useCallback((sentence) => {
-            if (sentence) setSubText(sentence)
+            if (!sentence) return
+            console.log('[LSTM] 문장 수신:', sentence)
+            setSubText(sentence)
         }, []),
     })
 
@@ -144,37 +153,28 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
     useEffect(() => { engineModeRef.current = engineMode }, [engineMode])
     useEffect(() => { chatRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-    // ── TM 로드 — 페이지 진입 즉시 백그라운드 로드
-    const tmLoadingRef = useRef(false)  // 실제 비동기 실행 중 플래그 (state와 분리)
+    // ── TM 로드 — 페이지 진입 즉시 백그라운드 로드 ───────────
     const loadTM = useCallback(async () => {
         if (!TM_ENABLED) return
-        if (tmRef.current) return         // 이미 로드 완료
-        if (tmLoadingRef.current) return  // 실제 비동기 실행 중인 경우만 차단
-        tmLoadingRef.current = true
+        if (tmRef.current) return
+        if (tmStatusRef.current === 'loading') return
         try {
             setTmStatus('loading')
             if (!window.tmPose) {
                 await new Promise((res, rej) => {
-                    if (document.querySelector('script[data-tm-pose]')) { res(); return }
                     const s = document.createElement('script')
                     s.src = 'https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js'
-                    s.setAttribute('data-tm-pose', '1')
                     s.onload = res; s.onerror = rej
                     document.head.appendChild(s)
                 })
             }
-            console.log('[TM] 모델 로드 중:', TM_MODEL_URL)
             tmRef.current = await window.tmPose.load(
                 TM_MODEL_URL + 'model.json',
                 TM_MODEL_URL + 'metadata.json'
             )
-            console.log('[TM] ✅ 모델 로드 완료')
             setTmStatus('ready')
         } catch (e) {
-            console.error('[TM] ❌ 로드 실패:', e)
-            setTmStatus('error')
-        } finally {
-            tmLoadingRef.current = false
+            console.error('[TM]', e); setTmStatus('error')
         }
     }, [])
 
@@ -206,17 +206,22 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
         setSubTokens(prev => {
             const next = [...prev, w]
             tokRef.current = next
-            if (next.length >= MAX_TOKS) {
+            // LSTM 모드에서는 자동 flush 안 함 — 사용자가 전송하기 버튼으로 수동 전송
+            if (next.length >= MAX_TOKS && engineModeRef.current !== 'lstm') {
                 clearTimeout(flushTRef.current)
                 setTimeout(() => flushSub([...next]), 0)
             }
             return next
         })
         clearTimeout(flushTRef.current)
-        flushTRef.current = setTimeout(() => {
-            if (tokRef.current.length > 0) flushSub([...tokRef.current])
-        }, FLUSH)
+        // LSTM 모드에서는 자동 flush 타이머 안 함 — 수동 전송만 사용
+        if (engineModeRef.current !== 'lstm') {
+            flushTRef.current = setTimeout(() => {
+                if (tokRef.current.length > 0) flushSub([...tokRef.current])
+            }, FLUSH)
+        }
     }, [flushSub])
+    useEffect(() => { pushTokRef.current = pushTok }, [pushTok])
 
     // ══════════════════════════════════════════════════════════
     //  MediaPipe 결과 콜백 — TM / MediaPipe 완전 분리
@@ -350,7 +355,13 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
             // ══════════════════════════════════════════════════
             let hit = null
 
-            if (engineModeRef.current === 'mediapipe') {
+            if (engineModeRef.current === 'lstm') {
+                // LSTM 전용 모드 — server.py의 인식 결과를 직접 사용
+                motionRef.current.push(lm, lm2, poseLm)
+                if (lstmHitRef.current) {
+                    hit = lstmHitRef.current
+                }
+            } else if (engineModeRef.current === 'mediapipe') {
                 motionRef.current.push(lm, lm2, poseLm)
                 hit = classify(lm, motionRef.current)
             } else {
@@ -699,6 +710,7 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
         prevSentRef.current = ''
         clearTimeout(flushTRef.current)
     }, [])
+    useEffect(() => { confirmSentenceRef.current = confirmSentence }, [confirmSentence])
 
     // ── AI 수어 가이드 ────────────────────────────────────────
     const getAI = async (text) => {
@@ -879,13 +891,28 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                     <button
                         className={`engine-btn ${engineMode === 'tm' ? 'engine-btn-on' : ''}`}
                         onClick={() => { setEngineMode('tm'); stabCnt.current = 0 }}
-                        title="TM 우선 + 사랑합니다만 MediaPipe 전담 (권장)"
+                        title="TM 우선 + MediaPipe 보조 (권장)"
                         disabled={!TM_ENABLED || tmStatus === 'error'}
                     >
                         🤖 TM
                         {tmStatus === 'loading' && <span className="engine-btn-loading"> ...</span>}
                         {tmStatus === 'ready'   && <span className="engine-btn-ready"> ✓</span>}
                         {tmStatus === 'error'   && <span className="engine-btn-err"> ✕</span>}
+                    </button>
+                    <button
+                        className={`engine-btn ${engineMode === 'lstm' ? 'engine-btn-on' : ''}`}
+                        onClick={() => {
+                            setEngineMode('lstm')
+                            tmResultRef.current = null
+                            stabCnt.current = 0
+                        }}
+                        title="LSTM 전용 모드 — 더 많은 단어 인식 (server.py 실행 필요)"
+                        disabled={lstmStatus !== 'ready'}
+                    >
+                        🧠 LSTM
+                        {lstmStatus === 'ready'       && <span className="engine-btn-ready"> ✓</span>}
+                        {lstmStatus === 'connecting'  && <span className="engine-btn-loading"> ...</span>}
+                        {lstmStatus === 'unavailable' && <span className="engine-btn-err"> 🚫</span>}
                     </button>
                 </div>
 
@@ -910,7 +937,15 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
 
                 <div className="top-bar-r">
                     <span className="end-hint">종료 전 Stop 먼저</span>
-                    <button className="btn-end" onClick={handleEnd}>대화 종료 →</button>
+                    <button className="btn-end" onClick={() => {
+                        if (!userEmail) {
+                            if (window.confirm('대화를 저장하려면 로그인이 필요합니다.\n로그인 하시겠습니까?')) {
+                                onLoginRequired?.()
+                            }
+                            return
+                        }
+                        handleEnd()
+                    }}>대화 종료 →</button>
                 </div>
             </div>
 
@@ -1066,7 +1101,22 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                                 history={subHist}
                                 tmStatus={tmStatus}
                                 lstmStatus={lstmStatus}
-                                onFlush={() => flushSub([...tokRef.current])}
+                                currentWord={liveG?.name || ''}
+                                currentConf={liveG?.conf || 0}
+                                onAccept={() => {
+                                    setLiveG(null)
+                                    liveGRef.current = null
+                                }}
+                                onFlush={async (words, callback) => {
+                                    // words 배열을 받아서 AI로 문장 생성
+                                    try {
+                                        const { buildSubtitle } = await import('./translateApis.js')
+                                        const sentence = await buildSubtitle(words, place)
+                                        callback?.(sentence || words.join(' '))
+                                    } catch {
+                                        callback?.(words.join(' '))
+                                    }
+                                }}
                                 onClear={() => {
                                     setSubTokens([]); setSubText('')
                                     tokRef.current = []; prevSentRef.current = ''
@@ -1078,25 +1128,54 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                     </div>
                 </div>
 
-                {/* ── 가운데: 3D 아바타 생성 결과 ── */}
+                {/* ── 가운데: 대화 기록 ── */}
                 <div className="col col-center">
-                    <div className="card-avatar-center">
-                        <div className="avatar-center-hd">
-                            3D 아바타 생성 결과
-                            <span className="avatar-center-badge">AI · 수어 시연</span>
+                    <div className="card" style={{height:'100%',display:'flex',flexDirection:'column'}}>
+                        <div className="card-hd">
+                            💬 대화 기록
+                            {messages.length > 0 && (
+                                <span style={{marginLeft:8,fontSize:12,fontWeight:600,color:'#888'}}>
+                                    {messages.length}개
+                                </span>
+                            )}
                         </div>
-                        <div className="avatar-center-body">
-                            <AIPanel
-                                guide={aiGuide}
-                                loading={aiLoading}
-                                playing={avatarPlaying}
-                            />
+                        <div className="card-bd chat-log-inner">
+                            {messages.length === 0 ? (
+                                <div className="chat-empty">
+                                    <span>💬</span>
+                                    <p>수어 또는 텍스트로 대화를 시작하세요</p>
+                                </div>
+                            ) : messages.map(msg => (
+                                <div key={msg.id} className={`msg msg-${msg.type}`}>
+                                    <div className="msg-nm">
+                                        {msg.type === 'sign' ? '🧏 청각장애인' : '🙋 담당자'}
+                                    </div>
+                                    <div className="msg-bd">
+                                        <span className="msg-ico">
+                                            {msg.type === 'sign' ? '🧏' : '🙋'}
+                                        </span>
+                                        <div style={{display:'flex',flexDirection:'column',
+                                            alignItems:msg.type==='voice'?'flex-end':'flex-start'}}>
+                                            {msg.pose && msg.type === 'sign' && (
+                                                <div className="msg-mini">
+                                                    <MiniHand pose={msg.pose} size={36} running={false}/>
+                                                </div>
+                                            )}
+                                            <div className={`bubble bubble-${msg.type}`}>
+                                                {msg.text}
+                                            </div>
+                                            <span className="msg-time">{msg.time}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            <div ref={chatRef}/>
                         </div>
                     </div>
                 </div>
 
-                {/* ── 우측: 텍스트 입력 (담당자) ── */}
-                <div className="col col-right">
+                {/* ── 우측: 위=텍스트 입력, 아래=아바타 ── */}
+                <div className="col col-right" style={{display:'flex',flexDirection:'column',gap:12}}>
                     <div className="card-text-input">
                         <div className="text-input-hd">
                             텍스트 입력
@@ -1178,12 +1257,27 @@ export default function TranslatePage({ onEndConversation, place = 'immigration'
                             )}
                         </div>
                     </div>
+
+                    {/* ── 아바타 (텍스트 입력 아래) ── */}
+                    <div className="card" style={{flex:1}}>
+                        <div className="card-hd">
+                            🤟 3D 아바타
+                            <span className="avatar-center-badge">AI · 수어 시연</span>
+                        </div>
+                        <div className="card-bd" style={{padding:0}}>
+                            <AIPanel
+                                guide={aiGuide}
+                                loading={aiLoading}
+                                playing={avatarPlaying}
+                            />
+                        </div>
+                    </div>
                 </div>
 
             </div>
 
-            {/* ── 하단: 대화 기록 (전체 너비) ── */}
-            <div className="card chat-row-card">
+            {/* ── 하단 대화 기록 제거됨 (가운데 열로 이동) ── */}
+            <div className="card chat-row-card" style={{display:'none'}}>
                 <div className="card-hd">
                     💬 대화 기록
                     {messages.length > 0 && (

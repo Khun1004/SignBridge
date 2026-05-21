@@ -383,12 +383,40 @@ function isLocalInsufficient(guide, originalText) {
 export async function buildSubtitle(words, place = 'immigration', prevSentence = '') {
     if (!words?.length) return null
     try {
-        // 서버 호출 대신 로컬에서 단어 연결
         const clean = words.map(w => w.replace(/\p{Emoji}/gu, '').trim()).filter(Boolean)
         if (!clean.length) return null
-        // 중복 단어 제거 후 연결
+
+        // ── 1. 서버 API로 자연스러운 문장 생성 시도 ─────────────
+        try {
+            const data = await translateApi.buildSubtitle(clean, place, prevSentence)
+            if (data?.sentence) return data.sentence
+        } catch (_) {}
+
+        // ── 2. API 실패 시 로컬 자연어 변환 ──────────────────────
+        // 수어 단어 → 자연스러운 한국어 문장으로 변환
+        const SENTENCE_MAP = {
+            '안녕하세요':        '안녕하세요.',
+            '만나서 반갑습니다': '만나서 반갑습니다.',
+            '반갑습니다':        '반갑습니다.',
+            '좋아합니다':        '저는 당신을 좋아합니다.',
+            '좋아요':            '좋아요.',
+            '고맙습니다':        '고맙습니다.',
+            '감사합니다':        '감사합니다.',
+            '미안합니다':        '미안합니다.',
+            '사랑해요':          '사랑합니다.',
+            '사랑합니다':        '사랑합니다.',
+            '아니요':            '아니요.',
+            '네':                '네.',
+            '도와주세요':        '도와주세요.',
+            '잠깐만요':          '잠깐만요.',
+            '괜찮아요':          '괜찮아요.',
+        }
+
+        // 중복 제거 후 문장 변환
         const deduped = clean.filter((w, i) => clean.indexOf(w) === i)
-        return deduped.join(' ')
+        const sentences = deduped.map(w => SENTENCE_MAP[w] || w)
+        return sentences.join(' ')
+
     } catch {
         return words.join(' ')
     }

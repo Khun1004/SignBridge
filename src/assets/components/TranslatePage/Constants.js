@@ -6,10 +6,10 @@ export const TM_MODEL_URL = 'https://teachablemachine.withgoogle.com/models/VVpW
 export const TM_THRESHOLD = 0.80;
 export const TM_ENABLED   = !TM_MODEL_URL.includes('3B70MNM8c')
 
-export const STABLE   = 3     // 1회 감지 즉시 확정 (1회성 동작 대응)
-export const COOLDOWN = 1800  // 같은 동작 재인식 대기
-export const FLUSH    = 6000  // 6초 침묵 후 자막 생성
-export const MAX_TOKS = 10
+export const STABLE   = 2     // 2회 연속 감지로 확정 (더 빠른 인식)
+export const COOLDOWN = 1200  // 같은 동작 1.2초 후 재인식 가능
+export const FLUSH    = 4000  // 4초 침묵 후 문장 생성
+export const MAX_TOKS = 15    // 최대 15개 토큰 (긴 문장 지원)
 
 export const PLACE_LABEL = {
     personal:    '개인 사용자',
