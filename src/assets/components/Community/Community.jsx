@@ -10,7 +10,7 @@ const SAMPLE_MEMBERS = [
         roleTag: 'TEACHER',
         region: '서울',
         intro: '안녕하세요! 저는 10년 경력의 수어 선생님입니다. 초급부터 고급까지 체계적으로 가르쳐 드립니다.',
-        contact: { type: 'chat' },
+        contact: { type: 'chat', value: 'https://open.kakao.com/example1' },
         avatar: '쿤',
     },
     {
@@ -20,101 +20,13 @@ const SAMPLE_MEMBERS = [
         roleTag: 'TEACHER',
         region: '부산',
         intro: '청각장애인 전문 수어 통역사이자 선생님입니다. 편하게 연락 주세요!',
-        contact: { type: 'chat' },
+        contact: { type: 'phone', value: '010-1234-5678' },
         avatar: '토',
     },
 ]
 
 const ROLE_OPTIONS = ['수어 선생님', '수어 통역사', '학습자', '연구자', '기타']
 const REGION_OPTIONS = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '경기', '기타']
-
-/* ── 인앱 채팅 모달 ── */
-function ChatModal({ member, onClose }) {
-    const [messages, setMessages] = useState([
-        {
-            id: 1,
-            from: 'them',
-            text: `안녕하세요! 저는 ${member.name}입니다. 무엇을 도와드릴까요? 😊`,
-            time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-        },
-    ])
-    const [input, setInput] = useState('')
-
-    const sendMessage = () => {
-        const text = input.trim()
-        if (!text) return
-        const now = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-        setMessages(prev => [...prev, { id: Date.now(), from: 'me', text, time: now }])
-        setInput('')
-
-        // 자동 응답 (실제 구현 시 WebSocket/API로 교체)
-        setTimeout(() => {
-            setMessages(prev => [...prev, {
-                id: Date.now() + 1,
-                from: 'them',
-                text: '감사합니다! 곧 답변 드리겠습니다.',
-                time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-            }])
-        }, 800)
-    }
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            sendMessage()
-        }
-    }
-
-    return (
-        <div className="cm-modal-overlay" onClick={onClose}>
-            <div className="cm-chat-modal" onClick={e => e.stopPropagation()}>
-                {/* 채팅 헤더 */}
-                <div className="cm-chat-header">
-                    <div className="cm-chat-header-avatar">{member.avatar}</div>
-                    <div className="cm-chat-header-info">
-                        <div className="cm-chat-header-name">{member.name}</div>
-                        <div className="cm-chat-header-role">{member.role} · {member.region}</div>
-                    </div>
-                    <button className="cm-modal-close" onClick={onClose}>✕</button>
-                </div>
-
-                {/* 메시지 목록 */}
-                <div className="cm-chat-messages">
-                    {messages.map(msg => (
-                        <div key={msg.id} className={`cm-msg-row cm-msg-${msg.from}`}>
-                            {msg.from === 'them' && (
-                                <div className="cm-msg-avatar">{member.avatar}</div>
-                            )}
-                            <div className="cm-msg-bubble-wrap">
-                                <div className="cm-msg-bubble">{msg.text}</div>
-                                <div className="cm-msg-time">{msg.time}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* 입력창 */}
-                <div className="cm-chat-input-row">
-                    <textarea
-                        className="cm-chat-input"
-                        placeholder="메시지를 입력하세요..."
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        rows={1}
-                    />
-                    <button
-                        className="cm-chat-send-btn"
-                        onClick={sendMessage}
-                        disabled={!input.trim()}
-                    >
-                        ↑
-                    </button>
-                </div>
-            </div>
-        </div>
-    )
-}
 
 /* ── 등록 모달 ── */
 function RegisterModal({ onClose, onSubmit }) {
@@ -123,6 +35,8 @@ function RegisterModal({ onClose, onSubmit }) {
         role: '',
         region: '',
         intro: '',
+        contactType: 'chat',
+        contactValue: '',
     })
     const [error, setError] = useState('')
 
@@ -133,6 +47,7 @@ function RegisterModal({ onClose, onSubmit }) {
         if (!form.role) return setError('역할을 선택해 주세요.')
         if (!form.region) return setError('지역을 선택해 주세요.')
         if (!form.intro.trim()) return setError('자기소개를 입력해 주세요.')
+        if (!form.contactValue.trim()) return setError('연락처를 입력해 주세요.')
         setError('')
         onSubmit(form)
     }
@@ -184,6 +99,26 @@ function RegisterModal({ onClose, onSubmit }) {
                         />
                     </div>
 
+                    <div className="cm-field">
+                        <label className="cm-label">연락 방법</label>
+                        <div className="cm-contact-type">
+                            <button
+                                className={`cm-type-btn ${form.contactType === 'chat' ? 'active' : ''}`}
+                                onClick={() => set('contactType', 'chat')}
+                            >💬 오픈채팅 링크</button>
+                            <button
+                                className={`cm-type-btn ${form.contactType === 'phone' ? 'active' : ''}`}
+                                onClick={() => set('contactType', 'phone')}
+                            >📞 전화번호</button>
+                        </div>
+                        <input
+                            className="cm-input"
+                            placeholder={form.contactType === 'chat' ? '카카오 오픈채팅 링크를 입력하세요' : '010-0000-0000'}
+                            value={form.contactValue}
+                            onChange={e => set('contactValue', e.target.value)}
+                        />
+                    </div>
+
                     {error && <div className="cm-error">⚠️ {error}</div>}
                 </div>
 
@@ -196,30 +131,29 @@ function RegisterModal({ onClose, onSubmit }) {
     )
 }
 
-/* ── 상세 페이지 (전체 화면) ── */
-function DetailPage({ member, onClose, isLoggedIn, onOpenLogin }) {
-    const [showChat, setShowChat] = useState(false)
-
-    const handleChatClick = () => {
-        if (!isLoggedIn) {
-            onOpenLogin?.()
+/* ── 상세 모달 ── */
+function DetailModal({ member, onClose }) {
+    const handleContact = () => {
+        if (member.contact.type === 'chat') {
+            window.open(member.contact.value, '_blank')
         } else {
-            setShowChat(true)
+            window.location.href = `tel:${member.contact.value}`
         }
     }
 
     return (
-        <>
-            <div className="cm-detail-page">
-                <div className="cm-detail-nav">
-                    <button className="cm-back-btn" onClick={onClose}>← 목록으로</button>
+        <div className="cm-modal-overlay" onClick={onClose}>
+            <div className="cm-modal cm-detail-modal" onClick={e => e.stopPropagation()}>
+                <div className="cm-modal-header">
+                    <h2 className="cm-modal-title">프로필 상세</h2>
+                    <button className="cm-modal-close" onClick={onClose}>✕</button>
                 </div>
 
-                <div className="cm-detail-content">
-                    <div className="cm-detail-hero">
-                        <div className="cm-detail-avatar-lg">{member.avatar}</div>
-                        <div className="cm-detail-hero-info">
-                            <h1 className="cm-detail-name-lg">{member.name}</h1>
+                <div className="cm-detail-body">
+                    <div className="cm-detail-top">
+                        <div className="cm-detail-avatar">{member.avatar}</div>
+                        <div>
+                            <div className="cm-detail-name">{member.name}</div>
                             <div className="cm-detail-tags">
                                 <span className="cm-role-badge">{member.role}</span>
                                 <span className="cm-region-badge">📍 {member.region}</span>
@@ -227,55 +161,37 @@ function DetailPage({ member, onClose, isLoggedIn, onOpenLogin }) {
                         </div>
                     </div>
 
-                    <div className="cm-detail-section">
-                        <div className="cm-detail-section-label">자기소개</div>
-                        <p className="cm-detail-section-text">{member.intro}</p>
+                    <div className="cm-detail-intro">
+                        <div className="cm-detail-intro-label">자기소개</div>
+                        <p className="cm-detail-intro-text">{member.intro}</p>
                     </div>
 
-                    <button className="cm-contact-btn" onClick={handleChatClick}>
-                        💬 채팅하기
-                    </button>
+                    <div className="cm-detail-contact">
+                        <div className="cm-detail-intro-label">연락 방법</div>
+                        <div className="cm-contact-value">
+                            {member.contact.type === 'chat' ? '💬 오픈채팅' : `📞 ${member.contact.value}`}
+                        </div>
+                    </div>
+                </div>
 
-                    {!isLoggedIn && (
-                        <p className="cm-login-hint">채팅을 하려면 로그인이 필요합니다.</p>
-                    )}
+                <div className="cm-modal-footer">
+                    <button className="cm-btn-cancel" onClick={onClose}>닫기</button>
+                    <button className="cm-btn-submit" onClick={handleContact}>
+                        {member.contact.type === 'chat' ? '💬 채팅하기' : '📞 전화하기'}
+                    </button>
                 </div>
             </div>
-
-            {showChat && (
-                <ChatModal member={member} onClose={() => setShowChat(false)} />
-            )}
-        </>
+        </div>
     )
 }
 
 /* ── 메인 컴포넌트 ── */
-// Props:
-//   isLoggedIn  : boolean   — 현재 로그인 여부
-//   onOpenLogin : () => void — 로그인 모달을 여는 콜백 (부모에서 전달)
-//
-// 부모 사용 예시:
-//   <Community isLoggedIn={isLoggedIn} onOpenLogin={() => setShowLogin(true)} />
-export default function Community({ isLoggedIn = false, onOpenLogin }) {
+export default function Community() {
     const [members, setMembers] = useState(SAMPLE_MEMBERS)
     const [showRegister, setShowRegister] = useState(false)
     const [selectedMember, setSelectedMember] = useState(null)
     const [filterRole, setFilterRole] = useState('전체')
     const [filterRegion, setFilterRegion] = useState('전체')
-    const [searchQuery, setSearchQuery] = useState('')
-
-    const handleRegisterClick = () => {
-        if (!isLoggedIn) {
-            // onOpenLogin이 전달되지 않은 경우 경고 (개발 디버깅용)
-            if (typeof onOpenLogin !== 'function') {
-                console.warn('[Community] onOpenLogin prop이 전달되지 않았습니다. 부모에서 onOpenLogin={() => setShowLogin(true)} 를 전달해 주세요.')
-                return
-            }
-            onOpenLogin()
-        } else {
-            setShowRegister(true)
-        }
-    }
 
     const handleRegister = (form) => {
         const newMember = {
@@ -285,7 +201,7 @@ export default function Community({ isLoggedIn = false, onOpenLogin }) {
             roleTag: 'MEMBER',
             region: form.region,
             intro: form.intro,
-            contact: { type: 'chat' },
+            contact: { type: form.contactType, value: form.contactValue },
             avatar: form.name.charAt(0),
         }
         setMembers(m => [newMember, ...m])
@@ -295,23 +211,8 @@ export default function Community({ isLoggedIn = false, onOpenLogin }) {
     const filtered = members.filter(m => {
         const roleOk = filterRole === '전체' || m.role === filterRole
         const regionOk = filterRegion === '전체' || m.region === filterRegion
-        const searchOk = !searchQuery.trim() ||
-            m.name.includes(searchQuery) ||
-            m.intro.includes(searchQuery) ||
-            m.role.includes(searchQuery)
-        return roleOk && regionOk && searchOk
+        return roleOk && regionOk
     })
-
-    if (selectedMember) {
-        return (
-            <DetailPage
-                member={selectedMember}
-                onClose={() => setSelectedMember(null)}
-                isLoggedIn={isLoggedIn}
-                onOpenLogin={onOpenLogin}
-            />
-        )
-    }
 
     return (
         <div className="community-page">
@@ -322,24 +223,9 @@ export default function Community({ isLoggedIn = false, onOpenLogin }) {
                     <h1 className="cm-title">커뮤니티</h1>
                     <p className="cm-subtitle">수어 선생님, 통역사, 학습자를 찾아보세요</p>
                 </div>
-                <button className="cm-register-btn" onClick={handleRegisterClick}>
-                    {isLoggedIn ? '+ 등록하기' : '🔒 등록하기'}
+                <button className="cm-register-btn" onClick={() => setShowRegister(true)}>
+                    + 등록하기
                 </button>
-            </div>
-
-            {/* 검색창 */}
-            <div className="cm-search-bar">
-                <span className="cm-search-icon">🔍</span>
-                <input
-                    className="cm-search-input"
-                    type="text"
-                    placeholder="이름, 역할, 소개 검색..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                    <button className="cm-search-clear" onClick={() => setSearchQuery('')}>✕</button>
-                )}
             </div>
 
             {/* 필터 */}
@@ -366,26 +252,13 @@ export default function Community({ isLoggedIn = false, onOpenLogin }) {
                 </div>
             </div>
 
-            {/* 결과 수 */}
-            <div className="cm-result-count">
-                총 <strong>{filtered.length}</strong>명의 멤버
-            </div>
-
             {/* 멤버 목록 */}
             <div className="cm-list">
                 {filtered.length === 0 ? (
-                    <div className="cm-empty">
-                        <div className="cm-empty-icon">🔎</div>
-                        <div className="cm-empty-title">조건에 맞는 멤버가 없습니다</div>
-                        <div className="cm-empty-desc">필터나 검색어를 변경해 보세요</div>
-                    </div>
+                    <div className="cm-empty">조건에 맞는 멤버가 없습니다.</div>
                 ) : (
                     filtered.map(member => (
-                        <div
-                            className="cm-card"
-                            key={member.id}
-                            onClick={() => setSelectedMember(member)}
-                        >
+                        <div className="cm-card" key={member.id} onClick={() => setSelectedMember(member)}>
                             <div className="cm-card-avatar">{member.avatar}</div>
                             <div className="cm-card-info">
                                 <div className="cm-card-name">{member.name}</div>
@@ -395,27 +268,20 @@ export default function Community({ isLoggedIn = false, onOpenLogin }) {
                                 </div>
                                 <div className="cm-card-intro">{member.intro}</div>
                             </div>
-                            <button
-                                className="cm-card-contact-btn"
-                                title="채팅하기"
-                                onClick={e => {
-                                    e.stopPropagation()
-                                    if (!isLoggedIn) {
-                                        onOpenLogin?.()
-                                    } else {
-                                        setSelectedMember(member)
-                                    }
-                                }}
-                            >
-                                💬
-                            </button>
+                            <button className="cm-card-arrow">›</button>
                         </div>
                     ))
                 )}
             </div>
 
+            {/* 등록 모달 */}
             {showRegister && (
                 <RegisterModal onClose={() => setShowRegister(false)} onSubmit={handleRegister} />
+            )}
+
+            {/* 상세 모달 */}
+            {selectedMember && (
+                <DetailModal member={selectedMember} onClose={() => setSelectedMember(null)} />
             )}
         </div>
     )

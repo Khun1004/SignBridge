@@ -1,0 +1,207 @@
+/* ══════════════════════════════════════
+   Registration.css
+══════════════════════════════════════ */
+.reg-page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    animation: reg-fadein 0.22s ease;
+}
+@keyframes reg-fadein { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
+
+/* ── 헤더 ── */
+.reg-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+.reg-back-btn {
+    background: none;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: inherit;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+.reg-back-btn:hover { border-color: #6366f1; color: #6366f1; }
+.reg-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin: 0 0 4px;
+}
+.reg-subtitle { font-size: 13px; color: #6b7280; margin: 0; }
+
+/* ── 스텝 인디케이터 ── */
+.reg-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 28px;
+    gap: 0;
+}
+.reg-step-wrap { display: flex; align-items: center; }
+.reg-step {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    flex-shrink: 0;
+}
+.reg-step-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    background: #fff; color: #9ca3af;
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+}
+.reg-step.active .reg-step-dot { border-color: #6366f1; background: #6366f1; color: #fff; }
+.reg-step.done   .reg-step-dot { border-color: #10b981; background: #10b981; color: #fff; }
+.reg-step span { font-size: 11px; font-weight: 600; color: #9ca3af; }
+.reg-step.active span { color: #6366f1; }
+.reg-step.done span   { color: #10b981; }
+.reg-step-line {
+    width: 60px; height: 2px; background: #e5e7eb;
+    margin: 0 6px 14px; flex-shrink: 0; transition: background 0.3s;
+}
+.reg-step-line.done { background: #10b981; }
+
+/* ── 카드 ── */
+.reg-card {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: 0 4px 24px rgba(99,102,241,0.06);
+}
+.reg-section-title {
+    font-size: 15px; font-weight: 800; color: #1e1b4b;
+    padding-bottom: 12px; border-bottom: 1.5px solid #f3f4f6;
+}
+
+/* ── 필드 ── */
+.reg-field { display: flex; flex-direction: column; gap: 6px; }
+.reg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.reg-label { font-size: 12px; font-weight: 700; color: #374151; }
+.reg-req   { color: #ef4444; }
+.reg-opt   { font-weight: 400; color: #9ca3af; font-size: 11px; }
+.reg-input {
+    border: 1.5px solid #e5e7eb; border-radius: 10px;
+    padding: 11px 14px; font-size: 14px; font-family: inherit;
+    color: #111; outline: none; background: #fafaf8;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    width: 100%; box-sizing: border-box;
+}
+.reg-input:focus { border-color: #6366f1; background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+.reg-input.error { border-color: #ef4444; }
+.reg-textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+.reg-char { font-size: 11px; color: #9ca3af; text-align: right; }
+.reg-err  { font-size: 11px; color: #ef4444; font-weight: 600; }
+
+/* ── 토글 그룹 ── */
+.reg-toggle-group { display: flex; gap: 8px; }
+.reg-toggle {
+    flex: 1; padding: 9px; border: 1.5px solid #e5e7eb;
+    border-radius: 10px; font-size: 13px; font-weight: 600;
+    color: #6b7280; background: #fff; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+}
+.reg-toggle.active { border-color: #6366f1; color: #6366f1; background: #eef2ff; }
+
+/* ── 파일 업로드 ── */
+.reg-upload-area {
+    border: 2px dashed #c7d2fe;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    background: #f5f3ff;
+    transition: all 0.18s;
+}
+.reg-upload-area:hover { border-color: #6366f1; background: #eef2ff; }
+.reg-upload-icon { font-size: 32px; margin-bottom: 6px; }
+.reg-upload-text { font-size: 13px; font-weight: 600; color: #4338ca; margin: 0 0 4px; }
+.reg-upload-hint { font-size: 11px; color: #9ca3af; margin: 0; }
+
+.reg-file-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.reg-file-item {
+    display: flex; align-items: center; gap: 10px;
+    background: #f8f9ff; border: 1px solid #e0e0f0;
+    border-radius: 8px; padding: 8px 12px;
+}
+.reg-file-icon { font-size: 18px; flex-shrink: 0; }
+.reg-file-info { flex: 1; min-width: 0; }
+.reg-file-name { font-size: 12px; font-weight: 600; color: #374151; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reg-file-size { font-size: 11px; color: #9ca3af; }
+.reg-file-del {
+    background: none; border: none; color: #9ca3af;
+    font-size: 13px; cursor: pointer; padding: 2px 4px;
+    transition: color 0.15s; flex-shrink: 0;
+}
+.reg-file-del:hover { color: #ef4444; }
+
+/* ── 연락처 타입 ── */
+.reg-contact-types { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.reg-contact-type {
+    flex: 1; min-width: 90px; padding: 9px 8px;
+    border: 1.5px solid #e5e7eb; border-radius: 10px;
+    font-size: 12px; font-weight: 600; color: #6b7280;
+    background: #fff; cursor: pointer; font-family: inherit;
+    transition: all 0.15s;
+}
+.reg-contact-type.active { border-color: #6366f1; color: #6366f1; background: #eef2ff; }
+
+/* ── 요약 ── */
+.reg-summary {
+    background: #f8f9ff; border-radius: 12px;
+    padding: 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.reg-summary-title { font-size: 12px; font-weight: 700; color: #6366f1; margin-bottom: 4px; }
+.reg-summary-row {
+    display: flex; justify-content: space-between;
+    font-size: 13px; color: #374151;
+}
+.reg-summary-row span:first-child { color: #9ca3af; font-weight: 600; }
+.reg-summary-row span:last-child  { font-weight: 700; }
+
+/* ── 버튼 ── */
+.reg-btn-row { display: flex; gap: 10px; }
+.reg-btn-next {
+    width: 100%; background: #6366f1; color: #fff;
+    border: none; border-radius: 12px; padding: 14px;
+    font-size: 15px; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 0 4px 14px rgba(99,102,241,0.3);
+}
+.reg-btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+.reg-btn-back-step {
+    padding: 14px 18px; border: 1.5px solid #e5e7eb;
+    border-radius: 12px; font-size: 14px; font-weight: 700;
+    color: #6b7280; background: #fff; cursor: pointer;
+    font-family: inherit; transition: all 0.15s; flex-shrink: 0;
+}
+.reg-btn-back-step:hover { border-color: #6366f1; color: #6366f1; }
+.reg-btn-submit {
+    flex: 1; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; border: none; border-radius: 12px; padding: 14px;
+    font-size: 15px; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 0 4px 14px rgba(99,102,241,0.3);
+}
+.reg-btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+
+@media (max-width: 480px) {
+    .reg-page { padding: 20px 16px 60px; }
+    .reg-row  { grid-template-columns: 1fr; }
+    .reg-step-line { width: 32px; }
+}

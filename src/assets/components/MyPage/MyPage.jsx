@@ -3,7 +3,7 @@ import './MyPage.css'
 import ImmigrationCasePage from '../My/ImmigrationCasePage/ImmigrationCasePage.jsx'
 import PoliceCasePage      from '../My/PoliceCasePage/PoliceCasePage.jsx'
 import {
-    myPageApi, immigrationApi, policeApi, personalApi, conversationApi
+    myPageApi, immigrationApi, policeApi, personalApi, conversationApi, communityApi
 } from '../../../assets/components/api/api.jsx'
 
 // ══════════════════════════════════════════
@@ -68,10 +68,28 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
     const [editSaving,  setEditSaving]  = useState(false)
     const [editError,   setEditError]   = useState('')
 
-    // 커뮤니티 프로필 — App.jsx에서 내려오는 communityProfile prop 사용
-    const [myProfile,    setMyProfile]    = useState(communityProfile)   // 등록된 커뮤니티 프로필
+    // 커뮤니티 프로필 — 서버에서 로드 (없으면 prop 사용)
+    const [myProfile,    setMyProfile]    = useState(communityProfile)
+
+    // 서버에서 내 커뮤니티 프로필 로드
+    useEffect(() => {
+        if (!userEmail) return
+        communityApi.getMyProfile(userEmail)
+            .then(data => {
+                if (data) {
+                    const profile = {
+                        ...data,
+                        contact: { type: data.contactType, value: data.contactValue },
+                        avatar:  data.name?.charAt(0) || '?',
+                    }
+                    setMyProfile(profile)
+                    onCommunityProfileSave?.(profile)
+                }
+            })
+            .catch(() => {})
+    }, [userEmail])
     const [showCmForm,   setShowCmForm]   = useState(false)  // 등록 폼 표시
-    const [cmForm,       setCmForm]       = useState({ role: '', region: '', intro: '', contactType: 'chat', contactValue: '' })
+    const [cmForm,       setCmForm]       = useState({ role: '', region: '', intro: '', experience: '', speciality: '', contactType: 'chat', contactValue: '', publicProfile: true })
     const [cmSaving,     setCmSaving]     = useState(false)
     const [cmError,      setCmError]      = useState('')
 
@@ -329,96 +347,147 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
             ══════════════ */}
             {activeTab === '커뮤니티' && (
                 <div className="tab-content">
+
+                    {/* 프로필 없을 때 안내 메시지만 표시 */}
                     {!myProfile && !showCmForm && (
                         <div className="cm-mypage-empty">
                             <div style={{fontSize:40}}>🤟</div>
                             <p style={{margin:'8px 0 4px',fontWeight:700,color:'#333'}}>커뮤니티 프로필이 없습니다</p>
-                            <p style={{fontSize:13,color:'#888',margin:'0 0 16px'}}>
-                                수어 선생님, 통역사, 학습자 등으로 등록하면<br/>커뮤니티에서 활동할 수 있습니다
+                            <p style={{fontSize:13,color:'#888',margin:0}}>
+                                커뮤니티 메뉴에서 등록하면 여기에 표시됩니다
                             </p>
-                            <button className="cm-mypage-register-btn"
-                                    onClick={() => setShowCmForm(true)}>
-                                + 커뮤니티 프로필 등록
-                            </button>
                         </div>
                     )}
 
+                    {/* 등록 / 수정 폼 */}
                     {showCmForm && (
                         <div className="cm-mypage-form">
-                            <h3 style={{margin:'0 0 16px',fontSize:15,fontWeight:700}}>커뮤니티 프로필 등록</h3>
+                            <h3 style={{margin:'0 0 16px',fontSize:15,fontWeight:700}}>
+                                {myProfile ? '✏️ 프로필 수정' : '+ 커뮤니티 프로필 등록'}
+                            </h3>
+
+                            {/* 역할 */}
                             <div className="cm-mypage-field">
                                 <label className="cm-mypage-label">역할</label>
                                 <select className="cm-mypage-input"
                                         value={cmForm.role}
                                         onChange={e => setCmForm(f => ({...f, role: e.target.value}))}>
                                     <option value="">선택하세요</option>
-                                    {['수어 선생님','수어 통역사','수어 학습자','가족/보호자','수어 관심자','기타'].map(r =>
+                                    {['수어 선생님','수어 통역사','수어 학습자','가족/보호자','수어 관심자','연구자','기타'].map(r =>
                                         <option key={r} value={r}>{r}</option>
                                     )}
                                 </select>
                             </div>
+
+                            {/* 지역 */}
                             <div className="cm-mypage-field">
                                 <label className="cm-mypage-label">활동 지역</label>
                                 <select className="cm-mypage-input"
                                         value={cmForm.region}
                                         onChange={e => setCmForm(f => ({...f, region: e.target.value}))}>
                                     <option value="">선택하세요</option>
-                                    {['서울','부산','대구','인천','광주','대전','울산','경기','기타'].map(r =>
+                                    {['서울','부산','대구','인천','광주','대전','울산','경기','강원','충북','충남','전북','전남','경북','경남','제주','기타'].map(r =>
                                         <option key={r} value={r}>{r}</option>
                                     )}
                                 </select>
                             </div>
+
+                            {/* 자기소개 */}
                             <div className="cm-mypage-field">
                                 <label className="cm-mypage-label">자기소개</label>
                                 <textarea className="cm-mypage-input" rows={3}
-                                          placeholder="간단히 소개해 주세요"
+                                          placeholder="활동 경력, 전문 분야 등을 소개해 주세요"
                                           value={cmForm.intro}
-                                          onChange={e => setCmForm(f => ({...f, intro: e.target.value}))}
-                                />
+                                          onChange={e => setCmForm(f => ({...f, intro: e.target.value}))}/>
                             </div>
+
+                            {/* 경력 */}
+                            <div className="cm-mypage-field">
+                                <label className="cm-mypage-label">경력 / 활동 이력 <span style={{fontWeight:400,color:'#aaa',fontSize:11}}>(선택)</span></label>
+                                <textarea className="cm-mypage-input" rows={2}
+                                          placeholder="예: 수어 통역사 7년, 복지관 강사 5년"
+                                          value={cmForm.experience || ''}
+                                          onChange={e => setCmForm(f => ({...f, experience: e.target.value}))}/>
+                            </div>
+
+                            {/* 전문 분야 */}
+                            <div className="cm-mypage-field">
+                                <label className="cm-mypage-label">전문 분야 <span style={{fontWeight:400,color:'#aaa',fontSize:11}}>(선택)</span></label>
+                                <input className="cm-mypage-input"
+                                       placeholder="예: 의료 수어, 법정 수어, 교육 수어"
+                                       value={cmForm.speciality || ''}
+                                       onChange={e => setCmForm(f => ({...f, speciality: e.target.value}))}/>
+                            </div>
+
+                            {/* 연락 방법 */}
                             <div className="cm-mypage-field">
                                 <label className="cm-mypage-label">연락 방법</label>
                                 <div style={{display:'flex',gap:8,marginBottom:6}}>
-                                    {['chat','phone'].map(t => (
-                                        <button key={t}
-                                                className={`cm-mypage-type-btn ${cmForm.contactType===t?'active':''}`}
-                                                onClick={() => setCmForm(f => ({...f, contactType: t}))}>
-                                            {t==='chat' ? '💬 오픈채팅' : '📞 전화번호'}
+                                    {[
+                                        {id:'chat', label:'💬 오픈채팅'},
+                                        {id:'phone',label:'📞 전화번호'},
+                                        {id:'email',label:'📧 이메일'},
+                                    ].map(t => (
+                                        <button key={t.id}
+                                                className={`cm-mypage-type-btn ${cmForm.contactType===t.id?'active':''}`}
+                                                onClick={() => setCmForm(f => ({...f, contactType: t.id}))}>
+                                            {t.label}
                                         </button>
                                     ))}
                                 </div>
                                 <input className="cm-mypage-input"
-                                       placeholder={cmForm.contactType==='chat' ? '카카오 오픈채팅 링크' : '010-0000-0000'}
+                                       placeholder={
+                                           cmForm.contactType==='chat'  ? '카카오 오픈채팅 링크' :
+                                               cmForm.contactType==='phone' ? '010-0000-0000' : 'example@email.com'
+                                       }
                                        value={cmForm.contactValue}
-                                       onChange={e => setCmForm(f => ({...f, contactValue: e.target.value}))}
-                                />
+                                       onChange={e => setCmForm(f => ({...f, contactValue: e.target.value}))}/>
                             </div>
+
+                            {/* 공개 여부 */}
+                            <div className="cm-mypage-field">
+                                <label className="cm-mypage-label">프로필 공개 여부</label>
+                                <div style={{display:'flex',gap:8}}>
+                                    {[{v:true,l:'🌐 공개'},{v:false,l:'🔒 비공개'}].map(({v,l}) => (
+                                        <button key={String(v)}
+                                                className={`cm-mypage-type-btn ${cmForm.publicProfile===v?'active':''}`}
+                                                onClick={() => setCmForm(f => ({...f, publicProfile: v}))}>
+                                            {l}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             {cmError && <div className="cm-mypage-error">⚠️ {cmError}</div>}
+
                             <div style={{display:'flex',gap:8,marginTop:12}}>
                                 <button className="cm-mypage-cancel-btn"
                                         onClick={() => { setShowCmForm(false); setCmError('') }}>
                                     취소
                                 </button>
-                                <button className="cm-mypage-save-btn"
-                                        disabled={cmSaving}
+                                <button className="cm-mypage-save-btn" disabled={cmSaving}
                                         onClick={async () => {
-                                            if (!cmForm.role) { setCmError('역할을 선택해 주세요.'); return }
-                                            if (!cmForm.region) { setCmError('지역을 선택해 주세요.'); return }
-                                            if (!cmForm.intro.trim()) { setCmError('자기소개를 입력해 주세요.'); return }
-                                            if (!cmForm.contactValue.trim()) { setCmError('연락처를 입력해 주세요.'); return }
+                                            if (!cmForm.role)               { setCmError('역할을 선택해 주세요.'); return }
+                                            if (!cmForm.region)             { setCmError('지역을 선택해 주세요.'); return }
+                                            if (!cmForm.intro.trim())       { setCmError('자기소개를 입력해 주세요.'); return }
+                                            if (!cmForm.contactValue.trim()){ setCmError('연락처를 입력해 주세요.'); return }
                                             setCmSaving(true)
                                             try {
                                                 const saved = {
-                                                    name: displayName,
-                                                    role: cmForm.role,
-                                                    region: cmForm.region,
-                                                    intro: cmForm.intro,
-                                                    contact: { type: cmForm.contactType, value: cmForm.contactValue },
-                                                    avatar: displayName?.charAt(0) || '?',
+                                                    ...(myProfile || {}),
+                                                    name:         displayName,
+                                                    avatar:       displayName?.charAt(0) || '?',
                                                     userEmail,
+                                                    role:         cmForm.role,
+                                                    region:       cmForm.region,
+                                                    intro:        cmForm.intro,
+                                                    experience:   cmForm.experience,
+                                                    speciality:   cmForm.speciality,
+                                                    publicProfile: cmForm.publicProfile,
+                                                    contact: { type: cmForm.contactType, value: cmForm.contactValue },
                                                 }
                                                 setMyProfile(saved)
-                                                onCommunityProfileSave?.(saved)  // App.jsx로 전달
+                                                onCommunityProfileSave?.(saved)
                                                 setShowCmForm(false)
                                                 setCmError('')
                                             } finally {
@@ -431,8 +500,10 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
                         </div>
                     )}
 
+                    {/* 등록된 프로필 표시 */}
                     {myProfile && !showCmForm && (
                         <div className="cm-mypage-card">
+                            {/* 프로필 상단 */}
                             <div className="cm-mypage-card-top">
                                 <div className="cm-mypage-avatar">{myProfile.avatar}</div>
                                 <div>
@@ -440,29 +511,61 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
                                     <div style={{display:'flex',gap:6,marginTop:4,flexWrap:'wrap'}}>
                                         <span className="cm-role-badge">{myProfile.role}</span>
                                         <span className="cm-region-badge">📍 {myProfile.region}</span>
+                                        <span className="cm-region-badge">
+                                            {myProfile.publicProfile===false ? '🔒 비공개' : '🌐 공개'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
+                            {/* 자기소개 */}
                             <div className="cm-mypage-intro-box">
                                 <div className="cm-mypage-intro-label">자기소개</div>
                                 <p className="cm-mypage-intro-text">{myProfile.intro}</p>
                             </div>
+                            {/* 경력 */}
+                            {myProfile.experience && (
+                                <div className="cm-mypage-intro-box">
+                                    <div className="cm-mypage-intro-label">경력 / 활동 이력</div>
+                                    <p className="cm-mypage-intro-text">{myProfile.experience}</p>
+                                </div>
+                            )}
+                            {/* 전문 분야 */}
+                            {myProfile.speciality && (
+                                <div className="cm-mypage-intro-box">
+                                    <div className="cm-mypage-intro-label">전문 분야</div>
+                                    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:2}}>
+                                        {myProfile.speciality.split(',').map((s,i) => (
+                                            <span key={i} style={{
+                                                background:'#f0fdf4',border:'1px solid #bbf7d0',
+                                                borderRadius:20,padding:'3px 10px',
+                                                fontSize:12,fontWeight:600,color:'#059669'
+                                            }}>{s.trim()}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {/* 연락 방법 */}
                             <div className="cm-mypage-intro-box">
                                 <div className="cm-mypage-intro-label">연락 방법</div>
                                 <p className="cm-mypage-intro-text">
-                                    {myProfile.contact.type === 'chat' ? '💬 오픈채팅' : `📞 ${myProfile.contact.value}`}
+                                    {myProfile.contact?.type==='chat'  ? `💬 오픈채팅: ${myProfile.contact.value}` :
+                                        myProfile.contact?.type==='phone' ? `📞 ${myProfile.contact.value}` :
+                                            myProfile.contact?.type==='email' ? `📧 ${myProfile.contact.value}` : '-'}
                                 </p>
                             </div>
+                            {/* 수정 버튼 */}
                             <button className="cm-mypage-edit-btn"
                                     onClick={() => {
                                         setCmForm({
-                                            role: myProfile.role,
-                                            region: myProfile.region,
-                                            intro: myProfile.intro,
-                                            contactType: myProfile.contact.type,
-                                            contactValue: myProfile.contact.value,
+                                            role:          myProfile.role         || '',
+                                            region:        myProfile.region       || '',
+                                            intro:         myProfile.intro        || '',
+                                            experience:    myProfile.experience   || '',
+                                            speciality:    myProfile.speciality   || '',
+                                            contactType:   myProfile.contact?.type  || 'chat',
+                                            contactValue:  myProfile.contact?.value || '',
+                                            publicProfile: myProfile.publicProfile !== false,
                                         })
-                                        setMyProfile(null)
                                         setShowCmForm(true)
                                     }}>
                                 ✏️ 프로필 수정
