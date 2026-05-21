@@ -231,7 +231,13 @@ export default function App() {
     }
 
     const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
-    const handleQuickChat   = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('trans') }
+    const handleQuickChat = () => {
+        if (!loggedIn) {
+            setAuthModal('login')
+        } else {
+            // ChatPage 준비되면 여기에 추가
+        }
+    }
     const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
 
     const renderMain = () => {
@@ -245,7 +251,14 @@ export default function App() {
         if (tab === 'practice')  return <Practice />
         if (tab === 'trans')     return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} userEmail={userEmail} initialMessages={convMessages} />
         if (tab === 'dict')      return <DictPage query={query} />
-        if (tab === 'community') return <Community />
+        
+        if (tab === 'community') return (
+            <Community
+                isLoggedIn={loggedIn}
+                onOpenLogin={() => setAuthModal('login')}
+            />
+        )
+        
         if (tab === 'about')     return <About onBack={() => setTab('home')} />
         if (tab === 'my') return (
             <MyPage
