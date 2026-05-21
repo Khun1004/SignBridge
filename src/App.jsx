@@ -138,7 +138,6 @@ export default function App() {
     const [displayName,  setDisplayName]  = useState('')     // 개인=이름, 기관=기관명
     const [orgType,      setOrgType]      = useState('')     // 'personal' | 'hospital' | ...
     const [userEmail,    setUserEmail]    = useState('')
-    const [communityProfile, setCommunityProfile] = useState(null)  // 커뮤니티 등록 프로필
 
     // 알림 상태
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
@@ -244,17 +243,15 @@ export default function App() {
         if (showAbout) return <About onBack={() => { setShowAbout(false); setTab('home') }} />
         if (tab === 'home')      return <Home onDemo={() => setShowDemo(true)} onAbout={() => setShowAbout(true)} onCommunity={() => setTab('community')} onPractice={() => setTab('practice')} onTranslate={() => setTab('trans')} />
         if (tab === 'practice')  return <Practice />
-        if (tab === 'trans')     return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} userEmail={userEmail} initialMessages={convMessages} onLoginRequired={() => setAuthModal('login')} />
+        if (tab === 'trans')     return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} userEmail={userEmail} initialMessages={convMessages} />
         if (tab === 'dict')      return <DictPage query={query} />
-        if (tab === 'community') return <Community />
+        if (tab === 'community') return <Community userEmail={userEmail} displayName={displayName} onLoginRequired={() => setAuthModal('login')} myProfile={communityProfile} onProfileSave={setCommunityProfile} />
         if (tab === 'about')     return <About onBack={() => setTab('home')} />
         if (tab === 'my') return (
             <MyPage
                 displayName={displayName}
                 orgType={orgType}
                 userEmail={userEmail}
-                communityProfile={communityProfile}
-                onCommunityProfileSave={setCommunityProfile}
             />
         )
         return null

@@ -463,3 +463,14 @@
     .cm-register-btn { width: 100%; }
     .cm-field-row { grid-template-columns: 1fr; }
 }
+/* ── 내 커뮤니티 프로필 배너 ── */
+.cm-my-profile-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #eef2ff;
+    border: 1.5px solid #c7d2fe;
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
