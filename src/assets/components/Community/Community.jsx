@@ -1,26 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { communityApi } from '../api/api.jsx'
 import './Community.css'
 import Registration from '../Registration/Registration.jsx'
 import CommunityPersonalDetail from '../CommunityPersonalDetail/CommunityPersonalDetail.jsx'
 
-const SAMPLE_MEMBERS = [
-    {
-        id: 1, name: '쿤산', role: '수어 선생님', region: '서울',
-        intro: '안녕하세요! 저는 10년 경력의 수어 선생님입니다. 초급부터 고급까지 체계적으로 가르쳐 드립니다.',
-        experience: '한국수어 통역사 1급 자격증 보유\n수어 교육 경력 10년\n청각장애인복지관 강사 5년',
-        speciality: '교육 수어, 의료 수어, 법정 수어',
-        contact: { type: 'chat', value: 'https://open.kakao.com/example1' },
-        avatar: '쿤', publicProfile: true, certFiles: [],
-    },
-    {
-        id: 2, name: '토야', role: '수어 통역사', region: '부산',
-        intro: '청각장애인 전문 수어 통역사이자 선생님입니다. 편하게 연락 주세요!',
-        experience: '수어 통역사 경력 7년\n부산 청각장애인 협회 소속',
-        speciality: '의료 수어, 법정 수어',
-        contact: { type: 'phone', value: '010-1234-5678' },
-        avatar: '토', publicProfile: true, certFiles: [],
-    },
-]
+// 샘플 데이터 제거 — 서버에서 로드
 
 const ROLE_OPTIONS   = ['수어 선생님','수어 통역사','수어 학습자','가족/보호자','수어 관심자','연구자','기타']
 const REGION_OPTIONS = ['서울','부산','대구','인천','광주','대전','울산','경기','기타']
@@ -28,10 +12,27 @@ const REGION_OPTIONS = ['서울','부산','대구','인천','광주','대전','�
 // view: 'list' | 'register' | 'detail'
 export default function Community({ userEmail = '', displayName = '', onLoginRequired, myProfile = null, onProfileSave }) {
     const [view,    setView]    = useState('list')  // 현재 화면
-    const [members, setMembers] = useState(SAMPLE_MEMBERS)
+    const [members, setMembers] = useState([])
+    const [listLoading, setListLoading] = useState(false)
     const [selected, setSelected] = useState(null)  // 상세 볼 멤버
     const [filterRole,   setFilterRole]   = useState('전체')
     const [filterRegion, setFilterRegion] = useState('전체')
+
+    // ── 서버에서 목록 로드 ─────────────────────────────
+    const loadMembers = async (role='', region='') => {
+        setListLoading(true)
+        try {
+            const data = await communityApi.getMembers({ role, region })
+            setMembers(Array.isArray(data) ? data : [])
+        } catch (e) {
+            console.error('[Community] 목록 로드 실패:', e)
+            setMembers([])
+        } finally {
+            setListLoading(false)
+        }
+    }
+
+    useEffect(() => { loadMembers(filterRole, filterRegion) }, [filterRole, filterRegion])
 
     // 등록하기 클릭
     const handleRegisterClick = () => {
@@ -43,24 +44,39 @@ export default function Community({ userEmail = '', displayName = '', onLoginReq
         setView('register')
     }
 
-    // 등록 완료
-    const handleRegisterSubmit = (form) => {
-        const newMember = {
-            id: Date.now(),
-            name:         form.name || displayName,
-            role:         form.role,
-            region:       form.region,
-            intro:        form.intro,
-            experience:   form.experience,
-            speciality:   form.speciality,
-            contact:      { type: form.contactType, value: form.contactValue },
-            avatar:       (form.name || displayName)?.charAt(0) || '?',
-            publicProfile: form.publicProfile,
-            certFiles:    form.certFiles || [],
-            userEmail,
+    // 등록 완료 — 서버에 저장
+    const handleRegisterSubmit = async (form) => {
+        try {
+            const certFileNames = (form.certFiles || []).map(f => f.name || f)
+            const body = {
+                name:          form.name || displayName,
+                userEmail,
+                role:          form.role,
+                region:        form.region,
+                intro:         form.intro,
+                experience:    form.experience,
+                speciality:    form.speciality,
+                contactType:   form.contactType,
+                contactValue:  form.contactValue,
+                publicProfile: form.publicProfile,
+                certFileNames,
+            }
+            const saved = await communityApi.save(body)
+
+            // App.jsx communityProfile 상태 업데이트
+            const profileData = {
+                ...saved,
+                contact: { type: saved.contactType, value: saved.contactValue },
+                avatar:  saved.name?.charAt(0) || '?',
+            }
+            onProfileSave?.(profileData)
+
+            // 목록 새로고침
+            await loadMembers(filterRole, filterRegion)
+        } catch (e) {
+            console.error('[Community] 등록 실패:', e)
+            alert('등록에 실패했습니다. 다시 시도해 주세요.')
         }
-        setMembers(m => [newMember, ...m])
-        if (userEmail) onProfileSave?.(newMember)
         setView('list')
     }
 
@@ -70,11 +86,7 @@ export default function Community({ userEmail = '', displayName = '', onLoginReq
         setView('detail')
     }
 
-    const filtered = members.filter(m => {
-        const roleOk   = filterRole   === '전체' || m.role   === filterRole
-        const regionOk = filterRegion === '전체' || m.region === filterRegion
-        return roleOk && regionOk
-    })
+    // 서버 필터링 사용 — filtered 제거
 
     // ── 등록 화면 ───────────────────────────────────────────
     if (view === 'register') {
@@ -153,9 +165,11 @@ export default function Community({ userEmail = '', displayName = '', onLoginReq
 
             {/* 멤버 목록 */}
             <div className="cm-list">
-                {filtered.length === 0 ? (
+                {listLoading ? (
+                    <div className="cm-empty">불러오는 중...</div>
+                ) : members.length === 0 ? (
                     <div className="cm-empty">조건에 맞는 멤버가 없습니다.</div>
-                ) : filtered.map(member => (
+                ) : members.map(member => (
                     <div className="cm-card" key={member.id}
                          onClick={() => handleCardClick(member)}>
                         <div className="cm-card-avatar">{member.avatar}</div>

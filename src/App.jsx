@@ -138,6 +138,7 @@ export default function App() {
     const [displayName,  setDisplayName]  = useState('')     // 개인=이름, 기관=기관명
     const [orgType,      setOrgType]      = useState('')     // 'personal' | 'hospital' | ...
     const [userEmail,    setUserEmail]    = useState('')
+    const [communityProfile, setCommunityProfile] = useState(null)
 
     // 알림 상태
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
@@ -252,6 +253,8 @@ export default function App() {
                 displayName={displayName}
                 orgType={orgType}
                 userEmail={userEmail}
+                communityProfile={communityProfile}
+                onCommunityProfileSave={setCommunityProfile}
             />
         )
         return null

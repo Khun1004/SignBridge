@@ -150,3 +150,53 @@ export const conversationApi = {
      */
     getConversation: (id) => request(`/conversations/${id}`),
 }
+
+// ── 커뮤니티 API ──────────────────────────────────────────────
+export const communityApi = {
+    /** 전체 목록 조회 (role, region, keyword 필터) */
+    getMembers: ({ role, region, keyword } = {}) => {
+        const params = new URLSearchParams()
+        if (role    && role    !== '전체') params.append('role',    role)
+        if (region  && region  !== '전체') params.append('region',  region)
+        if (keyword && keyword.trim())     params.append('keyword', keyword.trim())
+        return request(`/community/members?${params}`)
+    },
+
+    /** 내 프로필 조회 */
+    getMyProfile: (email) =>
+        request(`/community/members/me?email=${encodeURIComponent(email)}`),
+
+    /** 단건 조회 */
+    getMember: (id) => request(`/community/members/${id}`),
+
+    /** 등록 또는 수정 (이메일 기준 upsert) */
+    save: (data) => request('/community/members', {
+        method: 'POST',
+        body:   JSON.stringify(data),
+    }),
+
+    /** 수정 */
+    update: (id, data) => request(`/community/members/${id}`, {
+        method: 'PUT',
+        body:   JSON.stringify(data),
+    }),
+
+    /** 삭제 */
+    delete: (id, email) =>
+        request(`/community/members/${id}?email=${encodeURIComponent(email)}`, {
+            method: 'DELETE',
+        }),
+
+    /** 자격증 파일 업로드 */
+    uploadCert: async (file, email) => {
+        const formData = new FormData()
+        formData.append('file',  file)
+        formData.append('email', email)
+        const res = await fetch('/api/community/members/cert-upload', {
+            method: 'POST',
+            body:   formData,
+        })
+        if (!res.ok) throw new Error('파일 업로드 실패')
+        return res.json()
+    },
+}

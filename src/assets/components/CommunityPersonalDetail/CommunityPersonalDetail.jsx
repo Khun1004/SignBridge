@@ -2,13 +2,17 @@ import './CommunityPersonalDetail.css'
 
 const CONTACT_LABEL = { chat:'💬 오픈채팅', phone:'📞 전화번호', email:'📧 이메일' }
 
-export default function CommunityPersonalDetail({ member, onBack }) {
+export default function CommunityPersonalDetail({ member, onBack, myEmail = '', myName = '', onChat }) {
     if (!member) return null
 
+    // 서버: contactType/contactValue, 프론트 상태: contact.type/contact.value 둘 다 지원
+    const contactType  = member.contactType  || member.contact?.type
+    const contactValue = member.contactValue || member.contact?.value
+
     const handleContact = () => {
-        if (member.contact?.type === 'chat')  window.open(member.contact.value, '_blank')
-        else if (member.contact?.type === 'phone') window.location.href = `tel:${member.contact.value}`
-        else if (member.contact?.type === 'email') window.location.href = `mailto:${member.contact.value}`
+        if (contactType === 'chat')  window.open(contactValue, '_blank')
+        else if (contactType === 'phone') window.location.href = `tel:${contactValue}`
+        else if (contactType === 'email') window.location.href = `mailto:${contactValue}`
     }
 
     return (
@@ -73,16 +77,39 @@ export default function CommunityPersonalDetail({ member, onBack }) {
             )}
 
             {/* 연락하기 */}
-            {member.contact?.value && (
+            {/* 채팅하기 버튼 — 로그인된 사용자만 */}
+            {myEmail && myEmail !== member.userEmail && (
+                <button className="cpd-chat-btn" onClick={async () => {
+                    try {
+                        const res = await fetch('/api/chat/rooms', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userA: myEmail, userAName: myName,
+                                userB: member.userEmail || member.name,
+                                userBName: member.name,
+                            })
+                        })
+                        const room = await res.json()
+                        onChat?.(room.roomId, member.name)
+                    } catch(e) {
+                        alert('채팅방을 만들 수 없습니다.')
+                    }
+                }}>
+                    💬 {member.name}님과 채팅하기
+                </button>
+            )}
+
+            {contactValue && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">📞 연락 방법</div>
                     <div className="cpd-contact-box">
-                        <span>{CONTACT_LABEL[member.contact.type] || '연락처'}</span>
-                        <span className="cpd-contact-val">{member.contact.value}</span>
+                        <span>{CONTACT_LABEL[contactType] || '연락처'}</span>
+                        <span className="cpd-contact-val">{contactValue}</span>
                     </div>
                     <button className="cpd-contact-btn" onClick={handleContact}>
-                        {member.contact.type==='chat' ? '💬 채팅하기'
-                            : member.contact.type==='phone' ? '📞 전화하기'
+                        {contactType==='chat'  ? '💬 채팅하기'
+                            : contactType==='phone' ? '📞 전화하기'
                                 : '📧 이메일 보내기'}
                     </button>
                 </div>
