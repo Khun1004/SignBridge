@@ -199,3 +199,19 @@
     .lp-modal { padding: 32px 20px 28px; }
     .lp-title { font-size: 21px; }
 }
+/* ── Google 로그인 구분선 ── */
+.lp-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+    color: #ccc;
+    font-size: 12px;
+}
+.lp-divider::before,
+.lp-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e8e8f0;
+}

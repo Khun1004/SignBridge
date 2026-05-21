@@ -32,20 +32,24 @@ function openPostcode(onComplete) {
 //  기관 유형 정의
 // ══════════════════════════════════════════
 const ORG_TYPES = [
-    { id: 'personal',    icon: '👤', label: '개인',              desc: '청각장애인 개인 사용자',       color: '#2563eb' },
+    { id: 'personal',    icon: '👤', label: '개인',              desc: '개인 사용자 (청각장애인, 가족, 수어 학습자 등)', color: '#2563eb' },
     { id: 'immigration', icon: '🛂', label: '출입국외국인사무소', desc: '출입국 심사 및 외국인 업무',    color: '#7c3aed' },
     { id: 'airport',     icon: '✈️', label: '공항',              desc: '공항 안내 및 탑승 서비스',     color: '#0891b2' },
     { id: 'hospital',    icon: '🏥', label: '병원',              desc: '의료 기관 및 응급실',          color: '#059669' },
     { id: 'police',      icon: '👮', label: '경찰서',            desc: '경찰 업무 및 민원 처리',       color: '#dc2626' },
+    // ── 커뮤니티 역할 ──
+    { id: 'teacher',     icon: '🤟', label: '수어 선생님',        desc: '수어를 가르치는 전문 선생님',   color: '#d97706' },
+    { id: 'interpreter', icon: '🧏', label: '수어 통역사',        desc: '공식 수어 통역 전문가',        color: '#0d9488' },
+    { id: 'guardian',    icon: '👨‍👩‍👧', label: '학부모/보호자',     desc: '청각장애 자녀를 둔 보호자',    color: '#7c3aed' },
 ]
 
 // ── 기관별 3단계 필드 ──
 const ORG_FIELDS = {
     personal: [
-        { id: 'disabilityGrade', label: '장애 등급',          placeholder: '예: 청각장애 1급', required: false },
+        { id: 'disabilityGrade', label: '장애 등급 (선택)',    placeholder: '예: 청각장애 1급 (해당 없으면 비워두세요)', required: false },
         { id: 'address',         label: '거주 지역 (주소)',    required: false },   // 주소 검색 UI 자동 사용
-        { id: 'preferredSign',   label: '주로 사용하는 수어',  required: false, type: 'select',
-            options: ['한국수어', '미국수어(ASL)', '국제수어(ISL)', '기타'] },
+        { id: 'preferredSign',   label: '수어와의 관계',  required: false, type: 'select',
+            options: ['수어 사용자 (청각장애인)', '수어 학습자', '가족/보호자', '수어 관심자', '기타'] },
     ],
     immigration: [
         { id: 'officeName',   label: '사무소명',         placeholder: '예: 인천출입국·외국인사무소',    required: true },
@@ -79,10 +83,63 @@ const ORG_FIELDS = {
             required: true },
         { id: 'address',      label: '주소',             placeholder: '예: 서울시 강남구 테헤란로 114길 11', required: true },
     ],
+    // ── 커뮤니티 역할 필드 ──
+    teacher: [
+        { id: 'officeName',   label: '활동 이름/닉네임', placeholder: '예: 수어쌤 김민지',              required: true },
+        { id: 'orgCode',      label: '활동 지역',         placeholder: '예: 서울, 부산',                required: false },
+        { id: 'address',      label: '자기소개',          placeholder: '예: 10년 경력 수어 선생님입니다', required: false },
+    ],
+    interpreter: [
+        { id: 'officeName',   label: '활동 이름/닉네임', placeholder: '예: 통역사 이수진',              required: true },
+        { id: 'orgCode',      label: '자격증 번호',       placeholder: '예: 한국수어통역사 1급',         required: false },
+        { id: 'address',      label: '활동 지역',         placeholder: '예: 서울, 경기',                required: false },
+    ],
+    guardian: [
+        { id: 'officeName',   label: '닉네임',           placeholder: '예: 민준맘',                    required: true },
+        { id: 'orgCode',      label: '활동 지역',         placeholder: '예: 서울, 인천',                required: false },
+        { id: 'address',      label: '자기소개',          placeholder: '예: 청각장애 아이를 키우는 엄마입니다', required: false },
+    ],
 }
 
 function isOrgType(orgType) {
     return orgType && orgType !== 'personal'
+}
+
+// ── 비밀번호 강도 표시 컴포넌트 ──
+function PasswordStrength({ password }) {
+    const checks = [
+        { label: '8자 이상',       ok: password.length >= 8 },
+        { label: '영문 대문자',     ok: /[A-Z]/.test(password) },
+        { label: '영문 소문자',     ok: /[a-z]/.test(password) },
+        { label: '숫자',            ok: /\d/.test(password) },
+        { label: '특수문자(!@#$)', ok: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+    ]
+    const passed = checks.filter(c => c.ok).length
+    const color  = passed <= 2 ? '#ef4444' : passed <= 3 ? '#f59e0b' : passed <= 4 ? '#3b82f6' : '#10b981'
+    const label  = passed <= 2 ? '약함' : passed <= 3 ? '보통' : passed <= 4 ? '강함' : '매우 강함'
+
+    return (
+        <div style={{marginTop:6}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                <div style={{flex:1,height:4,background:'#e5e7eb',borderRadius:4,overflow:'hidden'}}>
+                    <div style={{width:`${(passed/5)*100}%`,height:'100%',background:color,borderRadius:4,transition:'all 0.3s'}}/>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,color,minWidth:50}}>{label}</span>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                {checks.map(c => (
+                    <span key={c.label} style={{
+                        fontSize:10, fontWeight:600, padding:'2px 7px',
+                        borderRadius:20,
+                        background: c.ok ? 'rgba(16,185,129,0.1)' : 'rgba(0,0,0,0.05)',
+                        color: c.ok ? '#059669' : '#9ca3af',
+                    }}>
+                        {c.ok ? '✓' : '○'} {c.label}
+                    </span>
+                ))}
+            </div>
+        </div>
+    )
 }
 
 // ══════════════════════════════════════════
@@ -97,8 +154,66 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
     })
     const [errors,  setErrors]  = useState({})
     const [loading, setLoading] = useState(false)
+    const [googleFilled, setGoogleFilled] = useState(false)  // Google 자동 입력 여부
 
     useDaumPostcode()
+
+    // ── Google 버튼 초기화 (step 2에서 렌더링) ────────────
+    useEffect(() => {
+        if (step !== 2) return
+        const renderGoogleBtn = () => {
+            const el = document.getElementById('google-signup-btn')
+            if (!el || !window.google?.accounts?.id) return
+            el.innerHTML = ''  // 중복 렌더링 방지
+            window.google.accounts.id.initialize({
+                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+                callback: handleGoogleResponse,
+            })
+            window.google.accounts.id.renderButton(el, {
+                theme: 'outline',
+                size: 'large',
+                width: '100%',
+                text: 'signup_with',
+                locale: 'ko',
+            })
+        }
+
+        if (window.google?.accounts?.id) {
+            renderGoogleBtn()
+        } else {
+            const existing = document.getElementById('gsi-script')
+            if (!existing) {
+                const script = document.createElement('script')
+                script.id = 'gsi-script'
+                script.src = 'https://accounts.google.com/gsi/client'
+                script.async = true
+                script.defer = true
+                script.onload = renderGoogleBtn
+                document.head.appendChild(script)
+            } else {
+                setTimeout(renderGoogleBtn, 500)
+            }
+        }
+    }, [step])
+
+    // Google 응답 처리 — 이름/이메일 자동 입력
+    const handleGoogleResponse = async (response) => {
+        try {
+            // 토큰 디코딩 (서버 검증 없이 UI 자동 입력용)
+            const base64 = response.credential.split('.')[1]
+            const payload = JSON.parse(atob(base64))
+            const { name, email } = payload
+
+            // 이름, 이메일 자동 입력
+            setForm(f => ({ ...f, name: name || '', email: email || '', password: '', passwordConfirm: '' }))
+            setErrors({})
+
+            // 자동 입력됐음을 표시
+            setGoogleFilled(true)
+        } catch (err) {
+            setErrors({ google: 'Google 정보를 가져오지 못했습니다.' })
+        }
+    }
 
     const update = (key, val) => setForm(f => ({ ...f, [key]: val }))
     const STEP_LABELS = ['기관 선택', '기본 정보', '상세 입력']
@@ -112,8 +227,14 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
     const validateStep2 = () => {
         const e = {}
         if (!isOrgType(form.orgType) && !form.name.trim()) e.name = '이름을 입력해주세요.'
-        if (!form.email.includes('@'))               e.email           = '올바른 이메일을 입력해주세요.'
-        if (form.password.length < 6)               e.password        = '비밀번호는 6자 이상이어야 합니다.'
+        if (!form.email.includes('@'))               e.email = '올바른 이메일을 입력해주세요.'
+        // 비밀번호 강도 검증 (영문 대소문자 + 숫자 + 특수문자 8자 이상)
+        const pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/
+        if (!form.password) {
+            e.password = '비밀번호를 입력해주세요.'
+        } else if (!pwRegex.test(form.password)) {
+            e.password = '영문 대문자, 소문자, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.'
+        }
         if (form.password !== form.passwordConfirm) e.passwordConfirm = '비밀번호가 일치하지 않습니다.'
         setErrors(e); return Object.keys(e).length === 0
     }
@@ -273,27 +394,70 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                                 </div>
                             </div>
                         )}
+                        {/* ── Google 자동입력 버튼 ── */}
+                        <div style={{marginBottom:4}}>
+                            <div className="lp-divider" style={{margin:'0 0 8px'}}>
+                                <span style={{fontSize:12,color:'#aaa'}}>Google로 자동 입력</span>
+                            </div>
+                            <div id="google-signup-btn" style={{display:'flex',justifyContent:'center'}}></div>
+                            {googleFilled && (
+                                <div style={{
+                                    marginTop:8, padding:'8px 12px',
+                                    background:'#f0fdf4', border:'1px solid #86efac',
+                                    borderRadius:8, fontSize:12, color:'#166534',
+                                    textAlign:'center', fontWeight:600,
+                                }}>
+                                    ✅ Google 계정 정보가 자동 입력되었습니다
+                                </div>
+                            )}
+                        </div>
+
                         {!isOrg && (
                             <div className="sp-field">
-                                <label className="sp-label" htmlFor="sp-name">이름 <span className="sp-required">*</span></label>
+                                <label className="sp-label" htmlFor="sp-name">
+                                    이름 <span className="sp-required">*</span>
+                                    {googleFilled && <span style={{fontSize:11,color:'#16a34a',marginLeft:6}}>· Google에서 자동 입력됨</span>}
+                                </label>
                                 <input id="sp-name" className={`sp-input ${errors.name ? 'error' : ''}`}
                                        type="text" placeholder="홍길동"
-                                       value={form.name} onChange={e => update('name', e.target.value)} />
+                                       value={form.name} onChange={e => { update('name', e.target.value); setGoogleFilled(false) }} />
                                 {errors.name && <span className="sp-field-error">{errors.name}</span>}
                             </div>
                         )}
                         <div className="sp-field">
-                            <label className="sp-label" htmlFor="sp-email">이메일 <span className="sp-required">*</span></label>
-                            <input id="sp-email" className={`sp-input ${errors.email ? 'error' : ''}`}
-                                   type="email" placeholder="example@email.com"
-                                   value={form.email} onChange={e => update('email', e.target.value)} />
+                            <label className="sp-label" htmlFor="sp-email">
+                                이메일 <span className="sp-required">*</span>
+                                {googleFilled
+                                    ? <span style={{fontSize:11,color:'#16a34a',marginLeft:6}}>· Google에서 자동 입력됨</span>
+                                    : <span style={{fontSize:11,color:'#aaa',marginLeft:6}}>· Google 로그인 후 자동 입력됩니다</span>
+                                }
+                            </label>
+                            <input id="sp-email"
+                                   className={`sp-input ${errors.email ? 'error' : ''}`}
+                                   type="email"
+                                   placeholder="Google 로그인 후 자동 입력됩니다"
+                                   value={form.email}
+                                   readOnly
+                                   onKeyDown={e => e.preventDefault()}
+                                   onPaste={e => e.preventDefault()}
+                                   style={{
+                                       background: '#f3f4f6',
+                                       cursor: 'not-allowed',
+                                       color: googleFilled ? '#111' : '#aaa',
+                                       userSelect: 'none',
+                                   }}
+                            />
                             {errors.email && <span className="sp-field-error">{errors.email}</span>}
                         </div>
                         <div className="sp-field">
-                            <label className="sp-label" htmlFor="sp-pw">비밀번호 <span className="sp-required">*</span></label>
+                            <label className="sp-label" htmlFor="sp-pw">
+                                비밀번호 <span className="sp-required">*</span>
+                                {googleFilled && <span style={{fontSize:11,color:'#aaa',marginLeft:6}}>· Google 로그인은 비밀번호 생략 가능</span>}
+                            </label>
                             <input id="sp-pw" className={`sp-input ${errors.password ? 'error' : ''}`}
-                                   type="password" placeholder="6자 이상 입력"
+                                   type="password" placeholder="영문 대소문자+숫자+특수문자 8자 이상"
                                    value={form.password} onChange={e => update('password', e.target.value)} />
+                            {form.password && <PasswordStrength password={form.password} />}
                             {errors.password && <span className="sp-field-error">{errors.password}</span>}
                         </div>
                         <div className="sp-field">
@@ -426,6 +590,8 @@ export default function SignupPage({ onSignup, onClose, onSwitchToLogin }) {
                         </button>
                     )}
                 </div>
+
+
 
                 <div className="sp-switch">
                     이미 계정이 있으신가요?{' '}

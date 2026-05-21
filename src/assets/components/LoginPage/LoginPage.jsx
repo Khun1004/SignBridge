@@ -12,6 +12,8 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
 
     const isOrg = orgType && orgType !== 'personal'
 
+
+
     // 환영 문구 설정
     const welcomeMsg = displayName
         ? isOrg
