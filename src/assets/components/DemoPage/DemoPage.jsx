@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './DemoPage.css'
+import useLSTMSign from '../../ai/Uselstmsign.js'
 
 /* ─────────────────────────────────────────
    수어 인식 매핑 (MediaPipe Hands 기반 손 제스처)
@@ -101,6 +102,11 @@ export default function DemoPage({ onBack }) {
 
     /* 수어 측 */
     const [cameraOn, setCameraOn]           = useState(false)
+    const [lstmWord,     setLstmWord]       = useState(null)   // LSTM 인식 단어
+    const [lstmConf,     setLstmConf]       = useState(0)      // LSTM 신뢰도
+    const [lstmWords,    setLstmWords]      = useState([])     // 수집된 단어들
+    const [lstmSentence, setLstmSentence]   = useState('')     // 생성된 문장
+    const [lstmMode,     setLstmMode]       = useState(false)  // LSTM 모드 ON/OFF
     const [handLandmarks, setHandLandmarks] = useState(null)
     const [detectedSign, setDetectedSign]   = useState(null)
     const [isDetecting, setIsDetecting]     = useState(false)
@@ -145,6 +151,8 @@ export default function DemoPage({ onBack }) {
                 if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                     const lm = results.multiHandLandmarks[0]
                     setHandLandmarks(lm)
+                    // LSTM 서버로 랜드마크 전송
+                    sendLandmarks(lm)
                     const sign = classifyHand(lm)
                     if (sign) {
                         setDetectedSign(prev => {
@@ -185,6 +193,54 @@ export default function DemoPage({ onBack }) {
         if (count === 2) return SIGN_MAP.find(s => s.id === 'meet')
         if (count === 3) return SIGN_MAP.find(s => s.id === 'help')
         return null
+    }
+
+    /* ── LSTM 훅 ── */
+    const { lstmStatus, sendLandmarks } = useLSTMSign({
+        onGesture: useCallback((name, conf) => {
+            if (!lstmMode || conf < 0.75) return
+            setLstmWord(name)
+            setLstmConf(conf)
+        }, [lstmMode]),
+        onSentence: useCallback((sentence) => {
+            if (!lstmMode) return
+            setLstmSentence(sentence)
+        }, [lstmMode]),
+    })
+
+    // LSTM 단어 수락
+    const acceptLstmWord = () => {
+        if (!lstmWord) return
+        setLstmWords(prev => [...prev, lstmWord])
+        setLstmWord(null)
+        setLstmConf(0)
+        setLstmSentence('')
+    }
+
+    // LSTM 문장 생성
+    const generateLstmSentence = async () => {
+        if (!lstmWords.length) return
+        try {
+            const res  = await fetch('/api/subtitle', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ words: lstmWords, place: 'personal' }),
+            })
+            const data = await res.json()
+            setLstmSentence(data.sentence || lstmWords.join(' '))
+        } catch {
+            setLstmSentence(lstmWords.join(' '))
+        }
+    }
+
+    // LSTM 문장 전송
+    const sendLstmMsg = () => {
+        if (!lstmSentence) return
+        const msg = { id: Date.now(), from: 'sign', text: lstmSentence, emoji: '🧠', type: 'lstm' }
+        setMessages(prev => [...prev, msg])
+        setLstmWords([])
+        setLstmWord(null)
+        setLstmSentence('')
     }
 
     /* ── 카메라 시작 ── */
@@ -501,6 +557,31 @@ export default function DemoPage({ onBack }) {
                     </div>
 
                     <div className="sb-panel__body">
+                        {/* LSTM 모드 토글 */}
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                            <div className="sb-section-label" style={{margin:0}}>
+                                📷 {lstmMode ? '🧠 LSTM 모드' : 'MediaPipe 모드'}
+                            </div>
+                            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                                <span style={{
+                                    fontSize:10,fontWeight:700,
+                                    color: lstmStatus==='ready'?'#10b981':'#9ca3af'
+                                }}>
+                                    {lstmStatus==='ready'?'● LSTM 연결됨':'○ LSTM 미연결'}
+                                </span>
+                                <button
+                                    onClick={() => { setLstmMode(m=>!m); setLstmWord(null); setLstmWords([]); setLstmSentence('') }}
+                                    style={{
+                                        padding:'4px 12px', borderRadius:20,
+                                        border: lstmMode?'none':'1.5px solid #e0e0ec',
+                                        background: lstmMode?'linear-gradient(135deg,#5b45e0,#7c6fff)':'#fff',
+                                        color: lstmMode?'#fff':'#666',
+                                        fontSize:11, fontWeight:700, cursor:'pointer',
+                                    }}>
+                                    {lstmMode ? '🧠 ON' : '🧠 OFF'}
+                                </button>
+                            </div>
+                        </div>
                         <div className="sb-section-label">📷 MediaPipe Hands</div>
                         <div className="sb-camera-wrap">
                             <video
@@ -585,6 +666,58 @@ export default function DemoPage({ onBack }) {
                                 {isDetecting ? '전송 중…' : '전송 →'}
                             </button>
                         </div>
+
+                        {/* LSTM 단어 수집 UI */}
+                        {lstmMode && (
+                            <div className="lstm-collect-area">
+                                {/* 현재 인식된 단어 */}
+                                {lstmWord ? (
+                                    <div className="lstm-current-word">
+                                        <div>
+                                            <div style={{fontSize:11,color:'#888',marginBottom:2}}>인식된 수어</div>
+                                            <div style={{fontSize:20,fontWeight:900,color:'#5b45e0'}}>{lstmWord}</div>
+                                            <div style={{fontSize:11,color:'#10b981',fontWeight:700}}>{Math.round(lstmConf*100)}%</div>
+                                        </div>
+                                        <button className="lstm-accept-btn" onClick={acceptLstmWord}>
+                                            ✅ 맞음
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{fontSize:12,color:'#aaa',textAlign:'center',padding:'8px 0'}}>
+                                        🤟 손 동작을 하면 단어가 인식됩니다
+                                    </div>
+                                )}
+
+                                {/* 수집된 단어들 */}
+                                {lstmWords.length > 0 && (
+                                    <div className="lstm-words-row">
+                                        {lstmWords.map((w,i) => (
+                                            <span key={i} className="lstm-word-chip">
+                                                {w}
+                                                <button onClick={() => setLstmWords(p=>p.filter((_,j)=>j!==i))}>✕</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* 문장 생성 / 전송 */}
+                                {lstmWords.length > 0 && !lstmSentence && (
+                                    <button className="lstm-gen-btn" onClick={generateLstmSentence}>
+                                        ✨ 문장 생성
+                                    </button>
+                                )}
+                                {lstmSentence && (
+                                    <div className="lstm-sentence-box">
+                                        <div style={{fontSize:12,color:'#5b45e0',fontWeight:700,marginBottom:4}}>💬 생성된 문장</div>
+                                        <div style={{fontSize:14,fontWeight:700,color:'#1a1a2e'}}>{lstmSentence}</div>
+                                        <div style={{display:'flex',gap:6,marginTop:8}}>
+                                            <button className="lstm-retry-btn" onClick={()=>setLstmSentence('')}>↩ 다시</button>
+                                            <button className="lstm-send-btn" onClick={sendLstmMsg}>전송 →</button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* 빠른 수어 선택 */}
                         <div className="sb-section-label" style={{ marginTop: 20 }}>⚡ 빠른 수어 선택</div>

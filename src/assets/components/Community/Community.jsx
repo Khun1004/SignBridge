@@ -14,7 +14,8 @@ export default function Community({ userEmail = '', displayName = '', onLoginReq
     const [view,    setView]    = useState('list')  // 현재 화면
     const [members, setMembers] = useState([])
     const [listLoading, setListLoading] = useState(false)
-    const [selected, setSelected] = useState(null)  // 상세 볼 멤버
+    const [selected,   setSelected]   = useState(null)  // 상세 볼 멤버
+    const [editTarget, setEditTarget] = useState(null)  // 수정할 멤버
     const [filterRole,   setFilterRole]   = useState('전체')
     const [filterRegion, setFilterRegion] = useState('전체')
 
@@ -44,7 +45,7 @@ export default function Community({ userEmail = '', displayName = '', onLoginReq
         setView('register')
     }
 
-    // 등록 완료 — 서버에 저장
+    // 등록 / 수정 완료 — 서버에 저장
     const handleRegisterSubmit = async (form) => {
         try {
             const certFileNames = (form.certFiles || []).map(f => f.name || f)
@@ -59,24 +60,32 @@ export default function Community({ userEmail = '', displayName = '', onLoginReq
                 contactType:   form.contactType,
                 contactValue:  form.contactValue,
                 publicProfile: form.publicProfile,
-                certFileNames,
+                certFileNames: certFileNames.length > 0
+                    ? certFileNames
+                    : (editTarget?.certFileNames || []),
             }
-            const saved = await communityApi.save(body)
 
-            // App.jsx communityProfile 상태 업데이트
+            let saved
+            if (editTarget?.id) {
+                // 수정
+                saved = await communityApi.update(editTarget.id, body)
+            } else {
+                // 등록
+                saved = await communityApi.save(body)
+            }
+
             const profileData = {
                 ...saved,
                 contact: { type: saved.contactType, value: saved.contactValue },
                 avatar:  saved.name?.charAt(0) || '?',
             }
             onProfileSave?.(profileData)
-
-            // 목록 새로고침
             await loadMembers(filterRole, filterRegion)
         } catch (e) {
-            console.error('[Community] 등록 실패:', e)
-            alert('등록에 실패했습니다. 다시 시도해 주세요.')
+            console.error('[Community] 저장 실패:', e)
+            alert('저장에 실패했습니다. 다시 시도해 주세요.')
         }
+        setEditTarget(null)
         setView('list')
     }
 
@@ -88,12 +97,14 @@ export default function Community({ userEmail = '', displayName = '', onLoginReq
 
     // 서버 필터링 사용 — filtered 제거
 
-    // ── 등록 화면 ───────────────────────────────────────────
+    // ── 등록 / 수정 화면 ────────────────────────────────────
     if (view === 'register') {
         return (
             <Registration
                 defaultName={displayName}
-                onBack={() => setView('list')}
+                initialData={editTarget}
+                isEdit={!!editTarget}
+                onBack={() => { setView('list'); setEditTarget(null) }}
                 onSubmit={handleRegisterSubmit}
             />
         )
@@ -104,7 +115,14 @@ export default function Community({ userEmail = '', displayName = '', onLoginReq
         return (
             <CommunityPersonalDetail
                 member={selected}
+                myEmail={userEmail}
+                myName={displayName}
                 onBack={() => { setView('list'); setSelected(null) }}
+                onEdit={(member) => {
+                    setEditTarget(member)
+                    setSelected(null)
+                    setView('register')
+                }}
             />
         )
     }

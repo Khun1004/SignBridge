@@ -897,3 +897,70 @@
     .sb-footer { flex-direction: column; align-items: flex-start; gap: 12px; }
     .sb-page::before { background-attachment: scroll; }
 }
+/* ── LSTM 단어 수집 UI ── */
+.lstm-collect-area {
+    background: #f5f3ff;
+    border: 1.5px solid #c4b5fd;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+.lstm-current-word {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid #ddd6fe;
+}
+.lstm-accept-btn {
+    background: linear-gradient(135deg, #5b45e0, #7c6fff);
+    color: #fff; border: none; border-radius: 10px;
+    padding: 8px 16px; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+    box-shadow: 0 3px 10px rgba(91,69,224,0.25);
+}
+.lstm-accept-btn:hover { transform: translateY(-1px); }
+
+.lstm-words-row {
+    display: flex; flex-wrap: wrap; gap: 6px;
+}
+.lstm-word-chip {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(91,69,224,0.08);
+    border: 1.5px solid rgba(91,69,224,0.2);
+    border-radius: 20px; padding: 4px 10px 4px 12px;
+    font-size: 12px; font-weight: 700; color: #5b45e0;
+}
+.lstm-word-chip button {
+    background: none; border: none; color: #9ca3af;
+    font-size: 10px; cursor: pointer; padding: 0 2px;
+}
+.lstm-word-chip button:hover { color: #ef4444; }
+
+.lstm-gen-btn {
+    width: 100%; background: #5b45e0; color: #fff;
+    border: none; border-radius: 10px; padding: 10px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+}
+.lstm-gen-btn:hover { transform: translateY(-1px); }
+
+.lstm-sentence-box {
+    background: #fff; border-radius: 10px;
+    padding: 12px 14px; border: 1.5px solid #ddd6fe;
+}
+.lstm-retry-btn {
+    flex: 1; padding: 8px; border: 1.5px solid #e5e7eb;
+    background: #fff; border-radius: 8px; font-size: 12px;
+    font-weight: 700; color: #888; cursor: pointer; font-family: inherit;
+}
+.lstm-send-btn {
+    flex: 2; padding: 8px; background: #5b45e0; color: #fff;
+    border: none; border-radius: 8px; font-size: 12px;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+}

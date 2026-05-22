@@ -9,13 +9,29 @@ const CONTACT_TYPES   = [
     { id:'email', label:'📧 이메일',   placeholder:'example@email.com' },
 ]
 
-export default function Registration({ onBack, onSubmit, defaultName = '' }) {
+export default function Registration({ onBack, onSubmit, defaultName = '', initialData = null, isEdit = false }) {
     const [step, setStep] = useState(1)
-    const [form, setForm] = useState({
-        name: defaultName, role: '', region: '',
-        intro: '', experience: '', speciality: '',
-        contactType: 'chat', contactValue: '',
-        certFiles: [], publicProfile: true,
+    const [form, setForm] = useState(() => {
+        if (initialData) {
+            return {
+                name:         initialData.name         || defaultName,
+                role:         initialData.role         || '',
+                region:       initialData.region       || '',
+                intro:        initialData.intro        || '',
+                experience:   initialData.experience   || '',
+                speciality:   initialData.speciality   || '',
+                contactType:  initialData.contactType  || initialData.contact?.type  || 'chat',
+                contactValue: initialData.contactValue || initialData.contact?.value || '',
+                certFiles:    [],
+                publicProfile: initialData.publicProfile !== false,
+            }
+        }
+        return {
+            name: defaultName, role: '', region: '',
+            intro: '', experience: '', speciality: '',
+            contactType: 'chat', contactValue: '',
+            certFiles: [], publicProfile: true,
+        }
     })
     const [errors,  setErrors]  = useState({})
     const [preview, setPreview] = useState([])
@@ -77,8 +93,8 @@ export default function Registration({ onBack, onSubmit, defaultName = '' }) {
             <div className="reg-header">
                 <button className="reg-back-btn" onClick={onBack}>← 커뮤니티로</button>
                 <div>
-                    <h1 className="reg-title">커뮤니티 등록</h1>
-                    <p className="reg-subtitle">수어 관련 활동을 함께할 분들을 찾아보세요</p>
+                    <h1 className="reg-title">{isEdit ? '프로필 수정' : '커뮤니티 등록'}</h1>
+                    <p className="reg-subtitle">{isEdit ? '등록 내용을 수정해 주세요' : '수어 관련 활동을 함께할 분들을 찾아보세요'}</p>
                 </div>
             </div>
 
@@ -184,6 +200,20 @@ export default function Registration({ onBack, onSubmit, defaultName = '' }) {
                                accept=".jpg,.jpeg,.png,.pdf"
                                style={{display:'none'}} onChange={handleFileChange}/>
                         {errors.cert && <span className="reg-err">{errors.cert}</span>}
+                        {/* 기존 자격증 파일 (수정 모드) */}
+                        {isEdit && initialData?.certFileNames?.length > 0 && preview.length === 0 && (
+                            <div className="reg-file-list">
+                                <div style={{fontSize:12,color:'#9ca3af',marginBottom:4}}>기존 첨부 파일</div>
+                                {initialData.certFileNames.map((f,i) => (
+                                    <div key={i} className="reg-file-item">
+                                        <span className="reg-file-icon">{f.includes('.pdf')?'📑':'🖼️'}</span>
+                                        <div className="reg-file-info">
+                                            <span className="reg-file-name">{f}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         {preview.length > 0 && (
                             <div className="reg-file-list">
                                 {preview.map((f,i) => (
@@ -242,7 +272,7 @@ export default function Registration({ onBack, onSubmit, defaultName = '' }) {
                     </div>
                     <div className="reg-btn-row">
                         <button className="reg-btn-back-step" onClick={()=>setStep(2)}>← 이전</button>
-                        <button className="reg-btn-submit" onClick={handleSubmit}>✅ 등록 완료</button>
+                        <button className="reg-btn-submit" onClick={handleSubmit}>{isEdit ? '✅ 수정 완료' : '✅ 등록 완료'}</button>
                     </div>
                 </div>
             )}
