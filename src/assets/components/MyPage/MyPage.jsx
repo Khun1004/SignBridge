@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './MyPage.css'
+import Registration from '../Registration/Registration.jsx'
 import ImmigrationCasePage from '../My/ImmigrationCasePage/ImmigrationCasePage.jsx'
 import PoliceCasePage      from '../My/PoliceCasePage/PoliceCasePage.jsx'
 import {
@@ -89,6 +90,7 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
             .catch(() => {})
     }, [userEmail])
     const [showCmForm,   setShowCmForm]   = useState(false)  // 등록 폼 표시
+    const [showCmEdit,   setShowCmEdit]   = useState(false)  // Registration 수정 화면
     const [cmForm,       setCmForm]       = useState({ role: '', region: '', intro: '', experience: '', speciality: '', contactType: 'chat', contactValue: '', publicProfile: true })
     const [cmSaving,     setCmSaving]     = useState(false)
     const [cmError,      setCmError]      = useState('')
@@ -345,7 +347,46 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
             {/* ══════════════
                 커뮤니티 탭
             ══════════════ */}
-            {activeTab === '커뮤니티' && (
+            {activeTab === '커뮤니티' && showCmEdit && myProfile && (
+                <div className="tab-content" style={{padding:0}}><Registration
+                    defaultName={displayName}
+                    initialData={myProfile}
+                    isEdit={true}
+                    onBack={() => setShowCmEdit(false)}
+                    onSubmit={async (form) => {
+                        try {
+                            const body = {
+                                name:          displayName,
+                                userEmail,
+                                role:          form.role,
+                                region:        form.region,
+                                intro:         form.intro,
+                                experience:    form.experience,
+                                speciality:    form.speciality,
+                                contactType:   form.contactType,
+                                contactValue:  form.contactValue,
+                                publicProfile: form.publicProfile,
+                                certFileNames: (form.certFiles||[]).map(f=>f.name||f).length > 0
+                                    ? (form.certFiles||[]).map(f=>f.name||f)
+                                    : (myProfile.certFileNames||[]),
+                            }
+                            const data = await communityApi.save(body)
+                            const saved = {
+                                ...data,
+                                contact: { type: data.contactType, value: data.contactValue },
+                                avatar:  data.name?.charAt(0) || '?',
+                            }
+                            setMyProfile(saved)
+                            onCommunityProfileSave?.(saved)
+                        } catch(e) {
+                            alert('수정에 실패했습니다.')
+                        }
+                        setShowCmEdit(false)
+                    }}
+                /></div>
+            )}
+
+            {activeTab === '커뮤니티' && !showCmEdit && (
                 <div className="tab-content">
 
                     {/* 프로필 없을 때 안내 메시지만 표시 */}
@@ -555,19 +596,7 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
                             </div>
                             {/* 수정 버튼 */}
                             <button className="cm-mypage-edit-btn"
-                                    onClick={() => {
-                                        setCmForm({
-                                            role:          myProfile.role         || '',
-                                            region:        myProfile.region       || '',
-                                            intro:         myProfile.intro        || '',
-                                            experience:    myProfile.experience   || '',
-                                            speciality:    myProfile.speciality   || '',
-                                            contactType:   myProfile.contact?.type  || 'chat',
-                                            contactValue:  myProfile.contact?.value || '',
-                                            publicProfile: myProfile.publicProfile !== false,
-                                        })
-                                        setShowCmForm(true)
-                                    }}>
+                                    onClick={() => setShowCmEdit(true)}>
                                 ✏️ 프로필 수정
                             </button>
                         </div>

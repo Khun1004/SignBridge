@@ -2,11 +2,57 @@
    Registration.css
 ══════════════════════════════════════ */
 .reg-page {
-    max-width: 780px;
+    max-width: 1060px;
+    width: 100%;
     margin: 0 auto;
     padding: 32px 24px 80px;
     font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
     animation: reg-fadein 0.22s ease;
+    box-sizing: border-box;
+}
+
+/* ── MyPage 탭 안 수정 화면 — 전체 넓이 통일 ── */
+.tab-content .reg-page {
+    max-width: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+/* 헤더 — 전체 너비 */
+.tab-content .reg-header {
+    width: 100%;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+/* 스텝 인디케이터 — 전체 너비 */
+.tab-content .reg-steps {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0;
+    margin-bottom: 20px;
+}
+.tab-content .reg-step-line {
+    flex: 1;
+    max-width: 120px;
+}
+/* 카드 — 전체 너비 */
+.tab-content .reg-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 14px;
+    border-color: #e4e2dc;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+/* 버튼 */
+.tab-content .reg-btn-next {
+    width: 100%;
+}
+.tab-content .reg-row {
+    grid-template-columns: 1fr 1fr;
 }
 @keyframes reg-fadein { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
 
