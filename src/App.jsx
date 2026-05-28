@@ -18,7 +18,7 @@ import LoginPage  from './assets/components/LoginPage/LoginPage.jsx'
 import SignupPage from './assets/components/SignupPage/SignupPage.jsx'
 import DemoPage    from "./assets/components/DemoPage/DemoPage.jsx";
 import Community  from './assets/components/Community/Community.jsx'
-
+import ChatRoom from './assets/components/ChatPage/ChatRoom.jsx'
 const MENUS = [
     { id: 'home',      label: '홈' },
     { id: 'practice',  label: '연습하기' },
@@ -147,7 +147,7 @@ export default function App() {
 
     // 네비바에 표시할 짧은 이름 (기관명이 길 경우 앞 6자만)
     const navLabel = displayName.length > 6 ? displayName.slice(0, 6) + '…' : displayName
-
+    const [showChat, setShowChat] = useState(false)
     // ── 새로고침 시 로그인 유지 로직 추가 ──
     useEffect(() => {
         const savedEmail = localStorage.getItem('userEmail');
@@ -232,10 +232,16 @@ export default function App() {
     }
 
     const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
-    const handleQuickChat   = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('trans') }
-    const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
-
+    const handleQuickChat = () => {
+        if (!loggedIn) {
+            setAuthModal('login')
+        } else {
+            setShowChat(true)
+        }
+    }
+    const handleQuickCall = () => alert('전화 연결 기능은 준비 중입니다.')
     const renderMain = () => {
+        
         if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
@@ -246,7 +252,15 @@ export default function App() {
         if (tab === 'practice')  return <Practice />
         if (tab === 'trans')     return <TranslatePage onEndConversation={handleEndConversation} place={orgType || 'immigration'} userEmail={userEmail} initialMessages={convMessages} onLoginRequired={() => setAuthModal('login')} />
         if (tab === 'dict')      return <DictPage query={query} />
-        if (tab === 'community') return <Community />
+        if (tab === 'community') return (
+            <Community
+                userEmail={userEmail}
+                displayName={displayName}
+                onLoginRequired={() => setAuthModal('login')}
+                myProfile={communityProfile}
+                onProfileSave={setCommunityProfile}
+            />
+        )
         if (tab === 'about')     return <About onBack={() => setTab('home')} />
         if (tab === 'my') return (
             <MyPage
@@ -339,6 +353,13 @@ export default function App() {
 
             {/* ── 플로팅 사이드바 ── */}
             <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} />
+            {showChat && (
+                <ChatRoom
+                    onClose={() => setShowChat(false)}
+                    myEmail={userEmail}
+                    myName={displayName}
+                />
+            )}
 
             {/* 로그인 모달 */}
             {authModal === 'login' && (
