@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import './ChatRoom.css'
 
-/* ─────────────────────────────────────────────
+/* 
    localStorage helpers
-───────────────────────────────────────────── */
+ */
 const ROOMS_KEY   = 'sb_chat_rooms'
 const NICK_KEY    = 'sb_my_nickname'
 const PHOTO_KEY   = 'sb_my_photo'
@@ -19,9 +19,9 @@ const save  = (k, v)  => localStorage.setItem(k, JSON.stringify(v))
 const loadM = (id)    => load(msgsKey(id), [])
 const saveM = (id, m) => save(msgsKey(id), m)
 
-/* ─────────────────────────────────────────────
+/* 
    Constants
-───────────────────────────────────────────── */
+ */
 // Quick reactions shown in the hover bar (6 + "+" button)
 const QUICK_REACTIONS = ['❤️','😂','😮','😢','😡','👍']
 
@@ -60,9 +60,9 @@ const OFFICIAL_ROOMS = [
   },
 ]
 
-/* ─────────────────────────────────────────────
+/* 
    Formatters
-───────────────────────────────────────────── */
+ */
 const fmtTime     = (iso) => new Date(iso).toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' })
 const fmtDate     = (iso) => {
   const d = new Date(iso), today = new Date()
@@ -83,9 +83,9 @@ const fmtFileSize = (b) =>
   b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(1)} MB`
 const fmtMembers  = (n) => n >= 1000 ? `${(n/1000).toFixed(1)}k` : n
 
-/* ─────────────────────────────────────────────
+/* 
    useDrag
-───────────────────────────────────────────── */
+ */
 function useDrag(init) {
   const [pos, setPos] = useState(init)
   const drag = useRef(false)
@@ -106,9 +106,26 @@ function useDrag(init) {
   return { pos, onMouseDown }
 }
 
-/* ─────────────────────────────────────────────
-   SVG Icons
-───────────────────────────────────────────── */
+/* 
+   usePopoverDir — returns 'up' or 'down' based on
+   whether the element is in the bottom 45% of the messages container
+ */
+function usePopoverDir(ref) {
+  const [dir, setDir] = useState('up')
+  useEffect(() => {
+    if (!ref?.current) return
+    const el = ref.current
+    const container = el.closest('.cw-messages')
+    if (!container) return
+    const elRect  = el.getBoundingClientRect()
+    const conRect = container.getBoundingClientRect()
+    // If the element's vertical midpoint is in the bottom 45% → open up, else down
+    const relY = (elRect.top + elRect.height / 2) - conRect.top
+    setDir(relY > conRect.height * 0.55 ? 'up' : 'down')
+  })
+  return dir
+}
+
 const Ico = ({ d, w=16, h=16, fill='none', sw=2 }) =>
   <svg viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth={sw}
        strokeLinecap="round" strokeLinejoin="round" width={w} height={h}>{d}</svg>
@@ -131,11 +148,11 @@ const IconMsgSrch = () => <Ico w={18} h={18} d={<><circle cx="11" cy="11" r="8"/
 const IconMembers = () => <Ico w={18} h={18} d={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>}/>
 const IconRoomDots= () => <Ico w={16} h={16} fill="currentColor" sw={0} d={<><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></>}/>
 
-/* ─────────────────────────────────────────────
+/* 
    FULL EMOJI PICKER PANEL
    Opens when user clicks "+" in quick reaction bar
-───────────────────────────────────────────── */
-function FullEmojiPicker({ onSelect, onClose, isMe }) {
+ */
+function FullEmojiPicker({ onSelect, onClose, isMe, dir='up' }) {
   const [search, setSearch] = useState('')
   const [tab,    setTab]    = useState(0)
   const ref = useRef(null)
@@ -157,7 +174,7 @@ function FullEmojiPicker({ onSelect, onClose, isMe }) {
 
   return (
     <div ref={ref}
-      className={`cw-full-picker nd ${isMe ? 'cw-full-picker-left' : 'cw-full-picker-right'}`}>
+      className={`cw-full-picker nd ${isMe ? 'cw-full-picker-left' : 'cw-full-picker-right'} cw-pop-${dir}`}>
       <div className="cw-fp-search-row">
         <span className="cw-fp-search-icon"><IconSearch/></span>
         <input className="cw-fp-search nd" autoFocus
@@ -183,12 +200,12 @@ function FullEmojiPicker({ onSelect, onClose, isMe }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    QUICK REACTION BAR  ❤️ 😂 😮 😢 😡 👍  +
-───────────────────────────────────────────── */
-function QuickReactionBar({ msgId, myReaction, isMe, onReact, onOpenFull, onClose }) {
+ */
+function QuickReactionBar({ msgId, myReaction, isMe, dir='up', onReact, onOpenFull, onClose }) {
   return (
-    <div className={`cw-quick-bar nd ${isMe ? 'cw-quick-bar-left' : 'cw-quick-bar-right'}`}>
+    <div className={`cw-quick-bar nd ${isMe ? 'cw-quick-bar-left' : 'cw-quick-bar-right'} cw-pop-${dir}`}>
       {QUICK_REACTIONS.map(e => (
         <button key={e}
           className={`cw-quick-btn nd ${myReaction === e ? 'cw-quick-active' : ''}`}
@@ -201,11 +218,11 @@ function QuickReactionBar({ msgId, myReaction, isMe, onReact, onOpenFull, onClos
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    THREE-DOT CONTEXT MENU (per message)
    Matches image 1: Edit / Forward / Copy / Translate / Pin / Unsend
-───────────────────────────────────────────── */
-function MsgContextMenu({ msg, isMe, isPinned, onEdit, onDelete, onCopy, onForward, onPin, onClose }) {
+ */
+function MsgContextMenu({ msg, isMe, isPinned, dir='up', onEdit, onDelete, onCopy, onForward, onPin, onClose }) {
   const ref = useRef(null)
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
@@ -227,7 +244,7 @@ function MsgContextMenu({ msg, isMe, isPinned, onEdit, onDelete, onCopy, onForwa
   )
 
   return (
-    <div ref={ref} className={`cw-ctx-menu nd ${isMe ? 'cw-ctx-menu-left' : 'cw-ctx-menu-right'}`}
+    <div ref={ref} className={`cw-ctx-menu nd ${isMe ? 'cw-ctx-menu-left' : 'cw-ctx-menu-right'} cw-pop-${dir}`}
          onClick={e => e.stopPropagation()}>
       <div className="cw-ctx-menu-time">{fmtMsgTime}</div>
       {isMe && !msg.imageData && !msg.fileName && item(<IconPencil/>, 'Edit', onEdit)}
@@ -242,28 +259,35 @@ function MsgContextMenu({ msg, isMe, isPinned, onEdit, onDelete, onCopy, onForwa
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    WHO REACTED PANEL
-───────────────────────────────────────────── */
-function WhoReacted({ reactions, onClose }) {
+   nameMap: { email → nickname } built from message history
+ */
+function WhoReacted({ reactions, nameMap, dir='up', onClose }) {
   const ref = useRef(null)
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
     setTimeout(() => document.addEventListener('mousedown', h), 0)
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
-  const who = Object.entries(reactions || {}).map(([email, emoji]) => ({ email, emoji }))
+
+  const who = Object.entries(reactions || {}).map(([email, emoji]) => ({
+    email,
+    emoji,
+    name: nameMap?.[email] || email.split('@')[0],   // nickname > local-part of email
+  }))
+
   return (
-    <div ref={ref} className="cw-who-reacted nd">
+    <div ref={ref} className={`cw-who-reacted nd cw-pop-${dir}`}>
       <div className="cw-who-reacted-hd">
         모든 반응
         <button className="cw-who-close nd" onClick={onClose}><IconX/></button>
       </div>
       <div className="cw-who-list">
-        {who.map(({ email, emoji }) => (
-          <div key={email} className="cw-who-row">
-            <div className="cw-who-av">{email.charAt(0).toUpperCase()}</div>
-            <span className="cw-who-email">{email}</span>
+        {who.map(({ name, emoji }) => (
+          <div key={name} className="cw-who-row">
+            <div className="cw-who-av">{name.charAt(0)}</div>
+            <span className="cw-who-name">{name}</span>
             <span className="cw-who-emoji">{emoji}</span>
           </div>
         ))}
@@ -272,9 +296,9 @@ function WhoReacted({ reactions, onClose }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    MEMBER PANEL
-───────────────────────────────────────────── */
+ */
 function MemberPanel({ roomId, myEmail, myName, onClose }) {
   const members = load(membersKey(roomId), [])
   const all = members.find(m => m.email === myEmail)
@@ -302,9 +326,9 @@ function MemberPanel({ roomId, myEmail, myName, onClose }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    IMAGE PREVIEW MODAL
-───────────────────────────────────────────── */
+ */
 function ImagePreview({ file, dataUrl, onSend, onCancel }) {
   return (
     <div className="cw-img-preview-overlay nd" onClick={onCancel}>
@@ -329,9 +353,9 @@ function ImagePreview({ file, dataUrl, onSend, onCancel }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    GROUP PREVIEW MODAL
-───────────────────────────────────────────── */
+ */
 function GroupPreviewModal({ room, onJoin, onClose }) {
   return (
     <div className="ci-modal-overlay nd" onClick={onClose}>
@@ -368,9 +392,9 @@ function GroupPreviewModal({ room, onJoin, onClose }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    MSG SEARCH PANEL
-───────────────────────────────────────────── */
+ */
 function MsgSearchPanel({ messages, onJump, onClose }) {
   const [q, setQ] = useState('')
   const results = q.trim()
@@ -405,9 +429,9 @@ function MsgSearchPanel({ messages, onJump, onClose }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    PINNED BAR
-───────────────────────────────────────────── */
+ */
 function PinnedBar({ pinned, onJump, onUnpin }) {
   if (!pinned) return null
   return (
@@ -422,9 +446,9 @@ function PinnedBar({ pinned, onJump, onUnpin }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    TYPING INDICATOR
-───────────────────────────────────────────── */
+ */
 function TypingIndicator({ roomId, myEmail }) {
   const [typers, setTypers] = useState([])
   useEffect(() => {
@@ -446,9 +470,9 @@ function TypingIndicator({ roomId, myEmail }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    PROFILE EDIT MODAL
-───────────────────────────────────────────── */
+ */
 function ProfileEditModal({ nickname, photo, myName, onSave, onClose }) {
   const [nickInput, setNick]   = useState(nickname)
   const [photoInput, setPhoto] = useState(photo||'')
@@ -492,9 +516,9 @@ function ProfileEditModal({ nickname, photo, myName, onSave, onClose }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    ROOM CONTEXT MENU
-───────────────────────────────────────────── */
+ */
 function RoomMenu({ room, onMarkRead, onMute, onDelete, onBlock, onClose }) {
   const ref = useRef(null)
   useEffect(() => {
@@ -518,9 +542,9 @@ function RoomMenu({ room, onMarkRead, onMute, onDelete, onBlock, onClose }) {
   )
 }
 
-/* ─────────────────────────────────────────────
+/* 
    OFFICIAL ROOM BANNER
-───────────────────────────────────────────── */
+ */
 function OfficialRoomBanner({ room, joined, onJoin, onLeave, onOpen, onPreview }) {
   return (
     <div className="ci-official-banner nd">
@@ -547,23 +571,79 @@ function OfficialRoomBanner({ room, joined, onJoin, onLeave, onOpen, onPreview }
   )
 }
 
-/* ═══════════════════════════════════════════════
+/* 
+   FORWARD MODAL — pick a room to forward to
+ */
+function ForwardModal({ msg, currentRoomId, onForward, onClose }) {
+  const rooms  = load(ROOMS_KEY, []).filter(r => r.id !== currentRoomId)
+  const joined = load('sb_joined_groups', [])
+  const groups = OFFICIAL_ROOMS.filter(r => joined.includes(r.id) && r.id !== currentRoomId)
+  const all    = [...rooms, ...groups]
+
+  const preview = msg.text
+    ? (msg.text.length > 55 ? msg.text.slice(0, 55) + '…' : msg.text)
+    : msg.fileName || '파일'
+
+  return (
+    <div className="ci-modal-overlay nd" onClick={onClose}>
+      <div className="cw-fwd-modal nd" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="cw-fwd-hd">
+          <span className="cw-fwd-hd-title">메시지 전달</span>
+          <button className="cw-fwd-close nd" onClick={onClose}><IconX/></button>
+        </div>
+
+        {/* What's being forwarded */}
+        <div className="cw-fwd-preview">
+          <span className="cw-fwd-preview-label">↪ 전달할 메시지</span>
+          <span className="cw-fwd-preview-text">{preview}</span>
+        </div>
+
+        {/* Section label */}
+        <div className="cw-fwd-section">대화 선택</div>
+
+        {/* Room list */}
+        <div className="cw-fwd-list">
+          {all.length === 0 ? (
+            <div className="cw-fwd-empty">
+              <div className="cw-fwd-empty-icon">💬</div>
+              <div>전달할 대화방이 없어요</div>
+            </div>
+          ) : all.map(r => (
+            <div key={r.id} className="cw-fwd-room nd">
+              <div className="cw-fwd-room-av">{r.avatar}</div>
+              <div className="cw-fwd-room-info">
+                <div className="cw-fwd-room-name">{r.name}</div>
+                {r.sub && <div className="cw-fwd-room-sub">{r.sub}</div>}
+              </div>
+              <button className="cw-fwd-send-btn nd" onClick={() => onForward(r, msg)}>
+                전달
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* 
    CHAT WINDOW
-═══════════════════════════════════════════════ */
+ */
 function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) {
   const [messages,   setMessages]   = useState(() => loadM(room.id))
   const [input,      setInput]      = useState('')
-  // Per-message popover state — only one can be open at a time
-  // type: 'ctx' | 'quickReact' | 'fullPicker' | 'whoReacted'
-  const [popover,    setPopover]    = useState(null)  // { msgId, type }
+  const [popover,    setPopover]    = useState(null)
   const [replyTo,    setReplyTo]    = useState(null)
   const [editingMsg, setEditingMsg] = useState(null)
   const [pinned,     setPinned]     = useState(() => load(pinnedKey(room.id), null))
   const [showSearch, setShowSearch] = useState(false)
   const [showMembers,setShowMembers]= useState(false)
   const [imgPreview, setImgPreview] = useState(null)
-  // KakaoTalk read receipts: track last read msgId per viewer
   const [readState,  setReadState]  = useState({})
+  // Forward: { msg } — shows room-picker modal
+  const [forwardMsg, setForwardMsg] = useState(null)
 
   const bottomRef   = useRef(null)
   const msgRefs     = useRef({})
@@ -603,7 +683,7 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
     }
   }, [messages, myEmail, room.id])
 
-  // ── KakaoTalk unread count logic ──
+  //  KakaoTalk unread count logic 
   // For 1:1: shows "1" next to each message that hasn't been read by the other person
   // For group: shows count of members who haven't read yet
   const getMemberCount = () => {
@@ -635,6 +715,36 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
   }
 
   const closePopover = () => setPopover(null)
+
+  // Build email→name map from all message senders in this room
+  // Also always include self
+  const nameMap = { [myEmail]: myName }
+  messages.forEach(m => { if (m.email && m.name) nameMap[m.email] = m.name })
+
+  // Forward a message to another room
+  const forwardToRoom = (targetRoom, msg) => {
+    const forwarded = {
+      id: Date.now(), email: myEmail, name: myName,
+      at: new Date().toISOString(), reactions: {}, status: 'sent',
+      text: msg.text || null,
+      imageData: msg.imageData || null,
+      fileName: msg.fileName || null,
+      fileSize: msg.fileSize || null,
+      forwarded: true,
+      forwardedFrom: msg.name || '알 수 없음',
+    }
+    const existing = loadM(targetRoom.id)
+    saveM(targetRoom.id, [...existing, forwarded])
+    // Update room last message
+    const rooms = load(ROOMS_KEY, [])
+    const idx = rooms.findIndex(r => r.id === targetRoom.id)
+    if (idx !== -1) {
+      rooms[idx].lastMsg = msg.text ? `↪ ${msg.text}` : `↪ ${msg.fileName || '파일'}`
+      rooms[idx].lastAt  = forwarded.at
+      save(ROOMS_KEY, rooms)
+    }
+    setForwardMsg(null)
+  }
 
   const send = () => {
     if (editingMsg) {
@@ -739,6 +849,19 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
     const isFullPickOpen = popover?.msgId === msg.id && popover.type === 'fullPicker'
     const isWhoOpen      = popover?.msgId === msg.id && popover.type === 'whoReacted'
 
+    // Compute popover direction for this specific message
+    const msgEl = msgRefs.current[msg.id]
+    let popDir = 'up'
+    if (msgEl) {
+      const container = msgEl.closest('.cw-messages')
+      if (container) {
+        const elRect  = msgEl.getBoundingClientRect()
+        const conRect = container.getBoundingClientRect()
+        const relY = (elRect.top + elRect.height / 2) - conRect.top
+        popDir = relY > conRect.height * 0.55 ? 'up' : 'down'
+      }
+    }
+
     if (msg.isSystem) return (
       <div key={msg.id} className="cw-row-system">
         <span className="cw-system-msg">{msg.text}</span>
@@ -770,23 +893,24 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
             {/* Avatar — only for other people */}
             {!isMe && <div className="cw-avatar">{(msg.name||'?').charAt(0)}</div>}
 
-            {/* bwrap: column — sender name, reply preview, bubble+hover, reactions */}
+            {/* bwrap */}
             <div className="cw-bwrap">
               {(!isMe && isGroup) && <div className="cw-sender">{msg.name}</div>}
 
-              {msg.replyTo && (
-                <div className={`cw-reply-preview ${isMe?'cw-reply-me':'cw-reply-them'}`}
-                     onClick={() => jumpToMsg(msg.replyTo.id)}>
-                  <div className="cw-reply-name">{msg.replyTo.name}</div>
-                  <div className="cw-reply-text">
-                    {msg.replyTo.fileName ? `📎 ${msg.replyTo.fileName}` : msg.replyTo.text}
-                  </div>
-                </div>
-              )}
-
-              {/* bubble + absolute hover-bar + absolute popovers */}
               <div className="cw-bubble-wrap" onMouseLeave={() => {}}>
                 <div className={`cw-bubble ${isMe?'cw-bubble-me':'cw-bubble-them'}`}>
+                  {msg.forwarded && (
+                    <div className="cw-fwd-badge"><IconForward/> {msg.forwardedFrom}에서 전달됨</div>
+                  )}
+                  {/* Reply preview INSIDE bubble — same bg, separated by a line */}
+                  {msg.replyTo && (
+                    <div className="cw-reply-inbubble" onClick={(e) => { e.stopPropagation(); jumpToMsg(msg.replyTo.id) }}>
+                      <div className="cw-reply-inbubble-name">{msg.replyTo.name}</div>
+                      <div className="cw-reply-inbubble-text">
+                        {msg.replyTo.fileName ? `📎 ${msg.replyTo.fileName}` : msg.replyTo.text}
+                      </div>
+                    </div>
+                  )}
                   {msg.imageData ? (
                     <div className="cw-img-wrap">
                       <img src={msg.imageData} alt={msg.fileName} className="cw-img"/>
@@ -803,70 +927,55 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
                   ) : msg.text}
                 </div>
 
-                {/* ── Hover bar: ··· ↩ 😊 ── appears beside bubble */}
+                {/* Hover bar */}
                 <div className={`cw-hover-bar nd ${isMe?'cw-hover-bar-left':'cw-hover-bar-right'}`}>
-                  <button
-                    className={`cw-hbar-btn nd ${isCtxOpen?'cw-hbar-active':''}`}
+                  <button className={`cw-hbar-btn nd ${isCtxOpen?'cw-hbar-active':''}`}
                     onClick={(e) => { e.stopPropagation(); setPopover(isCtxOpen ? null : { msgId:msg.id, type:'ctx' }) }}>
                     <IconDots/>
                   </button>
-                  <button
-                    className="cw-hbar-btn nd"
+                  <button className="cw-hbar-btn nd"
                     onClick={(e) => { e.stopPropagation(); setReplyTo({id:msg.id,name:msg.name,text:msg.text,fileName:msg.fileName}); setPopover(null) }}>
                     <IconReply/>
                   </button>
-                  <button
-                    className={`cw-hbar-btn nd ${isQuickOpen||isFullPickOpen?'cw-hbar-active':''}`}
+                  <button className={`cw-hbar-btn nd ${isQuickOpen||isFullPickOpen?'cw-hbar-active':''}`}
                     onClick={(e) => { e.stopPropagation(); setPopover(isQuickOpen ? null : { msgId:msg.id, type:'quickReact' }) }}>
                     <span style={{fontSize:15,lineHeight:1}}>{myR || '😊'}</span>
                   </button>
                 </div>
 
-                {/* Context menu */}
                 {isCtxOpen && (
                   <div onClick={e => e.stopPropagation()}>
-                    <MsgContextMenu
-                      msg={msg} isMe={isMe} isPinned={isPinned}
+                    <MsgContextMenu msg={msg} isMe={isMe} isPinned={isPinned} dir={popDir}
                       onEdit={() => { startEdit(msg); closePopover() }}
                       onDelete={() => { deleteMsg(msg.id); closePopover() }}
                       onCopy={() => { navigator.clipboard?.writeText(msg.text||''); closePopover() }}
-                      onForward={() => closePopover()}
+                      onForward={() => { setForwardMsg(msg); closePopover() }}
                       onPin={() => { isPinned ? unpinMessage() : pinMessage(msg); closePopover() }}
-                      onClose={closePopover}
-                    />
+                      onClose={closePopover}/>
                   </div>
                 )}
-
-                {/* Quick reaction bar */}
                 {isQuickOpen && (
                   <div onClick={e => e.stopPropagation()}>
-                    <QuickReactionBar
-                      msgId={msg.id} myReaction={myR} isMe={isMe}
+                    <QuickReactionBar msgId={msg.id} myReaction={myR} isMe={isMe} dir={popDir}
                       onReact={(id, emoji) => { addReaction(id, emoji); closePopover() }}
                       onOpenFull={() => setPopover({ msgId:msg.id, type:'fullPicker' })}
-                      onClose={closePopover}
-                    />
+                      onClose={closePopover}/>
                   </div>
                 )}
-
-                {/* Full emoji picker */}
                 {isFullPickOpen && (
                   <div onClick={e => e.stopPropagation()}>
-                    <FullEmojiPicker
-                      isMe={isMe}
+                    <FullEmojiPicker isMe={isMe} dir={popDir}
                       onSelect={(emoji) => { addReaction(msg.id, emoji); closePopover() }}
-                      onClose={closePopover}
-                    />
+                      onClose={closePopover}/>
                   </div>
                 )}
-              </div>
+              </div>{/* end cw-bubble-wrap */}
 
-              {/* Reaction chips */}
+              {/* Reactions */}
               {aggR.length > 0 && (
                 <div className={`cw-reactions ${isMe?'reactions-left':'reactions-right'}`}>
                   {aggR.map(([e, count]) => (
-                    <span key={e}
-                      className={`cw-reaction-chip nd ${myR===e?'cw-reaction-mine':''}`}
+                    <span key={e} className={`cw-reaction-chip nd ${myR===e?'cw-reaction-mine':''}`}
                       onClick={(ev) => { ev.stopPropagation(); addReaction(msg.id, e) }}>
                       {e} {count}
                     </span>
@@ -877,18 +986,16 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
                   </button>
                   {isWhoOpen && (
                     <div onClick={e => e.stopPropagation()}>
-                      <WhoReacted reactions={msg.reactions} onClose={closePopover}/>
+                      <WhoReacted reactions={msg.reactions} nameMap={nameMap} dir={popDir} onClose={closePopover}/>
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Time + unread count — sits BESIDE the bubble, bottom-aligned */}
+            {/* Time + unread — beside the bubble, bottom-aligned, for ALL message types */}
             <div className={`cw-side-meta ${isMe?'cw-side-meta-me':'cw-side-meta-them'}`}>
-              {isMe && unreadCount !== null && (
-                <span className="cw-unread-num">{unreadCount}</span>
-              )}
+              {isMe && unreadCount !== null && <span className="cw-unread-num">{unreadCount}</span>}
               <span className="cw-time">{fmtTime(msg.at)}</span>
             </div>
 
@@ -994,13 +1101,21 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
         onSend={() => sendFile(imgPreview.file, imgPreview.dataUrl)}
         onCancel={() => setImgPreview(null)}/>
     )}
+
+    {forwardMsg && (
+      <ForwardModal
+        msg={forwardMsg}
+        currentRoomId={room.id}
+        onForward={forwardToRoom}
+        onClose={() => setForwardMsg(null)}/>
+    )}
     </>
   )
 }
 
-/* ═══════════════════════════════════════════════
+/* 
    INBOX
-═══════════════════════════════════════════════ */
+ */
 export default function ChatRoom({ onClose, myEmail='', myName='', profile=null }) {
   const [rooms,          setRooms]        = useState(() => load(ROOMS_KEY, []))
   const [openRooms,      setOpenRooms]     = useState([])
