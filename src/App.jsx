@@ -9,6 +9,7 @@ import DictPage         from './assets/components/DictPage/DictPage.jsx'
 import Home             from './assets/components/Home/Home.jsx'
 import MyPage           from './assets/components/MyPage/MyPage.jsx'
 import TranslatePage    from './assets/components/TranslatePage/TranslatePage.jsx'
+import chatService from './assets/components/ChatPage/chatService'
 
 import RegisterPersonal    from './assets/components/RegisterPersonal/RegisterPersonal.jsx'
 import RegisterImmigration from './assets/components/RegisterImmigration/RegisterImmigration.jsx'
@@ -161,6 +162,10 @@ export default function App() {
             setLoggedIn(true);
         }
     }, []);
+    useEffect(() => {
+        chatService.connect('http://localhost:8080')
+        return () => chatService.disconnect()
+    }, [])
 
     const handleSearch = (e) => {
         e.preventDefault()

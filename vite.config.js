@@ -4,9 +4,12 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    global: 'globalThis',   
+  },
   server: {
-    port: 5173,       // 포트 고정
-    strictPort: true, // 포트 사용 중이면 다른 포트로 안 넘어감
+    port: 5173,
+    strictPort: true,
     proxy: {
       '/api': 'http://localhost:8080'
     }
