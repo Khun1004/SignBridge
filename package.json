@@ -12,10 +12,12 @@
   "dependencies": {
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/hands": "^0.4.1675469240",
+    "@stomp/stompjs": "^7.3.0",
     "@tailwindcss/vite": "^4.2.1",
     "@tensorflow/tfjs": "^4.22.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "sockjs-client": "^1.6.1",
     "tailwindcss": "^4.2.1",
     "three": "^0.183.2"
   },
