@@ -10,7 +10,7 @@ import Home             from './assets/components/Home/Home.jsx'
 import MyPage           from './assets/components/MyPage/MyPage.jsx'
 import TranslatePage    from './assets/components/TranslatePage/TranslatePage.jsx'
 import chatService from './assets/components/ChatPage/chatService'
-
+import AIChat from './assets/components/AI/AIChat'
 import RegisterPersonal    from './assets/components/RegisterPersonal/RegisterPersonal.jsx'
 import RegisterImmigration from './assets/components/RegisterImmigration/RegisterImmigration.jsx'
 import RegisterPolice      from './assets/components/RegisterPolice/RegisterPolice.jsx'
@@ -20,6 +20,7 @@ import SignupPage from './assets/components/SignupPage/SignupPage.jsx'
 import DemoPage    from "./assets/components/DemoPage/DemoPage.jsx";
 import Community  from './assets/components/Community/Community.jsx'
 import ChatRoom from './assets/components/ChatPage/ChatRoom.jsx'
+
 const MENUS = [
     { id: 'home',      label: '홈' },
     { id: 'practice',  label: '연습하기' },
@@ -74,8 +75,110 @@ function NotificationDropdown({ notifications, onClose, onMarkAll }) {
     )
 }
 
+// ── AI 채팅 창 ──
+function AiChatWindow({ onClose }) {
+    const [messages, setMessages] = useState([
+        { role: 'assistant', text: '안녕하세요! SignBridge AI 어시스턴트입니다. 수어나 서비스에 관해 궁금한 점을 물어보세요 🤟' }
+    ])
+    const [input, setInput] = useState('')
+    const [loading, setLoading] = useState(false)
+    const bottomRef = useRef(null)
+    const inputRef  = useRef(null)
+
+    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+    const send = async () => {
+        const text = input.trim()
+        if (!text || loading) return
+        setInput('')
+        setMessages(prev => [...prev, { role: 'user', text }])
+        setLoading(true)
+        try {
+            const history = messages
+                .filter(m => m.role !== 'assistant' || messages.indexOf(m) > 0)
+                .map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.text }))
+            history.push({ role: 'user', content: text })
+
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 1000,
+                    system: 'You are a helpful assistant for SignBridge, a Korean sign language translation service. Answer in Korean. Be concise and friendly. Help users with questions about sign language, the service features, and general questions.',
+                    messages: history,
+                })
+            })
+            const data = await res.json()
+            const reply = data.content?.[0]?.text || '죄송합니다, 응답을 받지 못했어요.'
+            setMessages(prev => [...prev, { role: 'assistant', text: reply }])
+        } catch (e) {
+            setMessages(prev => [...prev, { role: 'assistant', text: '오류가 발생했습니다. 잠시 후 다시 시도해주세요.' }])
+        }
+        setLoading(false)
+    }
+
+    const onKey = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+    }
+
+    return (
+        <div className="ai-chat-window">
+            <div className="ai-chat-header">
+                <div className="ai-chat-header-left">
+                    <div className="ai-chat-avatar">🤖</div>
+                    <div>
+                        <div className="ai-chat-title">AI 어시스턴트</div>
+                        <div className="ai-chat-subtitle">SignBridge · Claude</div>
+                    </div>
+                </div>
+                <button className="ai-chat-close" onClick={onClose}>✕</button>
+            </div>
+
+            <div className="ai-chat-messages">
+                {messages.map((m, i) => (
+                    <div key={i} className={`ai-msg-row ${m.role === 'user' ? 'ai-msg-me' : 'ai-msg-them'}`}>
+                        {m.role === 'assistant' && <div className="ai-msg-av">🤖</div>}
+                        <div className={`ai-msg-bubble ${m.role === 'user' ? 'ai-bubble-me' : 'ai-bubble-them'}`}>
+                            {m.text}
+                        </div>
+                    </div>
+                ))}
+                {loading && (
+                    <div className="ai-msg-row ai-msg-them">
+                        <div className="ai-msg-av">🤖</div>
+                        <div className="ai-msg-bubble ai-bubble-them ai-typing">
+                            <span/><span/><span/>
+                        </div>
+                    </div>
+                )}
+                <div ref={bottomRef}/>
+            </div>
+
+            <div className="ai-chat-input-row">
+                <textarea
+                    ref={inputRef}
+                    className="ai-chat-input"
+                    placeholder="메시지를 입력하세요… (Enter 전송)"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={onKey}
+                    rows={1}
+                    disabled={loading}
+                />
+                <button className="ai-chat-send" onClick={send} disabled={!input.trim() || loading}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    )
+}
+
 // ── 오른쪽 플로팅 사이드바 ──
-function FloatingSidebar({ onChat, onCall }) {
+function FloatingSidebar({ onChat, onCall, onAiChat }) {
     const scrollTo = (dir) =>
         window.scrollTo({ top: dir === 'top' ? 0 : document.body.scrollHeight, behavior: 'smooth' })
 
@@ -108,6 +211,18 @@ function FloatingSidebar({ onChat, onCall }) {
                 <span className="fsb-label">전화</span>
             </button>
 
+            {/* AI 채팅 버튼 */}
+            <button className="fsb-btn fsb-ai" onClick={onAiChat} title="AI 채팅">
+                <span className="fsb-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="14" rx="3"/>
+                        <path d="M8 21h8M12 17v4"/>
+                        <path d="M8 8h8M8 11h5"/>
+                    </svg>
+                </span>
+                <span className="fsb-label">AI</span>
+            </button>
+
             <button className="fsb-btn fsb-scroll" onClick={() => scrollTo('bottom')} title="맨 아래로">
                 <span className="fsb-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -128,33 +243,36 @@ export default function App() {
     const [searchInput,    setSearchInput]    = useState('')
     const [query,          setQuery]          = useState('')
     const [convMessages,   setConvMessages]   = useState([])
-    const [convVideoBlobs, setConvVideoBlobs] = useState([])   // 여러 세션의 blob 배열
-    const [convVideos,     setConvVideos]     = useState([])   // ConversationPage의 videos 배열
+    const [convVideoBlobs, setConvVideoBlobs] = useState([])
+    const [convVideos,     setConvVideos]     = useState([])
     const [showConv,       setShowConv]       = useState(false)
     const [registerScreen, setRegisterScreen] = useState(null)
 
     // 인증 상태
-    const [authModal,    setAuthModal]    = useState(null)   // null | 'login' | 'signup'
+    const [authModal,    setAuthModal]    = useState(null)
     const [loggedIn,     setLoggedIn]     = useState(false)
-    const [displayName,  setDisplayName]  = useState('')     // 개인=이름, 기관=기관명
-    const [orgType,      setOrgType]      = useState('')     // 'personal' | 'hospital' | ...
+    const [displayName,  setDisplayName]  = useState('')
+    const [orgType,      setOrgType]      = useState('')
     const [userEmail,    setUserEmail]    = useState('')
-    const [communityProfile, setCommunityProfile] = useState(null)  // 커뮤니티 등록 프로필
+    const [communityProfile, setCommunityProfile] = useState(null)
 
     // 알림 상태
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
     const [showNotifs, setShowNotifs] = useState(false)
     const unreadCount = notifs.filter(n => n.unread).length
 
-    // 네비바에 표시할 짧은 이름 (기관명이 길 경우 앞 6자만)
+    // 채팅 / AI 채팅 상태
+    const [showChat,   setShowChat]   = useState(false)
+    const [showAiChat, setShowAiChat] = useState(false)
+
+    // 네비바에 표시할 짧은 이름
     const navLabel = displayName.length > 6 ? displayName.slice(0, 6) + '…' : displayName
-    const [showChat, setShowChat] = useState(false)
-    // ── 새로고침 시 로그인 유지 로직 추가 ──
+
+    // 새로고침 시 로그인 유지
     useEffect(() => {
         const savedEmail = localStorage.getItem('userEmail');
-        const savedName = localStorage.getItem('displayName');
-        const savedType = localStorage.getItem('orgType');
-
+        const savedName  = localStorage.getItem('displayName');
+        const savedType  = localStorage.getItem('orgType');
         if (savedEmail && savedName) {
             setUserEmail(savedEmail);
             setDisplayName(savedName);
@@ -162,6 +280,7 @@ export default function App() {
             setLoggedIn(true);
         }
     }, []);
+
     useEffect(() => {
         chatService.connect('http://localhost:8080')
         return () => chatService.disconnect()
@@ -178,13 +297,9 @@ export default function App() {
     const handleEndConversation = (messages, videoBlob) => {
         setConvMessages(Array.isArray(messages) ? messages : [])
         setRegisterScreen(null)
-
         if (videoBlob) {
-            // blob을 먼저 배열에 추가한 뒤 화면 전환
-            // → ConversationPage 마운트 시점에 videoBlobs가 이미 채워져 있음
             setConvVideoBlobs(prev => {
                 const next = [...prev, videoBlob]
-                // 다음 tick에 showConv 전환 → state 배치 업데이트 보장
                 setTimeout(() => setShowConv(true), 0)
                 return next
             })
@@ -193,26 +308,22 @@ export default function App() {
         }
     }
 
-    const handleBackToTranslate      = () => { setShowConv(false); setRegisterScreen(null); setTab('trans') }
+    const handleBackToTranslate = () => { setShowConv(false); setRegisterScreen(null); setTab('trans') }
     const handleGoRegister = (videos) => {
         if (videos && Array.isArray(videos)) setConvVideos(videos)
         const type = orgType || 'personal'
         setRegisterScreen(`register_${type}`)
     }
-    const handleBackToConv           = () => setRegisterScreen(null)
-    const handleLogoClick            = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('home'); setQuery('') }
+    const handleBackToConv  = () => setRegisterScreen(null)
+    const handleLogoClick   = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('home'); setQuery('') }
 
-    // 로그인 성공
     const handleLogin = (name, type, email) => {
         setDisplayName(name);
         setOrgType(type || '');
         setUserEmail(email || '');
-
-        // 브라우저 저장소에 세션 정보 기록
         localStorage.setItem('userEmail', email);
         localStorage.setItem('displayName', name);
         localStorage.setItem('orgType', type || '');
-
         setLoggedIn(true);
         setAuthModal(null);
     }
@@ -222,21 +333,19 @@ export default function App() {
         setOrgType(type || '')
     }
 
-    // 로그아웃 (저장된 데이터 삭제 포함)
     const handleLogout = () => {
         setLoggedIn(false)
         setDisplayName('')
         setOrgType('')
         setUserEmail('')
         setTab('home')
-
-        // 로컬 스토리지 데이터 명시적 삭제
         localStorage.removeItem('userEmail');
         localStorage.removeItem('displayName');
         localStorage.removeItem('orgType');
     }
 
     const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
+
     const handleQuickChat = () => {
         if (!loggedIn) {
             setAuthModal('login')
@@ -244,9 +353,11 @@ export default function App() {
             setShowChat(true)
         }
     }
-    const handleQuickCall = () => alert('전화 연결 기능은 준비 중입니다.')
+
+    const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
+    const handleQuickAiChat = () => setShowAiChat(v => !v)
+
     const renderMain = () => {
-        
         if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
@@ -266,7 +377,7 @@ export default function App() {
                 onProfileSave={setCommunityProfile}
             />
         )
-        if (tab === 'about')     return <About onBack={() => setTab('home')} />
+        if (tab === 'about') return <About onBack={() => setTab('home')} />
         if (tab === 'my') return (
             <MyPage
                 displayName={displayName}
@@ -292,14 +403,12 @@ export default function App() {
                     </div>
 
                     <div className="nav-actions">
-                        {/* 검색 */}
                         <form className="search-form" onSubmit={handleSearch}>
                             <input className="search-input" placeholder="수어 검색..."
                                    value={searchInput} onChange={e => setSearchInput(e.target.value)} />
                             <button type="submit" className="search-btn">🔍</button>
                         </form>
 
-                        {/* 알림 */}
                         <div className="notif-wrap">
                             <button className={`notif-btn ${unreadCount > 0 ? 'has-unread' : ''}`}
                                     onClick={() => setShowNotifs(v => !v)} title="알림">
@@ -315,7 +424,6 @@ export default function App() {
                             )}
                         </div>
 
-                        {/* 로그인 상태 */}
                         {loggedIn ? (
                             <div className="nav-user-group">
                                 <button className="my-btn"
@@ -357,12 +465,22 @@ export default function App() {
             </footer>
 
             {/* ── 플로팅 사이드바 ── */}
-            <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} />
+            <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} onAiChat={handleQuickAiChat} />
+
             {showChat && (
                 <ChatRoom
                     onClose={() => setShowChat(false)}
                     myEmail={userEmail}
                     myName={displayName}
+                />
+            )}
+
+            {/* AI 채팅 창 */}
+            {showAiChat && (
+                <AIChat
+                    onClose={() => setShowAiChat(false)}
+                    loggedIn={loggedIn}
+                    displayName={displayName}
                 />
             )}
 
