@@ -588,3 +588,25 @@
   padding: 32px 0; font-size: 13px; color: var(--sb-text-2); text-align: center;
 }
 .cw-fwd-empty-icon { font-size: 36px; }
+
+/* ── Community chatId styles (Registration + CommunityPersonalDetail) ── */
+.reg-chatid-wrap { display:flex; align-items:center; border:1.5px solid var(--sb-border-mid); border-radius:var(--sb-r-sm); overflow:hidden; background:var(--sb-surface-2); }
+.reg-chatid-at { padding:0 10px; font-size:16px; font-weight:700; color:var(--sb-purple); background:rgba(108,99,255,0.06); border-right:1.5px solid var(--sb-border-mid); line-height:40px; }
+.reg-chatid-input { flex:1; border:none; background:transparent; padding:9px 12px; font-size:14px; font-weight:600; color:var(--sb-text-1); outline:none; font-family:var(--sb-font); }
+.reg-chatid-hint { font-size:11px; margin-top:4px; display:block; }
+.reg-chatid-hint.ok       { color:#10b981; }
+.reg-chatid-hint.taken    { color:#ef4444; }
+.reg-chatid-hint.checking { color:var(--sb-text-3); }
+.reg-hint { font-size:11px; color:var(--sb-text-3); margin-top:4px; display:block; }
+.reg-label-hint { font-size:11px; font-weight:400; color:var(--sb-text-3); }
+
+.reg-chatid-readonly { display:flex; align-items:center; gap:6px; padding:10px 14px; background:rgba(108,99,255,0.05); border:1.5px solid var(--sb-border-mid); border-radius:var(--sb-r-sm); }
+.reg-chatid-value  { font-size:15px; font-weight:700; color:var(--sb-purple); flex:1; }
+.reg-chatid-auto   { font-size:11px; color:var(--sb-text-3); background:rgba(108,99,255,0.08); border-radius:20px; padding:2px 8px; }
+
+/* Community card chatId display */
+.cm-card-chatid { font-size:11px; color:var(--sb-purple); font-weight:600; margin-left:4px; }
+
+/* CommunityPersonalDetail chatId badge */
+.cpd-chatid-badge { font-size:12px; font-weight:700; background:rgba(108,99,255,0.1); color:var(--sb-purple); border-radius:20px; padding:3px 10px; border:1px solid rgba(108,99,255,0.2); }
+.cpd-login-hint { text-align:center; font-size:13px; color:var(--sb-text-3); padding:12px; background:var(--sb-surface-2); border-radius:var(--sb-r-sm); margin-bottom:12px; }

@@ -247,7 +247,7 @@ export default function App() {
     const [convVideos,     setConvVideos]     = useState([])
     const [showConv,       setShowConv]       = useState(false)
     const [registerScreen, setRegisterScreen] = useState(null)
-
+    const [chatInitialRoom, setChatInitialRoom] = useState(null)
     // 인증 상태
     const [authModal,    setAuthModal]    = useState(null)
     const [loggedIn,     setLoggedIn]     = useState(false)
@@ -342,6 +342,9 @@ export default function App() {
         localStorage.removeItem('userEmail');
         localStorage.removeItem('displayName');
         localStorage.removeItem('orgType');
+        // In handleLogout — add this:
+        localStorage.removeItem('sb_my_nickname')
+        localStorage.removeItem('sb_my_photo')
     }
 
     const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
@@ -375,6 +378,7 @@ export default function App() {
                 onLoginRequired={() => setAuthModal('login')}
                 myProfile={communityProfile}
                 onProfileSave={setCommunityProfile}
+                onChat={handleCommunityChat}    // ← ADD THIS
             />
         )
         if (tab === 'about') return <About onBack={() => setTab('home')} />
@@ -469,9 +473,10 @@ export default function App() {
 
             {showChat && (
                 <ChatRoom
-                    onClose={() => setShowChat(false)}
+                    onClose={() => { setShowChat(false); setChatInitialRoom(null) }}
                     myEmail={userEmail}
                     myName={displayName}
+                    initialRoom={chatInitialRoom}    // ← ADD THIS
                 />
             )}
 
