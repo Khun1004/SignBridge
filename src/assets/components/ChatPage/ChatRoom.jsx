@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './ChatRoom.css'
-import { Client } from '@stomp/stompjs'
-import SockJS from 'sockjs-client'
+
 /* 
    localStorage helpers
  */
@@ -632,9 +631,10 @@ function ForwardModal({ msg, currentRoomId, onForward, onClose }) {
 /* 
    CHAT WINDOW
  */
-function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) {
-  const [messages, setMessages] = useState([])
-  
+function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGroup=false }) {
+  // displayName = what others see in chat bubbles (nickname if set, otherwise real name)
+  const chatDisplayName = myNickname || myName
+  const [messages,   setMessages]   = useState(() => loadM(room.id))
   const [input,      setInput]      = useState('')
   const [popover,    setPopover]    = useState(null)
   const [replyTo,    setReplyTo]    = useState(null)
@@ -652,28 +652,20 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
   const fileRef     = useRef(null)
   const typingTimer = useRef(null)
   const inputRef    = useRef(null)
-  const stompRef = useRef(null)
+
   const { pos, onMouseDown } = useDrag({
     x: Math.max(20, window.innerWidth  - 980),
     y: Math.max(20, window.innerHeight - 780),
   })
-  const normalizeMsg = (m) => ({
-    ...m,
-    at:    m.sentAt    || m.at,
-    email: m.senderEmail || m.email,
-    name:  m.senderName  || m.name,
-  })
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
 
-  
   useEffect(() => {
-    if (!room?.id) return
-    fetch(`http://localhost:8080/api/chat/rooms/${room.id}/messages`)
-      .then(r => r.json())
-      .then(data => setMessages(data.map(normalizeMsg)))
-      .catch(err => console.error('Failed to load messages:', err))
+    const h = () => { setMessages(loadM(room.id)); setPinned(load(pinnedKey(room.id), null)) }
+    window.addEventListener('storage', h)
+    return () => window.removeEventListener('storage', h)
   }, [room.id])
+
   // Register self as group member
   useEffect(() => {
     if (!isGroup) return
@@ -692,30 +684,7 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
       setReadState(prev => ({ ...prev, [myEmail]: lastMsg.id }))
     }
   }, [messages, myEmail, room.id])
-  useEffect(() => {
-    if (!room?.id) return
 
-    const client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws-chat'),
-      reconnectDelay: 5000,
-      onConnect: () => {
-        client.subscribe(`/topic/room/${room.id}`, (frame) => {
-          const msg = normalizeMsg(JSON.parse(frame.body))
-          if (msg.type === 'DELETE') {
-            setMessages(prev => prev.filter(m => m.id !== msg.id))
-          } else if (msg.type === 'EDIT') {
-            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, text: msg.text, isEdited: true } : m))
-          } else {
-            setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
-          }
-        })
-        stompRef.current = client
-      },
-    })
-
-    client.activate()
-    return () => { stompRef.current = null; client.deactivate() }
-  }, [room.id])
   //  KakaoTalk unread count logic 
   // For 1:1: shows "1" next to each message that hasn't been read by the other person
   // For group: shows count of members who haven't read yet
@@ -750,14 +719,13 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
   const closePopover = () => setPopover(null)
 
   // Build email→name map from all message senders in this room
-  // Also always include self
-  const nameMap = { [myEmail]: myName }
+  const nameMap = { [myEmail]: chatDisplayName }
   messages.forEach(m => { if (m.email && m.name) nameMap[m.email] = m.name })
 
   // Forward a message to another room
   const forwardToRoom = (targetRoom, msg) => {
     const forwarded = {
-      id: Date.now(), email: myEmail, name: myName,
+      id: Date.now(), email: myEmail, name: chatDisplayName,
       at: new Date().toISOString(), reactions: {}, status: 'sent',
       text: msg.text || null,
       imageData: msg.imageData || null,
@@ -782,26 +750,25 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
   const send = () => {
     if (editingMsg) {
       const trimmed = input.trim(); if (!trimmed) return
-      stompRef.current?.publish({
-        destination: '/app/chat.edit',
-        body: JSON.stringify({ id: editingMsg.id, text: trimmed, roomId: room.id }),
-      })
+      const updated = messages.map(m =>
+        m.id === editingMsg.id ? { ...m, text: trimmed, edited: true } : m
+      )
+      setMessages(updated); saveM(room.id, updated)
       setEditingMsg(null); setInput(''); return
     }
     const text = input.trim(); if (!text) return
-    stompRef.current?.publish({
-      destination: '/app/chat.send',
-      body: JSON.stringify({
-        roomId: room.id,
-        senderEmail: myEmail,
-        senderName: myName,
-        text,
-        replyToId:   replyTo?.id   || null,
-        replyToName: replyTo?.name || null,
-        replyToText: replyTo?.text || null,
-      }),
-    })
+    const msg = {
+      id: Date.now(), email: myEmail, name: chatDisplayName, text,
+      at: new Date().toISOString(), reactions: {}, status:'sent',
+      replyTo: replyTo ? { id:replyTo.id, name:replyTo.name, text:replyTo.text, fileName:replyTo.fileName } : null,
+    }
+    const updated = [...messages, msg]
+    setMessages(updated); saveM(room.id, updated)
+    const rooms = load(ROOMS_KEY, [])
+    const idx = rooms.findIndex(r => r.id === room.id)
+    if (idx !== -1) { rooms[idx].lastMsg = text; rooms[idx].lastAt = msg.at; save(ROOMS_KEY, rooms) }
     setInput(''); setReplyTo(null)
+    const d = load(typingKey(room.id), {}); delete d[myEmail]; save(typingKey(room.id), d)
   }
 
   const handleFileSelect = (file) => {
@@ -815,7 +782,7 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
   const sendFile = (file, dataUrl) => {
     const isImage = !!dataUrl
     const msg = {
-      id: Date.now(), email: myEmail, name: myName,
+      id: Date.now(), email: myEmail, name: chatDisplayName,
       at: new Date().toISOString(), reactions: {}, status:'sent',
       replyTo: replyTo ? { ...replyTo } : null,
       ...(isImage
@@ -1150,21 +1117,20 @@ function ChatWindow({ room, myEmail, myName, myPhoto, onClose, isGroup=false }) 
 /* 
    INBOX
  */
-export default function ChatRoom({ onClose, myEmail='', myName='', profile=null }) {
-  const [rooms, setRooms] = useState([])
-
-  useEffect(() => {
-    if (!myEmail) return
-    fetch(`http://localhost:8080/api/chat/rooms?email=${encodeURIComponent(myEmail)}`)
-      .then(r => r.json())
-      .then(data => setRooms(data))
-      .catch(err => console.error('Failed to load rooms:', err))
-  }, [myEmail])
+export default function ChatRoom({ onClose, myEmail='', myName='', profile=null, initialRoom=null }) {
+  const [rooms,          setRooms]        = useState([])
   const [openRooms,      setOpenRooms]     = useState([])
   const [tab,            setTab]           = useState('chats')
   const [search,         setSearch]        = useState('')
   const [chatFilter,     setChatFilter]    = useState('all')
-  const [nickname,       setNickname]      = useState(() => localStorage.getItem(NICK_KEY) || myName)
+  // nickname is from localStorage only — completely independent from myName (real name from DB)
+  // On first open, seed from myName so it's not blank. After that localStorage is source of truth.
+  const [nickname, setNickname] = useState(() => {
+    const stored = localStorage.getItem(NICK_KEY)
+    if (stored) return stored
+    if (myName) { localStorage.setItem(NICK_KEY, myName); return myName }
+    return ''
+  })
   const [photo,          setPhoto]         = useState(() => localStorage.getItem(PHOTO_KEY) || '')
   const [showPhotoModal, setShowPhotoModal]= useState(false)
   const [menuOpenId,     setMenuOpenId]    = useState(null)
@@ -1177,6 +1143,23 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null 
     y: Math.max(20, window.innerHeight - 780),
   })
 
+  // Load rooms from MySQL
+  useEffect(() => {
+    if (!myEmail) return
+    fetch(`http://localhost:8080/api/chat/rooms?email=${encodeURIComponent(myEmail)}`)
+      .then(r => r.json())
+      .then(data => setRooms(Array.isArray(data) ? data.map(r => ({...r, id: r.roomId || r.id})) : []))
+      .catch(err => console.error('Failed to load rooms:', err))
+  }, [myEmail])
+
+  // Auto-open a room passed from Community page
+  useEffect(() => {
+    if (!initialRoom) return
+    const normalized = { ...initialRoom, id: initialRoom.roomId || initialRoom.id }
+    setOpenRooms([normalized])
+    setTab('chats')
+  }, [initialRoom])
+
   const handleProfileSave = ({ nickname:nick, photo:ph }) => {
     setNickname(nick); setPhoto(ph)
     localStorage.setItem(NICK_KEY, nick); localStorage.setItem(PHOTO_KEY, ph)
@@ -1186,6 +1169,12 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null 
   const openChat = (room, isGroup=false) =>
     setOpenRooms(prev => prev.find(r => r.id===room.id) ? prev : [...prev, {...room, isGroup}])
 
+  const deleteRoom = (id) => {
+    const updated = rooms.filter(r => r.id!==id); setRooms(updated); save(ROOMS_KEY, updated)
+    setOpenRooms(prev => prev.filter(r => r.id!==id))
+  }
+  const muteRoom  = (id) => { const u=rooms.map(r=>r.id===id?{...r,muted:!r.muted}:r); setRooms(u); save(ROOMS_KEY,u) }
+  const markRead  = (id) => { const u=rooms.map(r=>r.id===id?{...r,unread:0}:r); setRooms(u); save(ROOMS_KEY,u) }
   const blockRoom = (id) => { const u=[...blocked,id]; setBlocked(u); save(BLOCKED_KEY,u); deleteRoom(id) }
 
   const joinGroup = (gid) => {
@@ -1214,7 +1203,11 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null 
     return matchS && matchF
   })
 
-  const displayName  = profile?.name  || nickname || myName || '사용자'
+  // realName = from DB (via myName prop from App.jsx) — shown in profile tab
+  // nickname = from localStorage — shown in chat header and bubble
+  // chatDisplayName (in ChatWindow) = nickname if set, otherwise realName
+  const realName    = myName || '사용자'
+  const displayName = profile?.name || realName
   const displayEmail = profile?.email || myEmail  || '-'
   const joined = profile?.joinedAt ? new Date(profile.joinedAt).toLocaleDateString('ko-KR') : '-'
 
@@ -1266,14 +1259,25 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null 
                   <div className="ci-prof-hero-cam">📷</div>
                 </div>
                 <div className="ci-prof-hero-info">
-                  <div className="ci-prof-hero-name">{nickname||displayName}</div>
+                  {/* Nickname shown separately if set */}
+                  {nickname && nickname !== displayName && (
+                    <div className="ci-prof-hero-nick">{nickname}</div>
+                  )}
                   <div className="ci-prof-hero-email">{displayEmail}</div>
                 </div>
                 <div className="ci-prof-hero-arrow">›</div>
               </div>
               <div className="ci-section-label">기본 정보</div>
               <div className="ci-info-card">
-                {[['이름',profile?.name||displayName],['이메일',displayEmail],['사용자 유형',profile?.orgType||'개인 사용자'],['가입일',joined],['장애 등급',profile?.disabilityGrade||'-'],['주 사용 수어',profile?.preferredSign||'-']].map(([k,v]) => (
+                {[
+                  ['이름',        displayName],
+                  ['닉네임',      nickname || '(미설정 — 채팅 아이콘으로 변경)'],
+                  ['이메일',      displayEmail],
+                  ['사용자 유형', profile?.orgType||'개인 사용자'],
+                  ['가입일',      joined],
+                  ['장애 등급',   profile?.disabilityGrade||'-'],
+                  ['주 사용 수어',profile?.preferredSign||'-'],
+                ].map(([k,v]) => (
                   <div className="ci-info-row" key={k}><span className="ci-info-key">{k}</span><span className="ci-info-val">{v}</span></div>
                 ))}
               </div>
@@ -1372,8 +1376,8 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null 
     </div>
 
     {showPhotoModal && (
-      <ProfileEditModal nickname={nickname||myName} photo={photo} myName={myName}
-        onSave={handleProfileSave} onClose={() => setShowPhotoModal(false)}/>
+      <ProfileEditModal nickname={nickname} photo={photo} myName={myName}
+        onSave={handleProfileSave} onClose={() => setShowPhotoModal(false)}/> 
     )}
 
     {previewRoom && (
@@ -1384,7 +1388,7 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null 
 
     {openRooms.map(room => (
       <ChatWindow key={room.id} room={room} isGroup={!!room.isGroup}
-        myEmail={myEmail} myName={nickname||myName} myPhoto={photo}
+        myEmail={myEmail} myName={myName} myNickname={nickname} myPhoto={photo}
         onClose={() => setOpenRooms(prev => prev.filter(r => r.id!==room.id))}/>
     ))}
     </>

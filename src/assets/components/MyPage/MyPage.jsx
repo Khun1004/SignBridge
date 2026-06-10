@@ -60,6 +60,9 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
     const [delTarget,   setDelTarget]   = useState(null)  // { type:'case'|'conv', id, sessionId }
     const [modalVid,    setModalVid]    = useState(null)  // { url, idx } — 영상 모달
     const [delLoading,  setDelLoading]  = useState(false)
+    const [editAddress,       setEditAddress]       = useState('')
+    const [editAddressDetail, setEditAddressDetail] = useState('')
+    const [editZonecode,      setEditZonecode]      = useState('')
 
     // 프로필 편집
     const [editMode,    setEditMode]    = useState(false)
@@ -118,6 +121,9 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
         setEditName(profile?.name    || displayName || '')
         setEditGrade(profile?.disabilityGrade || '')
         setEditSign(profile?.preferredSign    || '')
+        setEditAddress(profile?.address       || '')
+        setEditAddressDetail(profile?.addressDetail || '')
+        setEditZonecode(profile?.zonecode     || '')
         setEditError('')
         setEditMode(true)
     }
@@ -131,12 +137,18 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
                 name:            editName.trim(),
                 disabilityGrade: editGrade.trim(),
                 preferredSign:   editSign.trim(),
+                address:         editAddress.trim(),
+                addressDetail:   editAddressDetail.trim(),
+                zonecode:        editZonecode.trim(),
             })
             onProfileUpdate?.({
                 ...profile,
                 name:            editName.trim(),
                 disabilityGrade: editGrade.trim(),
                 preferredSign:   editSign.trim(),
+                address:         editAddress.trim(),
+                addressDetail:   editAddressDetail.trim(),
+                zonecode:        editZonecode.trim(),
             })
             setEditMode(false)
         } catch (e) {
@@ -660,15 +672,19 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
                         </div>
                         <div className="mp-modal-body">
                             <div className="mp-edit-form">
+            
+                                {/* 기본 정보 */}
+                                <div className="mp-edit-section-label">기본 정보</div>
+            
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">이름 <span style={{color:'#ef4444'}}>*</span></label>
                                     <input className="mp-edit-input" value={editName}
-                                           onChange={e => setEditName(e.target.value)} placeholder="이름 입력"/>
+                                        onChange={e => setEditName(e.target.value)} placeholder="이름 입력"/>
                                 </div>
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">장애 등급</label>
                                     <input className="mp-edit-input" value={editGrade}
-                                           onChange={e => setEditGrade(e.target.value)} placeholder="예: 청각장애 1급"/>
+                                        onChange={e => setEditGrade(e.target.value)} placeholder="예: 청각장애 1급"/>
                                 </div>
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">주로 사용하는 수어</label>
@@ -681,9 +697,27 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
                                         <option>기타</option>
                                     </select>
                                 </div>
-                                {editError && (
-                                    <div className="mp-edit-error">⚠️ {editError}</div>
-                                )}
+            
+                                {/* 주소 정보 */}
+                                <div className="mp-edit-section-label" style={{marginTop:16}}>주소 정보</div>
+            
+                                <div className="mp-edit-field">
+                                    <label className="mp-edit-label">주소</label>
+                                    <input className="mp-edit-input" value={editAddress}
+                                        onChange={e => setEditAddress(e.target.value)} placeholder="주소 입력"/>
+                                </div>
+                                <div className="mp-edit-field">
+                                    <label className="mp-edit-label">상세주소</label>
+                                    <input className="mp-edit-input" value={editAddressDetail}
+                                        onChange={e => setEditAddressDetail(e.target.value)} placeholder="상세주소 입력"/>
+                                </div>
+                                <div className="mp-edit-field">
+                                    <label className="mp-edit-label">우편번호</label>
+                                    <input className="mp-edit-input" value={editZonecode}
+                                        onChange={e => setEditZonecode(e.target.value)} placeholder="우편번호 입력"/>
+                                </div>
+            
+                                {editError && <div className="mp-edit-error">⚠️ {editError}</div>}
                             </div>
                             <button className="mp-edit-save-btn"
                                     onClick={handleSaveProfile} disabled={editSaving}>
@@ -693,7 +727,6 @@ function PersonalMyPage({ displayName, profile, userEmail, onProfileUpdate, comm
                     </div>
                 </div>
             )}
-
             {/* ── 삭제 확인 모달 ── */}
             {delTarget && (
                 <DeleteConfirm

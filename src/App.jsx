@@ -132,7 +132,7 @@ export default function App() {
     const [convVideos,     setConvVideos]     = useState([])   // ConversationPage의 videos 배열
     const [showConv,       setShowConv]       = useState(false)
     const [registerScreen, setRegisterScreen] = useState(null)
-
+    const [chatInitialRoom, setChatInitialRoom] = useState(null)
     // 인증 상태
     const [authModal,    setAuthModal]    = useState(null)   // null | 'login' | 'signup'
     const [loggedIn,     setLoggedIn]     = useState(false)
@@ -234,6 +234,9 @@ export default function App() {
         localStorage.removeItem('userEmail');
         localStorage.removeItem('displayName');
         localStorage.removeItem('orgType');
+        // In handleLogout — add this:
+        localStorage.removeItem('sb_my_nickname')
+        localStorage.removeItem('sb_my_photo')
     }
 
     const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
@@ -245,6 +248,14 @@ export default function App() {
         }
     }
     const handleQuickCall = () => alert('전화 연결 기능은 준비 중입니다.')
+    const handleCommunityChat = (room) => {
+    if (!loggedIn) {
+        setAuthModal('login')
+        return
+    }
+    setChatInitialRoom(room)   // pre-open this specific room
+    setShowChat(true)
+}
     const renderMain = () => {
         
         if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
@@ -264,6 +275,7 @@ export default function App() {
                 onLoginRequired={() => setAuthModal('login')}
                 myProfile={communityProfile}
                 onProfileSave={setCommunityProfile}
+                onChat={handleCommunityChat}    // ← ADD THIS
             />
         )
         if (tab === 'about')     return <About onBack={() => setTab('home')} />
@@ -360,9 +372,10 @@ export default function App() {
             <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} />
             {showChat && (
                 <ChatRoom
-                    onClose={() => setShowChat(false)}
+                    onClose={() => { setShowChat(false); setChatInitialRoom(null) }}
                     myEmail={userEmail}
                     myName={displayName}
+                    initialRoom={chatInitialRoom}    // ← ADD THIS
                 />
             )}
 
