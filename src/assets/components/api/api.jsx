@@ -46,6 +46,13 @@ export const myPageApi = {
     }),
 };
 
+export const aiApi = {
+    chat: (userEmail, messages) => request('/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({ userEmail, messages }),
+    }),
+}
+
 // ── 출입국 케이스 API ──
 export const immigrationApi = {
     getCases:   (email) => request(`/immigration/cases?email=${encodeURIComponent(email)}`),
