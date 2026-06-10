@@ -3,6 +3,7 @@
 //  AI 채팅 창 — Gemini API 연동 + 타이핑 애니메이션
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from 'react'
+import { aiApi } from '../../../assets/components/api/api.jsx';
 import './AIChat.css'
 
 // ── 빠른 질문 ──────────────────────────────────────────────────
@@ -113,11 +114,7 @@ export default function AIChat({ onClose, loggedIn = false, displayName = '', us
                 .filter(m => !m.loading)
                 .map(m => ({ role: m.role, content: m.content }))
 
-            const data = await fetch('/api/ai/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userEmail, messages: history }),
-            }).then(r => r.json())
+            const data = await aiApi.chat(userEmail, history)
 
             const reply = data?.choices?.[0]?.message?.content ?? '응답을 가져오지 못했어요.'
 
