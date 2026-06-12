@@ -15,6 +15,8 @@ import RegisterPersonal    from './assets/components/RegisterPersonal/RegisterPe
 import RegisterImmigration from './assets/components/RegisterImmigration/RegisterImmigration.jsx'
 import RegisterPolice      from './assets/components/RegisterPolice/RegisterPolice.jsx'
 
+import SearchPage from './assets/components/Search/Search.jsx'
+import NotiPage   from './assets/components/Noti/Noti.jsx'
 import LoginPage  from './assets/components/LoginPage/LoginPage.jsx'
 import SignupPage from './assets/components/SignupPage/SignupPage.jsx'
 import DemoPage    from "./assets/components/DemoPage/DemoPage.jsx";
@@ -31,51 +33,16 @@ const MENUS = [
 ]
 
 const SAMPLE_NOTIFICATIONS = [
-    { id: 1, icon: '📋', text: '대화 기록 REC-002가 검토되었습니다.',          time: '5분 전',  unread: true  },
-    { id: 2, icon: '✅', text: 'IMM-2025-001 신청 처리가 완료되었습니다.',      time: '1시간 전', unread: true  },
-    { id: 3, icon: '⚠️', text: 'POL-2025-002 기록에 검토 요청이 있습니다.',    time: '어제',    unread: false },
+    { id: 1, icon: '🎉', text: '수어 번역 정확도가 98%를 달성했습니다!',        time: '방금 전',  unread: true,  category: 'system'    },
+    { id: 2, icon: '📋', text: '대화 기록 REC-002가 검토되었습니다.',           time: '5분 전',  unread: true,  category: 'translate' },
+    { id: 3, icon: '✅', text: 'IMM-2025-001 신청 처리가 완료되었습니다.',      time: '1시간 전', unread: true,  category: 'system'    },
+    { id: 4, icon: '📚', text: '새로운 수어 단어 50개가 추가되었습니다.',        time: '3시간 전', unread: false, category: 'update'    },
+    { id: 5, icon: '🤝', text: '커뮤니티에 새 멤버가 가입했습니다.',            time: '어제',    unread: false, category: 'community' },
+    { id: 6, icon: '🤟', text: '실시간 번역 기능이 업데이트되었습니다.',         time: '2일 전',  unread: false, category: 'translate' },
 ]
 
-// ── 알림 드롭다운 ──
-function NotificationDropdown({ notifications, onClose, onMarkAll }) {
-    const ref = useRef(null)
-    const [status, setStatus] = useState('')
 
-    useEffect(() => {
-        commonApi.getStatus()
-            .then(data => setStatus(`${data.project} 서버 상태: ${data.status}`))
-            .catch(err => console.error("연결 실패:", err));
-    }, []);
 
-    useEffect(() => {
-        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [onClose])
-
-    return (
-        <div className="notif-dropdown" ref={ref}>
-            <div className="notif-header">
-                <span className="notif-title">알림</span>
-                <button className="notif-mark-all" onClick={onMarkAll}>모두 읽음</button>
-            </div>
-            <div className="notif-list">
-                {notifications.map(n => (
-                    <div key={n.id} className={`notif-item ${n.unread ? 'unread' : ''}`}>
-                        <span className="notif-icon">{n.icon}</span>
-                        <div className="notif-body">
-                            <div className="notif-text">{n.text}</div>
-                            <div className="notif-time">{n.time}</div>
-                        </div>
-                        {n.unread && <div className="notif-dot" />}
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
-}
-
-// ── AI 채팅 창 ──
 function AiChatWindow({ onClose }) {
     const [messages, setMessages] = useState([
         { role: 'assistant', text: '안녕하세요! SignBridge AI 어시스턴트입니다. 수어나 서비스에 관해 궁금한 점을 물어보세요 🤟' }
@@ -177,7 +144,6 @@ function AiChatWindow({ onClose }) {
     )
 }
 
-// ── 오른쪽 플로팅 사이드바 ──
 function FloatingSidebar({ onChat, onCall, onAiChat }) {
     const scrollTo = (dir) =>
         window.scrollTo({ top: dir === 'top' ? 0 : document.body.scrollHeight, behavior: 'smooth' })
@@ -211,7 +177,6 @@ function FloatingSidebar({ onChat, onCall, onAiChat }) {
                 <span className="fsb-label">전화</span>
             </button>
 
-            {/* AI 채팅 버튼 */}
             <button className="fsb-btn fsb-ai" onClick={onAiChat} title="AI 채팅">
                 <span className="fsb-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -235,6 +200,7 @@ function FloatingSidebar({ onChat, onCall, onAiChat }) {
     )
 }
 
+
 // ── 메인 App ──
 export default function App() {
     const [tab,            setTab]            = useState('home')
@@ -248,7 +214,7 @@ export default function App() {
     const [showConv,       setShowConv]       = useState(false)
     const [registerScreen, setRegisterScreen] = useState(null)
     const [chatInitialRoom, setChatInitialRoom] = useState(null)
-    // 인증 상태
+
     const [authModal,    setAuthModal]    = useState(null)
     const [loggedIn,     setLoggedIn]     = useState(false)
     const [displayName,  setDisplayName]  = useState('')
@@ -256,19 +222,16 @@ export default function App() {
     const [userEmail,    setUserEmail]    = useState('')
     const [communityProfile, setCommunityProfile] = useState(null)
 
-    // 알림 상태
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
-    const [showNotifs, setShowNotifs] = useState(false)
     const unreadCount = notifs.filter(n => n.unread).length
 
-    // 채팅 / AI 채팅 상태
     const [showChat,   setShowChat]   = useState(false)
     const [showAiChat, setShowAiChat] = useState(false)
+    const [showSearch, setShowSearch] = useState(false)
+    const [showNoti,   setShowNoti]   = useState(false)
 
-    // 네비바에 표시할 짧은 이름
     const navLabel = displayName.length > 6 ? displayName.slice(0, 6) + '…' : displayName
 
-    // 새로고침 시 로그인 유지
     useEffect(() => {
         const savedEmail = localStorage.getItem('userEmail');
         const savedName  = localStorage.getItem('displayName');
@@ -342,12 +305,9 @@ export default function App() {
         localStorage.removeItem('userEmail');
         localStorage.removeItem('displayName');
         localStorage.removeItem('orgType');
-        // In handleLogout — add this:
         localStorage.removeItem('sb_my_nickname')
         localStorage.removeItem('sb_my_photo')
     }
-
-    const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
 
     const handleQuickChat = () => {
         if (!loggedIn) {
@@ -359,6 +319,12 @@ export default function App() {
 
     const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
     const handleQuickAiChat = () => setShowAiChat(v => !v)
+
+    // ── 커뮤니티에서 채팅 시작 ──
+    const handleCommunityChat = (room) => {
+        setChatInitialRoom(room)
+        setShowChat(true)
+    }
 
     const renderMain = () => {
         if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
@@ -378,7 +344,8 @@ export default function App() {
                 onLoginRequired={() => setAuthModal('login')}
                 myProfile={communityProfile}
                 onProfileSave={setCommunityProfile}
-                onChat={handleCommunityChat}    // ← ADD THIS
+                onProfileDelete={() => setCommunityProfile(null)}
+                onChat={handleCommunityChat}
             />
         )
         if (tab === 'about') return <About onBack={() => setTab('home')} />
@@ -407,26 +374,24 @@ export default function App() {
                     </div>
 
                     <div className="nav-actions">
-                        <form className="search-form" onSubmit={handleSearch}>
-                            <input className="search-input" placeholder="수어 검색..."
-                                   value={searchInput} onChange={e => setSearchInput(e.target.value)} />
-                            <button type="submit" className="search-btn">🔍</button>
-                        </form>
+                        <button className="nav-search-btn" onClick={() => setShowSearch(true)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <span>수어 검색...</span>
+                        </button>
 
-                        <div className="notif-wrap">
-                            <button className={`notif-btn ${unreadCount > 0 ? 'has-unread' : ''}`}
-                                    onClick={() => setShowNotifs(v => !v)} title="알림">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                                </svg>
-                                {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
-                            </button>
-                            {showNotifs && (
-                                <NotificationDropdown notifications={notifs}
-                                                      onClose={() => setShowNotifs(false)} onMarkAll={handleMarkAllRead} />
-                            )}
-                        </div>
+                        <button
+                            className={`nav-noti-btn ${unreadCount > 0 ? 'nav-noti-btn-active' : ''}`}
+                            onClick={() => setShowNoti(true)}
+                            title="알림"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                            {unreadCount > 0 && <span className="nav-noti-badge">{unreadCount}</span>}
+                        </button>
 
                         {loggedIn ? (
                             <div className="nav-user-group">
@@ -448,6 +413,23 @@ export default function App() {
 
                 <div className="navbar-bottom">
                     <nav className="navbar-bottom-inner">
+                        {/* ← 뒤로가기 버튼 */}
+                        {(showConv || registerScreen || showDemo || showAbout) && (
+                            <button
+                                className="nav-back-btn"
+                                onClick={() => {
+                                    if (registerScreen) { setRegisterScreen(null); return }
+                                    if (showConv)  { setShowConv(false); setTab('trans'); return }
+                                    if (showDemo)  { setShowDemo(false); setTab('home'); return }
+                                    if (showAbout) { setShowAbout(false); setTab('home'); return }
+                                }}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                                    <path d="M15 18l-6-6 6-6"/>
+                                </svg>
+                                뒤로
+                            </button>
+                        )}
                         {MENUS.map(m => (
                             <button key={m.id}
                                     className={`nav-menu-btn ${(isNormalTab && tab === m.id) || (showAbout && m.id === 'about') ? 'active' : ''}`}
@@ -471,12 +453,29 @@ export default function App() {
             {/* ── 플로팅 사이드바 ── */}
             <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} onAiChat={handleQuickAiChat} />
 
+            {/* 검색 전체화면 */}
+            {showSearch && (
+                <SearchPage
+                    onBack={() => setShowSearch(false)}
+                    onGoDict={(q) => { setQuery(q); setSearchInput(q); setShowConv(false); setRegisterScreen(null); setTab('dict'); setShowSearch(false) }}
+                />
+            )}
+
+            {/* 알림 전체화면 */}
+            {showNoti && (
+                <NotiPage
+                    notifications={notifs}
+                    setNotifications={setNotifs}
+                    onBack={() => setShowNoti(false)}
+                />
+            )}
+
             {showChat && (
                 <ChatRoom
                     onClose={() => { setShowChat(false); setChatInitialRoom(null) }}
                     myEmail={userEmail}
                     myName={displayName}
-                    initialRoom={chatInitialRoom}    // ← ADD THIS
+                    initialRoom={chatInitialRoom}
                 />
             )}
 

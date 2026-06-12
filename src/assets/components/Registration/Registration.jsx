@@ -119,18 +119,23 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
     }
     const validate3 = () => {
         const e = {}
-        const chatIdBlocked = !chatIdLocked && (
-            !form.chatId.trim() ||
-            !validateChatIdFormat(form.chatId) ||
-            chatIdStatus === 'taken' ||
-            chatIdStatus === 'checking' ||
-            chatIdStatus === 'invalid'
-        )
+
         if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
+
+        // 잠긴 상태가 아닐 때만 chatId 형식/중복 체크
+        if (!chatIdLocked) {
+            if (!validateChatIdFormat(form.chatId)) e.chatId = '올바른 형식이 아닙니다.'
+            if (chatIdStatus === 'taken')    e.chatId = '이미 사용 중인 ID입니다.'
+            if (chatIdStatus === 'checking') e.chatId = 'ID 확인 중입니다. 잠시 기다려 주세요.'
+            if (chatIdStatus === 'invalid')  e.chatId = '올바른 형식이 아닙니다.'
+            if (chatIdStatus === null && form.chatId.trim()) e.chatId = 'ID 중복 확인이 필요합니다.'
+        }
+
         if (form.contactType !== 'signbridge' && !form.contactValue.trim())
             e.contact = '연락처를 입력해 주세요.'
+
         setErrors(e)
-        return !chatIdBlocked && !e.contact
+        return Object.keys(e).length === 0
     }
 
     const next = () => {
