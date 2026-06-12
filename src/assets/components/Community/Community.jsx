@@ -13,17 +13,18 @@ export default function Community({
     onLoginRequired,
     myProfile = null,
     onProfileSave,
-    onProfileDelete,   // ← called after successful delete so App.jsx can clear myProfile
+    onProfileDelete,
     onChat,
 }) {
-    const [view,         setView]         = useState('list')
-    const [members,      setMembers]      = useState([])
-    const [listLoading,  setListLoading]  = useState(false)
-    const [selected,     setSelected]     = useState(null)
-    const [filterRole,   setFilterRole]   = useState('전체')
-    const [filterRegion, setFilterRegion] = useState('전체')
-    const [deleteConfirm, setDeleteConfirm] = useState(false)
-    const [deleteLoading, setDeleteLoading] = useState(false)
+    const [view,          setView]         = useState('list')
+    const [members,       setMembers]      = useState([])
+    const [listLoading,   setListLoading]  = useState(false)
+    const [selected,      setSelected]     = useState(null)  // currently viewing post
+    const [editingPost,   setEditingPost]  = useState(null)  // post being edited
+    const [filterRole,    setFilterRole]   = useState('전체')
+    const [filterRegion,  setFilterRegion] = useState('전체')
+    const [deleteConfirm, setDeleteConfirm]= useState(false)
+    const [deleteLoading, setDeleteLoading]= useState(false)
 
     const loadMembers = async (role='', region='') => {
         setListLoading(true)
@@ -31,7 +32,6 @@ export default function Community({
             const data = await communityApi.getMembers({ role, region })
             setMembers(Array.isArray(data) ? data : [])
         } catch (e) {
-            console.error('[Community] 목록 로드 실패:', e)
             setMembers([])
         } finally {
             setListLoading(false)
@@ -40,18 +40,27 @@ export default function Community({
 
     useEffect(() => { loadMembers(filterRole, filterRegion) }, [filterRole, filterRegion])
 
-    // ── Register / Edit ──────────────────────────────────────
+    // ── Register — always creates NEW post ───────────────
     const handleRegisterClick = () => {
         if (!userEmail) {
             alert('등록하려면 먼저 로그인 해야 합니다.')
             onLoginRequired?.()
             return
         }
+        setEditingPost(null)  // new post, no pre-fill
         setView('register')
     }
 
-    const handleEditClick = () => setView('edit')
+    // Get this user's existing chatId from the member list
+    const myExistingChatId = members.find(m => m.userEmail === userEmail)?.chatId || ''
 
+    // ── Edit specific post ────────────────────────────────
+    const handleEditPost = (post) => {
+        setEditingPost(post)
+        setView('edit')
+    }
+
+    // ── Submit (create or update) ─────────────────────────
     const handleRegisterSubmit = async (form) => {
         try {
             const certFileNames = (form.certFiles || []).map(f => f.name || f)
@@ -69,7 +78,21 @@ export default function Community({
                 publicProfile: form.publicProfile,
                 certFileNames,
             }
-            const saved = await communityApi.save(body)
+
+            let saved
+            if (editingPost?.id) {
+                // Update existing post via PUT
+                const res = await fetch(`/api/community/members/${editingPost.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                })
+                saved = await res.json()
+            } else {
+                // Create new post via POST
+                saved = await communityApi.save(body)
+            }
+
             const profileData = {
                 ...saved,
                 contact: { type: saved.contactType, value: saved.contactValue },
@@ -78,172 +101,137 @@ export default function Community({
             onProfileSave?.(profileData)
             await loadMembers(filterRole, filterRegion)
         } catch (e) {
-            console.error('[Community] 등록 실패:', e)
             alert('등록에 실패했습니다. 다시 시도해 주세요.')
         }
         setView('list')
+        setEditingPost(null)
     }
 
-    // ── Delete ───────────────────────────────────────────────
+    // ── Delete specific post ──────────────────────────────
     const handleDeleteConfirm = async () => {
+        if (!selected?.id) return
         setDeleteLoading(true)
         try {
-            await communityApi.delete(userEmail)
-            onProfileDelete?.()
+            const res = await fetch(
+                `/api/community/members/${selected.id}?email=${encodeURIComponent(userEmail)}`,
+                { method: 'DELETE' }
+            )
+            if (!res.ok) throw new Error('삭제 실패')
+            // If deleted post was the "myProfile", notify App.jsx
+            if (myProfile?.id === selected.id) onProfileDelete?.()
             await loadMembers(filterRole, filterRegion)
             setDeleteConfirm(false)
+            setView('list')
+            setSelected(null)
         } catch (e) {
-            console.error('[Community] 삭제 실패:', e)
             alert('삭제에 실패했습니다. 다시 시도해 주세요.')
         } finally {
             setDeleteLoading(false)
         }
     }
 
-    // ── Card click / chat ────────────────────────────────────
-    const handleCardClick = (member) => { setSelected(member); setView('detail') }
+    const handleCardClick  = (member) => { setSelected(member); setView('detail') }
+    const handleStartChat  = (room)   => { onChat?.(room); setView('list'); setSelected(null) }
 
-    const handleStartChat = (room) => {
-        onChat?.(room)
-        setView('list')
-        setSelected(null)
-    }
-
-    // ── Views ────────────────────────────────────────────────
+    // ── Views ─────────────────────────────────────────────
     if (view === 'register') {
         return (
             <Registration
                 defaultName={displayName}
-                existingChatId={''}          // new registration — no prior chatId
+                existingChatId={myExistingChatId}
                 onBack={() => setView('list')}
                 onSubmit={handleRegisterSubmit}
             />
         )
     }
 
-    if (view === 'edit') {
+    if (view === 'edit' && editingPost) {
         return (
             <Registration
                 defaultName={displayName}
-                initialData={myProfile}
-                existingChatId={myProfile?.chatId || ''}
+                initialData={editingPost}
+                existingChatId={editingPost?.chatId || ''}
                 isEdit
-                onBack={() => setView('list')}
+                onBack={() => { setView('detail'); }}
                 onSubmit={handleRegisterSubmit}
             />
         )
     }
 
     if (view === 'detail' && selected) {
+        const isMyPost = selected.userEmail === userEmail
         return (
-            <CommunityPersonalDetail
-                member={selected}
-                myEmail={userEmail}
-                myName={displayName}
-                onChat={handleStartChat}
-                onBack={() => { setView('list'); setSelected(null) }}
-            />
+            <>
+                <CommunityPersonalDetail
+                    member={selected}
+                    myEmail={userEmail}
+                    myName={displayName}
+                    onChat={handleStartChat}
+                    onBack={() => { setView('list'); setSelected(null) }}
+                    isMyProfile={isMyPost}
+                    onEdit={() => handleEditPost(selected)}
+                    onDelete={() => setDeleteConfirm(true)}
+                />
+                {deleteConfirm && (
+                    <div className="cm-modal-overlay" onClick={() => setDeleteConfirm(false)}>
+                        <div className="cm-modal" onClick={e => e.stopPropagation()}>
+                            <div className="cm-modal-icon">🗑</div>
+                            <div className="cm-modal-title">이 게시물을 삭제할까요?</div>
+                            <div className="cm-modal-desc">삭제하면 목록에서 사라지며 복구할 수 없습니다.</div>
+                            <div className="cm-modal-btns">
+                                <button className="cm-modal-cancel" onClick={() => setDeleteConfirm(false)}>취소</button>
+                                <button className="cm-modal-confirm" onClick={handleDeleteConfirm} disabled={deleteLoading}>
+                                    {deleteLoading ? '삭제 중...' : '삭제하기'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </>
         )
     }
 
+    // ── List view ─────────────────────────────────────────
     return (
         <div className="community-page">
-            {/* ── Header ── */}
             <div className="cm-header">
                 <div>
                     <div className="cm-header-tag">COMMUNITY</div>
                     <h1 className="cm-title">커뮤니티</h1>
                     <p className="cm-subtitle">수어 선생님, 통역사, 학습자를 찾아보세요</p>
                 </div>
-                {/* Show register button only when user has no profile yet */}
-                {!myProfile && (
-                    <button className="cm-register-btn" onClick={handleRegisterClick}>
-                        + 등록하기
-                    </button>
-                )}
+                <button className="cm-register-btn" onClick={handleRegisterClick}>+ 등록하기</button>
             </div>
 
-            {/* ── My profile banner with Edit / Delete ── */}
-            {myProfile && (
-                <div className="cm-my-profile-banner">
-                    <div className="cm-my-profile-left">
-                        <div className="cm-card-avatar"
-                             style={{width:36,height:36,fontSize:14,borderRadius:10,flexShrink:0}}>
-                            {myProfile.avatar}
-                        </div>
-                        <div>
-                            <div style={{fontSize:12,color:'#6366f1',fontWeight:700}}>내 커뮤니티 프로필</div>
-                            <div style={{fontSize:13,fontWeight:700,color:'#1e1b4b'}}>
-                                {myProfile.name} · {myProfile.role}
-                                {myProfile.chatId && (
-                                    <span style={{color:'#6366f1',marginLeft:6,fontWeight:600}}>
-                                        @{myProfile.chatId}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="cm-my-profile-actions">
-                        <span className="cm-region-badge">📍 {myProfile.region}</span>
-                        <button className="cm-edit-btn" onClick={handleEditClick}>✏️ 수정</button>
-                        <button className="cm-delete-btn" onClick={() => setDeleteConfirm(true)}>🗑 삭제</button>
-                    </div>
-                </div>
-            )}
-
-            {/* ── Delete confirmation modal ── */}
-            {deleteConfirm && (
-                <div className="cm-modal-overlay" onClick={() => setDeleteConfirm(false)}>
-                    <div className="cm-modal" onClick={e => e.stopPropagation()}>
-                        <div className="cm-modal-icon">🗑</div>
-                        <div className="cm-modal-title">프로필을 삭제할까요?</div>
-                        <div className="cm-modal-desc">삭제하면 커뮤니티 목록에서 사라지며 복구할 수 없습니다.</div>
-                        <div className="cm-modal-btns">
-                            <button className="cm-modal-cancel" onClick={() => setDeleteConfirm(false)}>취소</button>
-                            <button className="cm-modal-confirm" onClick={handleDeleteConfirm} disabled={deleteLoading}>
-                                {deleteLoading ? '삭제 중...' : '삭제하기'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ── Filters ── */}
             <div className="cm-filters">
                 <div className="cm-filter-group">
                     <span className="cm-filter-label">역할</span>
                     {['전체', ...ROLE_OPTIONS].map(r => (
-                        <button key={r}
-                                className={`cm-filter-btn ${filterRole===r?'active':''}`}
-                                onClick={() => setFilterRole(r)}>{r}</button>
+                        <button key={r} className={`cm-filter-btn ${filterRole===r?'active':''}`}
+                            onClick={() => setFilterRole(r)}>{r}</button>
                     ))}
                 </div>
                 <div className="cm-filter-group">
                     <span className="cm-filter-label">지역</span>
                     {['전체', ...REGION_OPTIONS].map(r => (
-                        <button key={r}
-                                className={`cm-filter-btn ${filterRegion===r?'active':''}`}
-                                onClick={() => setFilterRegion(r)}>{r}</button>
+                        <button key={r} className={`cm-filter-btn ${filterRegion===r?'active':''}`}
+                            onClick={() => setFilterRegion(r)}>{r}</button>
                     ))}
                 </div>
             </div>
 
-            {/* ── Member list ── */}
             <div className="cm-list">
                 {listLoading ? (
                     <div className="cm-empty">불러오는 중...</div>
                 ) : members.length === 0 ? (
                     <div className="cm-empty">조건에 맞는 멤버가 없습니다.</div>
                 ) : members.map(member => (
-                    <div className="cm-card" key={member.id}
-                         onClick={() => handleCardClick(member)}>
+                    <div className="cm-card" key={member.id} onClick={() => handleCardClick(member)}>
                         <div className="cm-card-avatar">{member.avatar}</div>
                         <div className="cm-card-info">
                             <div className="cm-card-name">
                                 {member.name}
-                                {member.chatId && (
-                                    <span className="cm-card-chatid"> @{member.chatId}</span>
-                                )}
+                                {member.chatId && <span className="cm-card-chatid"> @{member.chatId}</span>}
                             </div>
                             <div className="cm-card-meta">
                                 <span className="cm-role-badge">{member.role}</span>
