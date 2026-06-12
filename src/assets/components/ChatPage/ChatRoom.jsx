@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import './ChatRoom.css'
-
-/* 
-   localStorage helpers
- */
+import chatService from './chatService'
 const ROOMS_KEY   = 'sb_chat_rooms'
-const NICK_KEY    = 'sb_my_nickname'
-const PHOTO_KEY   = 'sb_my_photo'
+const NICK_KEY  = (email) => `sb_my_nickname_${email}`
+const PHOTO_KEY = (email) => `sb_my_photo_${email}`
 const BLOCKED_KEY = 'sb_blocked'
 const typingKey   = (id) => `sb_typing_${id}`
 const msgsKey     = (id) => `sb_chat_msgs_${id}`
@@ -19,13 +16,8 @@ const save  = (k, v)  => localStorage.setItem(k, JSON.stringify(v))
 const loadM = (id)    => load(msgsKey(id), [])
 const saveM = (id, m) => save(msgsKey(id), m)
 
-/* 
-   Constants
- */
-// Quick reactions shown in the hover bar (6 + "+" button)
 const QUICK_REACTIONS = ['❤️','😂','😮','😢','😡','👍']
 
-// Full emoji picker — categorised
 const EMOJI_CATEGORIES = [
   { label: '자주 쓰는', emojis: ['❤️','😂','😮','😢','😡','👍','🔥','🙏','👏','🤟','💯','😍'] },
   { label: '스마일', emojis: ['😀','😃','😄','😁','😆','🥹','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳'] },
@@ -60,9 +52,6 @@ const OFFICIAL_ROOMS = [
   },
 ]
 
-/* 
-   Formatters
- */
 const fmtTime     = (iso) => new Date(iso).toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' })
 const fmtDate     = (iso) => {
   const d = new Date(iso), today = new Date()
@@ -83,9 +72,21 @@ const fmtFileSize = (b) =>
   b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(1)} MB`
 const fmtMembers  = (n) => n >= 1000 ? `${(n/1000).toFixed(1)}k` : n
 
-/* 
-   useDrag
- */
+// Helper: get the other person's name in a 1:1 room
+const getOtherName = (room, myEmail, messages) => {
+  if (!room || room.isGroup) return room?.name || ''
+  // Try from participants + message history
+  if (room.participants) {
+    const parts = room.participants.split(',').map(e => e.trim())
+    const otherEmail = parts.find(e => e !== myEmail)
+    if (otherEmail) {
+      const otherMsg = messages?.find(m => m.email === otherEmail)
+      if (otherMsg?.name) return otherMsg.name
+    }
+  }
+  return room.name || '상대방'
+}
+
 function useDrag(init) {
   const [pos, setPos] = useState(init)
   const drag = useRef(false)
@@ -106,10 +107,6 @@ function useDrag(init) {
   return { pos, onMouseDown }
 }
 
-/* 
-   usePopoverDir — returns 'up' or 'down' based on
-   whether the element is in the bottom 45% of the messages container
- */
 function usePopoverDir(ref) {
   const [dir, setDir] = useState('up')
   useEffect(() => {
@@ -119,7 +116,6 @@ function usePopoverDir(ref) {
     if (!container) return
     const elRect  = el.getBoundingClientRect()
     const conRect = container.getBoundingClientRect()
-    // If the element's vertical midpoint is in the bottom 45% → open up, else down
     const relY = (elRect.top + elRect.height / 2) - conRect.top
     setDir(relY > conRect.height * 0.55 ? 'up' : 'down')
   })
@@ -148,38 +144,22 @@ const IconMsgSrch = () => <Ico w={18} h={18} d={<><circle cx="11" cy="11" r="8"/
 const IconMembers = () => <Ico w={18} h={18} d={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>}/>
 const IconRoomDots= () => <Ico w={16} h={16} fill="currentColor" sw={0} d={<><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></>}/>
 
-/* 
-   FULL EMOJI PICKER PANEL
-   Opens when user clicks "+" in quick reaction bar
- */
 function FullEmojiPicker({ onSelect, onClose, isMe, dir='up' }) {
   const [search, setSearch] = useState('')
-  const [tab,    setTab]    = useState(0)
   const ref = useRef(null)
-
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
     setTimeout(() => document.addEventListener('mousedown', h), 0)
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
-
   const allEmojis = EMOJI_CATEGORIES.flatMap(c => c.emojis)
-  const filtered  = search.trim()
-    ? allEmojis.filter(e => e.includes(search))
-    : null
-
-  const cats = filtered
-    ? [{ label: `"${search}" 결과`, emojis: filtered }]
-    : EMOJI_CATEGORIES
-
+  const filtered  = search.trim() ? allEmojis.filter(e => e.includes(search)) : null
+  const cats = filtered ? [{ label: `"${search}" 결과`, emojis: filtered }] : EMOJI_CATEGORIES
   return (
-    <div ref={ref}
-      className={`cw-full-picker nd ${isMe ? 'cw-full-picker-left' : 'cw-full-picker-right'} cw-pop-${dir}`}>
+    <div ref={ref} className={`cw-full-picker nd ${isMe ? 'cw-full-picker-left' : 'cw-full-picker-right'} cw-pop-${dir}`}>
       <div className="cw-fp-search-row">
         <span className="cw-fp-search-icon"><IconSearch/></span>
-        <input className="cw-fp-search nd" autoFocus
-          placeholder="이모지 검색…"
-          value={search} onChange={e => setSearch(e.target.value)}/>
+        <input className="cw-fp-search nd" autoFocus placeholder="이모지 검색…" value={search} onChange={e => setSearch(e.target.value)}/>
       </div>
       <div className="cw-fp-body">
         {cats.map((cat, ci) => (
@@ -192,36 +172,24 @@ function FullEmojiPicker({ onSelect, onClose, isMe, dir='up' }) {
             </div>
           </div>
         ))}
-        {filtered && filtered.length === 0 && (
-          <div className="cw-fp-empty">이모지를 찾을 수 없어요</div>
-        )}
+        {filtered && filtered.length === 0 && <div className="cw-fp-empty">이모지를 찾을 수 없어요</div>}
       </div>
     </div>
   )
 }
 
-/* 
-   QUICK REACTION BAR  ❤️ 😂 😮 😢 😡 👍  +
- */
 function QuickReactionBar({ msgId, myReaction, isMe, dir='up', onReact, onOpenFull, onClose }) {
   return (
     <div className={`cw-quick-bar nd ${isMe ? 'cw-quick-bar-left' : 'cw-quick-bar-right'} cw-pop-${dir}`}>
       {QUICK_REACTIONS.map(e => (
-        <button key={e}
-          className={`cw-quick-btn nd ${myReaction === e ? 'cw-quick-active' : ''}`}
-          onClick={() => { onReact(msgId, e); onClose() }}>
-          {e}
-        </button>
+        <button key={e} className={`cw-quick-btn nd ${myReaction === e ? 'cw-quick-active' : ''}`}
+          onClick={() => { onReact(msgId, e); onClose() }}>{e}</button>
       ))}
       <button className="cw-quick-plus nd" onClick={onOpenFull} title="더 많은 이모지">+</button>
     </div>
   )
 }
 
-/* 
-   THREE-DOT CONTEXT MENU (per message)
-   Matches image 1: Edit / Forward / Copy / Translate / Pin / Unsend
- */
 function MsgContextMenu({ msg, isMe, isPinned, dir='up', onEdit, onDelete, onCopy, onForward, onPin, onClose }) {
   const ref = useRef(null)
   useEffect(() => {
@@ -229,20 +197,14 @@ function MsgContextMenu({ msg, isMe, isPinned, dir='up', onEdit, onDelete, onCop
     setTimeout(() => document.addEventListener('mousedown', h), 0)
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
-
-  const fmtMsgTime = msg.at
-    ? new Date(msg.at).toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' })
-    : ''
-
+  const fmtMsgTime = msg.at ? new Date(msg.at).toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' }) : ''
   const item = (icon, label, onClick, danger=false, disabled=false) => (
-    <button
-      className={`cw-ctx-menu-item nd ${danger?'cw-ctx-menu-danger':''} ${disabled?'cw-ctx-menu-disabled':''}`}
+    <button className={`cw-ctx-menu-item nd ${danger?'cw-ctx-menu-danger':''} ${disabled?'cw-ctx-menu-disabled':''}`}
       onClick={(e) => { e.stopPropagation(); if (!disabled) { onClick(); onClose() } }}>
       <span className="cw-ctx-menu-label">{label}</span>
       <span className="cw-ctx-menu-icon">{icon}</span>
     </button>
   )
-
   return (
     <div ref={ref} className={`cw-ctx-menu nd ${isMe ? 'cw-ctx-menu-left' : 'cw-ctx-menu-right'} cw-pop-${dir}`}
          onClick={e => e.stopPropagation()}>
@@ -251,18 +213,11 @@ function MsgContextMenu({ msg, isMe, isPinned, dir='up', onEdit, onDelete, onCop
       {item(<IconForward/>, 'Forward', onForward)}
       {!msg.imageData && !msg.fileName && item(<IconCopy/>, 'Copy', onCopy)}
       {item(<IconPin/>, isPinned ? 'Unpin' : 'Pin', onPin)}
-      {isMe && item(
-        <span style={{color:'#ef4444',display:'flex'}}><IconTrash/></span>,
-        'Unsend', onDelete, true
-      )}
+      {isMe && item(<span style={{color:'#ef4444',display:'flex'}}><IconTrash/></span>, 'Unsend', onDelete, true)}
     </div>
   )
 }
 
-/* 
-   WHO REACTED PANEL
-   nameMap: { email → nickname } built from message history
- */
 function WhoReacted({ reactions, nameMap, dir='up', onClose }) {
   const ref = useRef(null)
   useEffect(() => {
@@ -270,13 +225,9 @@ function WhoReacted({ reactions, nameMap, dir='up', onClose }) {
     setTimeout(() => document.addEventListener('mousedown', h), 0)
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
-
   const who = Object.entries(reactions || {}).map(([email, emoji]) => ({
-    email,
-    emoji,
-    name: nameMap?.[email] || email.split('@')[0],   // nickname > local-part of email
+    email, emoji, name: nameMap?.[email] || email.split('@')[0],
   }))
-
   return (
     <div ref={ref} className={`cw-who-reacted nd cw-pop-${dir}`}>
       <div className="cw-who-reacted-hd">
@@ -296,9 +247,6 @@ function WhoReacted({ reactions, nameMap, dir='up', onClose }) {
   )
 }
 
-/* 
-   MEMBER PANEL
- */
 function MemberPanel({ roomId, myEmail, myName, onClose }) {
   const members = load(membersKey(roomId), [])
   const all = members.find(m => m.email === myEmail)
@@ -326,9 +274,6 @@ function MemberPanel({ roomId, myEmail, myName, onClose }) {
   )
 }
 
-/* 
-   IMAGE PREVIEW MODAL
- */
 function ImagePreview({ file, dataUrl, onSend, onCancel }) {
   return (
     <div className="cw-img-preview-overlay nd" onClick={onCancel}>
@@ -353,9 +298,6 @@ function ImagePreview({ file, dataUrl, onSend, onCancel }) {
   )
 }
 
-/* 
-   GROUP PREVIEW MODAL
- */
 function GroupPreviewModal({ room, onJoin, onClose }) {
   return (
     <div className="ci-modal-overlay nd" onClick={onClose}>
@@ -365,10 +307,7 @@ function GroupPreviewModal({ room, onJoin, onClose }) {
           <button className="ci-gp-close nd" onClick={onClose}><IconX/></button>
         </div>
         <div className="ci-gp-info">
-          <div className="ci-gp-name">
-            {room.name}
-            {room.isOfficial && <span className="ci-official-badge">공식</span>}
-          </div>
+          <div className="ci-gp-name">{room.name}{room.isOfficial && <span className="ci-official-badge">공식</span>}</div>
           <div className="ci-gp-desc">{room.description}</div>
           <div className="ci-gp-meta">👥 {fmtMembers(room.memberCount)}명 참여 중</div>
         </div>
@@ -392,14 +331,9 @@ function GroupPreviewModal({ room, onJoin, onClose }) {
   )
 }
 
-/* 
-   MSG SEARCH PANEL
- */
 function MsgSearchPanel({ messages, onJump, onClose }) {
   const [q, setQ] = useState('')
-  const results = q.trim()
-    ? messages.filter(m => (m.text||m.fileName||'').toLowerCase().includes(q.toLowerCase()))
-    : []
+  const results = q.trim() ? messages.filter(m => (m.text||m.fileName||'').toLowerCase().includes(q.toLowerCase())) : []
   return (
     <div className="cw-msgsearch nd">
       <div className="cw-msgsearch-hd">
@@ -408,8 +342,7 @@ function MsgSearchPanel({ messages, onJump, onClose }) {
       </div>
       <div className="cw-msgsearch-input-wrap">
         <IconSearch/>
-        <input className="cw-msgsearch-input nd" autoFocus
-          placeholder="검색어 입력..." value={q} onChange={e => setQ(e.target.value)}/>
+        <input className="cw-msgsearch-input nd" autoFocus placeholder="검색어 입력..." value={q} onChange={e => setQ(e.target.value)}/>
       </div>
       <div className="cw-msgsearch-results">
         {q.trim() && !results.length && <div className="cw-msgsearch-empty">결과 없음</div>}
@@ -429,9 +362,6 @@ function MsgSearchPanel({ messages, onJump, onClose }) {
   )
 }
 
-/* 
-   PINNED BAR
- */
 function PinnedBar({ pinned, onJump, onUnpin }) {
   if (!pinned) return null
   return (
@@ -446,9 +376,6 @@ function PinnedBar({ pinned, onJump, onUnpin }) {
   )
 }
 
-/* 
-   TYPING INDICATOR
- */
 function TypingIndicator({ roomId, myEmail }) {
   const [typers, setTypers] = useState([])
   useEffect(() => {
@@ -470,9 +397,6 @@ function TypingIndicator({ roomId, myEmail }) {
   )
 }
 
-/* 
-   PROFILE EDIT MODAL
- */
 function ProfileEditModal({ nickname, photo, myName, onSave, onClose }) {
   const [nickInput, setNick]   = useState(nickname)
   const [photoInput, setPhoto] = useState(photo||'')
@@ -516,10 +440,7 @@ function ProfileEditModal({ nickname, photo, myName, onSave, onClose }) {
   )
 }
 
-/* 
-   ROOM CONTEXT MENU
- */
-function RoomMenu({ room, onMarkRead, onMute, onDelete, onBlock, onClose }) {
+function RoomMenu({ room, onMarkRead, onMute, onDelete, onBlock, onLeave, onClose }) {
   const ref = useRef(null)
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
@@ -536,15 +457,21 @@ function RoomMenu({ room, onMarkRead, onMute, onDelete, onBlock, onClose }) {
     <div ref={ref} className="ci-room-menu nd" onClick={e => e.stopPropagation()}>
       {room.unread > 0 && item('✓','읽음으로 표시', onMarkRead)}
       {item(room.muted?'🔔':'🔕', room.muted?'알림 켜기':'알림 끄기', onMute)}
-      {item('🗑','대화 삭제', onDelete, true)}
-      {item('🚫','차단하기', onBlock, true)}
+      {room.isGroup ? (
+        <>
+          {item('🗑','삭제하기', onDelete, true)}
+          {item('🚪','나가기', onLeave, true)}
+        </>
+      ) : (
+        <>
+          {item('🗑','대화 삭제', onDelete, true)}
+          {item('🚫','차단하기', onBlock, true)}
+        </>
+      )}
     </div>
   )
 }
 
-/* 
-   OFFICIAL ROOM BANNER
- */
 function OfficialRoomBanner({ room, joined, onJoin, onLeave, onOpen, onPreview }) {
   return (
     <div className="ci-official-banner nd">
@@ -563,53 +490,34 @@ function OfficialRoomBanner({ room, joined, onJoin, onLeave, onOpen, onPreview }
           </div>
         </div>
       </div>
-      <button className={`ci-official-join nd ${joined?'ci-official-leave':''}`}
-        onClick={joined ? onLeave : onJoin}>
+      <button className={`ci-official-join nd ${joined?'ci-official-leave':''}`} onClick={joined ? onLeave : onJoin}>
         {joined ? '나가기' : '참여하기'}
       </button>
     </div>
   )
 }
 
-/* 
-   FORWARD MODAL — pick a room to forward to
- */
 function ForwardModal({ msg, currentRoomId, onForward, onClose }) {
   const rooms  = load(ROOMS_KEY, []).filter(r => r.id !== currentRoomId)
   const joined = load('sb_joined_groups', [])
   const groups = OFFICIAL_ROOMS.filter(r => joined.includes(r.id) && r.id !== currentRoomId)
   const all    = [...rooms, ...groups]
-
-  const preview = msg.text
-    ? (msg.text.length > 55 ? msg.text.slice(0, 55) + '…' : msg.text)
-    : msg.fileName || '파일'
-
+  const preview = msg.text ? (msg.text.length > 55 ? msg.text.slice(0, 55) + '…' : msg.text) : msg.fileName || '파일'
   return (
     <div className="ci-modal-overlay nd" onClick={onClose}>
       <div className="cw-fwd-modal nd" onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
         <div className="cw-fwd-hd">
           <span className="cw-fwd-hd-title">메시지 전달</span>
           <button className="cw-fwd-close nd" onClick={onClose}><IconX/></button>
         </div>
-
-        {/* What's being forwarded */}
         <div className="cw-fwd-preview">
           <span className="cw-fwd-preview-label">↪ 전달할 메시지</span>
           <span className="cw-fwd-preview-text">{preview}</span>
         </div>
-
-        {/* Section label */}
         <div className="cw-fwd-section">대화 선택</div>
-
-        {/* Room list */}
         <div className="cw-fwd-list">
           {all.length === 0 ? (
-            <div className="cw-fwd-empty">
-              <div className="cw-fwd-empty-icon">💬</div>
-              <div>전달할 대화방이 없어요</div>
-            </div>
+            <div className="cw-fwd-empty"><div className="cw-fwd-empty-icon">💬</div><div>전달할 대화방이 없어요</div></div>
           ) : all.map(r => (
             <div key={r.id} className="cw-fwd-room nd">
               <div className="cw-fwd-room-av">{r.avatar}</div>
@@ -617,9 +525,7 @@ function ForwardModal({ msg, currentRoomId, onForward, onClose }) {
                 <div className="cw-fwd-room-name">{r.name}</div>
                 {r.sub && <div className="cw-fwd-room-sub">{r.sub}</div>}
               </div>
-              <button className="cw-fwd-send-btn nd" onClick={() => onForward(r, msg)}>
-                전달
-              </button>
+              <button className="cw-fwd-send-btn nd" onClick={() => onForward(r, msg)}>전달</button>
             </div>
           ))}
         </div>
@@ -628,84 +534,245 @@ function ForwardModal({ msg, currentRoomId, onForward, onClose }) {
   )
 }
 
-/* 
-   CHAT WINDOW
- */
-function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGroup=false }) {
-  // displayName = what others see in chat bubbles (nickname if set, otherwise real name)
-  const chatDisplayName = myNickname || myName
-  const [messages,   setMessages]   = useState(() => loadM(room.id))
-  const [input,      setInput]      = useState('')
-  const [popover,    setPopover]    = useState(null)
-  const [replyTo,    setReplyTo]    = useState(null)
-  const [editingMsg, setEditingMsg] = useState(null)
-  const [pinned,     setPinned]     = useState(() => load(pinnedKey(room.id), null))
-  const [showSearch, setShowSearch] = useState(false)
-  const [showMembers,setShowMembers]= useState(false)
-  const [imgPreview, setImgPreview] = useState(null)
-  const [readState,  setReadState]  = useState({})
-  // Forward: { msg } — shows room-picker modal
-  const [forwardMsg, setForwardMsg] = useState(null)
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAT WINDOW — clean rewrite
+   Rules:
+   1. Load messages from backend on open
+   2. WebSocket subscription for real-time
+   3. Poll every 3s as backup
+   4. Optimistic send (show immediately, replace with server msg)
+   5. READ receipt when window is open
+   6. Show "1" on my messages until other person reads
+═══════════════════════════════════════════════════════════════ */
+function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGroup=false, onRefreshRooms, userNames={} }) {
+  const displayName = myNickname || myName
+
+  const [messages,    setMessages]   = useState([])
+  const [input,       setInput]      = useState('')
+  const [replyTo,     setReplyTo]    = useState(null)
+  const [editingMsg,  setEditingMsg] = useState(null)
+  const [popover,     setPopover]    = useState(null)
+  const [pinned,      setPinned]     = useState(null)
+  const [showSearch,  setShowSearch] = useState(false)
+  const [showMembers, setShowMembers]= useState(false)
+  const [imgPreview,  setImgPreview] = useState(null)
+  const [forwardMsg,  setForwardMsg] = useState(null)
+  const [readByOther, setReadByOther]= useState(false) // has other person read my messages?
 
   const bottomRef   = useRef(null)
   const msgRefs     = useRef({})
   const fileRef     = useRef(null)
-  const typingTimer = useRef(null)
   const inputRef    = useRef(null)
+  const typingTimer = useRef(null)
 
   const { pos, onMouseDown } = useDrag({
     x: Math.max(20, window.innerWidth  - 980),
     y: Math.max(20, window.innerHeight - 780),
   })
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
+  // Other person's email for display
+  const otherEmail = !isGroup && room.participants
+    ? room.participants.split(',').map(e=>e.trim()).find(e=>e!==myEmail) || ''
+    : ''
 
+  // Room display name — use account name from userNames cache (most reliable)
+  const getRoomDisplayName = () => {
+    if (isGroup) return room.name
+    if (!otherEmail) return room.name || '상대방'
+    // Best: account name from users API cache
+    if (userNames[otherEmail]) return userNames[otherEmail]
+    // Second best: from actual messages
+    const fromMsg = messages.find(m => m.email === otherEmail)?.name
+    if (fromMsg) return fromMsg
+    if (!room.participants) return room.name || otherEmail.split('@')[0]
+    const parts = room.participants.split(',').map(e => e.trim())
+    const iAmA = parts[0] === myEmail
+    if (iAmA) {
+      if (room.name && !room.name.includes('@')) return room.name
+    } else {
+      if (room.sub && !room.sub.includes('@')) return room.sub
+    }
+    return otherEmail.split('@')[0]
+  }
+  const roomDisplayName = getRoomDisplayName()
+
+  // Convert backend message to local format
+  const toLocal = (m) => ({
+    id: m.id,
+    email: m.senderEmail || m.email,
+    name: m.senderName || m.name,
+    text: m.text,
+    at: m.sentAt || m.at,
+    reactions: m.reactions || {},
+    edited: !!m.isEdited || !!m.edited,
+    replyTo: m.replyTo || null,
+    fileName: m.fileName || null,
+    fileSize: m.fileSize || null,
+    imageData: m.imageData || null,
+    forwarded: !!m.forwarded,
+    forwardedFrom: m.forwardedFrom || null,
+    isSystem: !!m.isSystem,
+  })
+
+  // ── Scroll to bottom ────────────────────────────────────────────────────────
   useEffect(() => {
-    const h = () => { setMessages(loadM(room.id)); setPinned(load(pinnedKey(room.id), null)) }
-    window.addEventListener('storage', h)
-    return () => window.removeEventListener('storage', h)
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages.length])
+
+  // ── Load history + subscribe + poll ─────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+
+    // Load history
+    fetch(`http://localhost:8080/api/chat/rooms/${room.id}/messages`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled || !Array.isArray(data)) return
+        setMessages(data.map(toLocal))
+      })
+      .catch(() => {})
+
+    // Real-time subscription
+    const unsub = chatService.subscribeToRoom(room.id, (msg) => {
+      if (msg.type === 'DELETE') {
+        setMessages(prev => prev.filter(m => String(m.id) !== String(msg.id)))
+        return
+      }
+      if (msg.type === 'EDIT') {
+        setMessages(prev => prev.map(m =>
+          String(m.id) === String(msg.id) ? {...m, text: msg.text, edited: true} : m
+        ))
+        return
+      }
+      if (msg.type === 'READ') {
+        setReadByOther(true)
+        return
+      }
+      // New message — replace temp or add new
+      const incoming = toLocal({
+        id: msg.id, senderEmail: msg.senderEmail, senderName: msg.senderName,
+        text: msg.text, sentAt: msg.sentAt,
+      })
+      setMessages(prev => {
+        // Replace temp with same text from same sender
+        const withoutTemp = prev.filter(m =>
+          !(String(m.id).startsWith('temp_') && m.email === incoming.email && m.text === incoming.text)
+        )
+        if (withoutTemp.some(m => String(m.id) === String(incoming.id))) return withoutTemp
+        return [...withoutTemp, incoming]
+      })
+    })
+
+    // Polling backup every 3s
+    const poll = setInterval(() => {
+      fetch(`http://localhost:8080/api/chat/rooms/${room.id}/messages`)
+        .then(r => r.json())
+        .then(data => {
+          if (cancelled || !Array.isArray(data)) return
+          const server = data.map(toLocal)
+          setMessages(prev => {
+            const existingIds = new Set(
+              prev.filter(m => !String(m.id).startsWith('temp_')).map(m => String(m.id))
+            )
+            const hasNew = server.some(m => !existingIds.has(String(m.id)))
+            if (!hasNew) return prev
+            const temps = prev.filter(m =>
+              String(m.id).startsWith('temp_') &&
+              !server.some(s => s.email === m.email && s.text === m.text)
+            )
+            return [...server, ...temps]
+          })
+        })
+        .catch(() => {})
+    }, 3000)
+
+    return () => {
+      cancelled = true
+      unsub()
+      clearInterval(poll)
+    }
   }, [room.id])
 
-  // Register self as group member
+  // ── Send READ receipt when window open and messages exist ────────────────────
   useEffect(() => {
-    if (!isGroup) return
-    const members = load(membersKey(room.id), [])
-    if (!members.find(m => m.email === myEmail)) {
-      save(membersKey(room.id), [...members, { email: myEmail, name: myName }])
+    if (messages.some(m => m.email !== myEmail)) {
+      chatService.markRead(room.id, myEmail)
     }
-  }, [room.id, myEmail, myName, isGroup])
+  }, [messages.length])
 
-  // Mark messages as read when window is focused
-  useEffect(() => {
-    if (!messages.length) return
-    const lastMsg = messages[messages.length - 1]
-    if (lastMsg.email !== myEmail) {
-      save(readKey(room.id, myEmail), lastMsg.id)
-      setReadState(prev => ({ ...prev, [myEmail]: lastMsg.id }))
+  // ── Send message ─────────────────────────────────────────────────────────────
+  const send = () => {
+    if (editingMsg) {
+      const text = input.trim()
+      if (!text) return
+      chatService.editMessage(editingMsg.id, room.id, text)
+      setMessages(prev => prev.map(m => m.id === editingMsg.id ? {...m, text, edited: true} : m))
+      setEditingMsg(null); setInput('')
+      return
     }
-  }, [messages, myEmail, room.id])
+    const text = input.trim()
+    if (!text) return
+    setInput(''); setReplyTo(null)
 
-  //  KakaoTalk unread count logic 
-  // For 1:1: shows "1" next to each message that hasn't been read by the other person
-  // For group: shows count of members who haven't read yet
-  const getMemberCount = () => {
-    if (!isGroup) return 2  // 1:1
-    const members = load(membersKey(room.id), [])
-    return Math.max(2, members.length)
+
+    // Show immediately (optimistic)
+    const tempId = `temp_${Date.now()}`
+    setMessages(prev => [...prev, {
+      id: tempId, email: myEmail, name: displayName, text,
+      at: new Date().toISOString(), reactions: {}, edited: false,
+      replyTo: replyTo ? {id:replyTo.id, name:replyTo.name, text:replyTo.text} : null,
+    }])
+    setReadByOther(false) // reset read state when sending new message
+
+    // Send via WebSocket
+    chatService.sendMessage({ roomId: room.id, senderEmail: myEmail, senderName: displayName, text })
+    onRefreshRooms?.()
   }
-  const getUnreadCount = (msg) => {
-    if (msg.email !== myEmail) return null  // only show on my messages
-    const totalMembers = getMemberCount()
-    const readCount = Object.entries(readState).filter(([email, lastReadId]) => {
-      if (email === myEmail) return false
-      // find index of lastReadId and msg
-      const lastReadIdx = messages.findIndex(m => m.id === lastReadId)
-      const msgIdx      = messages.findIndex(m => m.id === msg.id)
-      return lastReadIdx >= msgIdx
-    }).length
-    const unread = (totalMembers - 1) - readCount  // exclude sender
-    return unread > 0 ? unread : null
+
+  const deleteMsg = (id) => {
+    chatService.deleteMessage(id, room.id)
+    setMessages(prev => prev.filter(m => String(m.id) !== String(id)))
   }
+
+  const handleFileSelect = (file) => {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (e) => setImgPreview({ file, dataUrl: e.target.result })
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const sendFile = (file, dataUrl) => {
+    const msg = {
+      id: `temp_${Date.now()}`, email: myEmail, name: displayName,
+      at: new Date().toISOString(), reactions: {}, edited: false,
+      imageData: dataUrl, fileName: file.name, fileSize: file.size,
+    }
+    setMessages(prev => [...prev, msg])
+    setImgPreview(null)
+  }
+
+  const addReaction = (msgId, emoji) => {
+    setMessages(prev => prev.map(m => {
+      if (String(m.id) !== String(msgId)) return m
+      const r = {...(m.reactions || {})}
+      r[myEmail] === emoji ? delete r[myEmail] : (r[myEmail] = emoji)
+      return {...m, reactions: r}
+    }))
+  }
+
+  const aggregateReactions = (reactions) => {
+    const agg = {}
+    Object.values(reactions||{}).forEach(e => { agg[e] = (agg[e]||0)+1 })
+    return Object.entries(agg).filter(([,c])=>c>0)
+  }
+
+  const pinMessage   = (msg) => setPinned({id:msg.id, text:msg.text, name:msg.name})
+  const unpinMessage = ()    => setPinned(null)
+  const jumpToMsg    = (id)  => msgRefs.current[id]?.scrollIntoView({behavior:'smooth', block:'center'})
+  const startEdit    = (msg) => { setEditingMsg({id:msg.id}); setInput(msg.text); setTimeout(()=>inputRef.current?.focus(),50) }
+  const closePopover = ()    => setPopover(null)
 
   const broadcastTyping = () => {
     const d = load(typingKey(room.id), {})
@@ -716,124 +783,17 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
     }, 3000)
   }
 
-  const closePopover = () => setPopover(null)
-
-  // Build email→name map from all message senders in this room
-  const nameMap = { [myEmail]: chatDisplayName }
-  messages.forEach(m => { if (m.email && m.name) nameMap[m.email] = m.name })
-
-  // Forward a message to another room
   const forwardToRoom = (targetRoom, msg) => {
-    const forwarded = {
-      id: Date.now(), email: myEmail, name: chatDisplayName,
-      at: new Date().toISOString(), reactions: {}, status: 'sent',
-      text: msg.text || null,
-      imageData: msg.imageData || null,
-      fileName: msg.fileName || null,
-      fileSize: msg.fileSize || null,
-      forwarded: true,
-      forwardedFrom: msg.name || '알 수 없음',
-    }
-    const existing = loadM(targetRoom.id)
-    saveM(targetRoom.id, [...existing, forwarded])
-    // Update room last message
-    const rooms = load(ROOMS_KEY, [])
-    const idx = rooms.findIndex(r => r.id === targetRoom.id)
-    if (idx !== -1) {
-      rooms[idx].lastMsg = msg.text ? `↪ ${msg.text}` : `↪ ${msg.fileName || '파일'}`
-      rooms[idx].lastAt  = forwarded.at
-      save(ROOMS_KEY, rooms)
-    }
     setForwardMsg(null)
   }
 
-  const send = () => {
-    if (editingMsg) {
-      const trimmed = input.trim(); if (!trimmed) return
-      const updated = messages.map(m =>
-        m.id === editingMsg.id ? { ...m, text: trimmed, edited: true } : m
-      )
-      setMessages(updated); saveM(room.id, updated)
-      setEditingMsg(null); setInput(''); return
-    }
-    const text = input.trim(); if (!text) return
-    const msg = {
-      id: Date.now(), email: myEmail, name: chatDisplayName, text,
-      at: new Date().toISOString(), reactions: {}, status:'sent',
-      replyTo: replyTo ? { id:replyTo.id, name:replyTo.name, text:replyTo.text, fileName:replyTo.fileName } : null,
-    }
-    const updated = [...messages, msg]
-    setMessages(updated); saveM(room.id, updated)
-    const rooms = load(ROOMS_KEY, [])
-    const idx = rooms.findIndex(r => r.id === room.id)
-    if (idx !== -1) { rooms[idx].lastMsg = text; rooms[idx].lastAt = msg.at; save(ROOMS_KEY, rooms) }
-    setInput(''); setReplyTo(null)
-    const d = load(typingKey(room.id), {}); delete d[myEmail]; save(typingKey(room.id), d)
-  }
-
-  const handleFileSelect = (file) => {
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader()
-      reader.onload = (e) => setImgPreview({ file, dataUrl: e.target.result })
-      reader.readAsDataURL(file)
-    } else { sendFile(file, null) }
-  }
-
-  const sendFile = (file, dataUrl) => {
-    const isImage = !!dataUrl
-    const msg = {
-      id: Date.now(), email: myEmail, name: chatDisplayName,
-      at: new Date().toISOString(), reactions: {}, status:'sent',
-      replyTo: replyTo ? { ...replyTo } : null,
-      ...(isImage
-        ? { imageData: dataUrl, fileName: file.name, fileSize: file.size }
-        : { fileName: file.name, fileSize: file.size }),
-    }
-    const updated = [...messages, msg]
-    setMessages(updated); saveM(room.id, updated)
-    const rooms = load(ROOMS_KEY, [])
-    const idx = rooms.findIndex(r => r.id === room.id)
-    if (idx !== -1) {
-      rooms[idx].lastMsg = isImage ? `📷 ${file.name}` : `📎 ${file.name}`
-      rooms[idx].lastAt  = msg.at; save(ROOMS_KEY, rooms)
-    }
-    setReplyTo(null); setImgPreview(null)
-  }
-
-  const deleteMsg  = (id) => {
-    const updated = messages.filter(m => m.id !== id)
-    setMessages(updated); saveM(room.id, updated)
-  }
-
-  // 1 emoji per user — change or remove
-  const addReaction = (msgId, emoji) => {
-    setMessages(prev => {
-      const updated = prev.map(m => {
-        if (m.id !== msgId) return m
-        const r = {}
-        Object.entries(m.reactions||{}).forEach(([k,v]) => { if (typeof v==='string') r[k]=v })
-        r[myEmail] === emoji ? delete r[myEmail] : (r[myEmail] = emoji)
-        return { ...m, reactions: r }
-      })
-      saveM(room.id, updated); return updated
-    })
-  }
-
-  const aggregateReactions = (reactions) => {
-    const agg = {}
-    Object.values(reactions||{}).forEach(e => { agg[e] = (agg[e]||0)+1 })
-    return Object.entries(agg).filter(([,c]) => c > 0)
-  }
-
-  const pinMessage   = (msg) => { const p={id:msg.id,text:msg.text,fileName:msg.fileName,name:msg.name}; setPinned(p); save(pinnedKey(room.id),p) }
-  const unpinMessage = ()    => { setPinned(null); save(pinnedKey(room.id),null) }
-  const jumpToMsg    = (id)  => { msgRefs.current[id]?.scrollIntoView({behavior:'smooth',block:'center'}) }
-  const startEdit    = (msg) => { setEditingMsg({id:msg.id,text:msg.text}); setInput(msg.text); setReplyTo(null); setTimeout(()=>inputRef.current?.focus(),50) }
-
   const onKey = (e) => {
-    if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send() }
-    if (e.key==='Escape' && editingMsg)  { setEditingMsg(null); setInput('') }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+    if (e.key === 'Escape' && editingMsg) { setEditingMsg(null); setInput('') }
   }
+
+  const nameMap = {[myEmail]: displayName}
+  messages.forEach(m => { if (m.email && m.name) nameMap[m.email] = m.name })
 
   let lastDate = null
   const rows = messages.map(msg => {
@@ -842,164 +802,112 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
     const showDt  = dl !== lastDate; lastDate = dl
     const aggR    = aggregateReactions(msg.reactions)
     const myR     = (msg.reactions||{})[myEmail]
-    const isPinned = pinned?.id === msg.id
-    const unreadCount = getUnreadCount(msg)
+    const isPinned= pinned?.id === msg.id
+    // Show "1" only on my messages that haven't been read by other person
+    const showUnread = isMe && !readByOther && !String(msg.id).startsWith('temp_') === false
+      ? true
+      : isMe && !readByOther
 
-    const isCtxOpen      = popover?.msgId === msg.id && popover.type === 'ctx'
-    const isQuickOpen    = popover?.msgId === msg.id && popover.type === 'quickReact'
-    const isFullPickOpen = popover?.msgId === msg.id && popover.type === 'fullPicker'
-    const isWhoOpen      = popover?.msgId === msg.id && popover.type === 'whoReacted'
+    const isCtxOpen   = popover?.msgId === msg.id && popover.type === 'ctx'
+    const isQuickOpen = popover?.msgId === msg.id && popover.type === 'quickReact'
+    const isFullOpen  = popover?.msgId === msg.id && popover.type === 'fullPicker'
+    const isWhoOpen   = popover?.msgId === msg.id && popover.type === 'whoReacted'
 
-    // Compute popover direction for this specific message
     const msgEl = msgRefs.current[msg.id]
     let popDir = 'up'
     if (msgEl) {
       const container = msgEl.closest('.cw-messages')
       if (container) {
-        const elRect  = msgEl.getBoundingClientRect()
-        const conRect = container.getBoundingClientRect()
-        const relY = (elRect.top + elRect.height / 2) - conRect.top
-        popDir = relY > conRect.height * 0.55 ? 'up' : 'down'
+        const relY = (msgEl.getBoundingClientRect().top + msgEl.getBoundingClientRect().height/2) - container.getBoundingClientRect().top
+        popDir = relY > container.getBoundingClientRect().height * 0.55 ? 'up' : 'down'
       }
     }
 
     if (msg.isSystem) return (
-      <div key={msg.id} className="cw-row-system">
-        <span className="cw-system-msg">{msg.text}</span>
-      </div>
+      <div key={msg.id} className="cw-row-system"><span className="cw-system-msg">{msg.text}</span></div>
     )
 
     return (
       <div key={msg.id} ref={el => { if(el) msgRefs.current[msg.id]=el }}>
         {showDt && <div className="cw-date-div"><span>{dl}</span></div>}
-
-        {/* cw-msg-block — column wrapper for edited label + row */}
         <div className={`cw-msg-block ${isMe?'cw-msg-block-me':'cw-msg-block-them'}`}>
-
-          {/* "수정됨" label above bubble — image 3 style */}
-          {msg.edited && (
-            <div className={`cw-edited-label ${isMe?'cw-edited-me':'cw-edited-them'}`}>
-              수정됨
-            </div>
-          )}
-
-          {/*
-            cw-row — horizontal flex:
-            them: [avatar] [bwrap]
-            me:   [bwrap] (reversed)
-            Time sits OUTSIDE bwrap, beside the bubble — KakaoTalk style
-          */}
+          {msg.edited && <div className={`cw-edited-label ${isMe?'cw-edited-me':'cw-edited-them'}`}>수정됨</div>}
           <div className={`cw-row ${isMe?'cw-me':'cw-them'} ${isPinned?'cw-row-pinned':''}`}>
-
-            {/* Avatar — only for other people */}
             {!isMe && <div className="cw-avatar">{(msg.name||'?').charAt(0)}</div>}
-
-            {/* bwrap */}
             <div className="cw-bwrap">
-              {(!isMe && isGroup) && <div className="cw-sender">{msg.name}</div>}
-
-              <div className="cw-bubble-wrap" onMouseLeave={() => {}}>
+              {!isMe && isGroup && <div className="cw-sender">{msg.name}</div>}
+              <div className="cw-bubble-wrap">
                 <div className={`cw-bubble ${isMe?'cw-bubble-me':'cw-bubble-them'}`}>
-                  {msg.forwarded && (
-                    <div className="cw-fwd-badge"><IconForward/> {msg.forwardedFrom}에서 전달됨</div>
-                  )}
-                  {/* Reply preview INSIDE bubble — same bg, separated by a line */}
+                  {msg.forwarded && <div className="cw-fwd-badge"><IconForward/> {msg.forwardedFrom}에서 전달됨</div>}
                   {msg.replyTo && (
-                    <div className="cw-reply-inbubble" onClick={(e) => { e.stopPropagation(); jumpToMsg(msg.replyTo.id) }}>
+                    <div className="cw-reply-inbubble" onClick={e=>{e.stopPropagation();jumpToMsg(msg.replyTo.id)}}>
                       <div className="cw-reply-inbubble-name">{msg.replyTo.name}</div>
-                      <div className="cw-reply-inbubble-text">
-                        {msg.replyTo.fileName ? `📎 ${msg.replyTo.fileName}` : msg.replyTo.text}
-                      </div>
+                      <div className="cw-reply-inbubble-text">{msg.replyTo.text}</div>
                     </div>
                   )}
-                  {msg.imageData ? (
-                    <div className="cw-img-wrap">
-                      <img src={msg.imageData} alt={msg.fileName} className="cw-img"/>
-                      <div className="cw-img-name">{msg.fileName}</div>
-                    </div>
-                  ) : msg.fileName ? (
-                    <div className="cw-file">
-                      <div className="cw-file-icon">📎</div>
-                      <div className="cw-file-info">
-                        <div className="cw-file-name">{msg.fileName}</div>
-                        {msg.fileSize && <div className="cw-file-size">{fmtFileSize(msg.fileSize)}</div>}
-                      </div>
-                    </div>
-                  ) : msg.text}
+                  {msg.imageData
+                    ? <div className="cw-img-wrap"><img src={msg.imageData} alt={msg.fileName} className="cw-img"/></div>
+                    : msg.fileName
+                    ? <div className="cw-file"><div className="cw-file-icon">📎</div><div className="cw-file-info"><div className="cw-file-name">{msg.fileName}</div>{msg.fileSize&&<div className="cw-file-size">{fmtFileSize(msg.fileSize)}</div>}</div></div>
+                    : msg.text}
                 </div>
-
-                {/* Hover bar */}
+                {/* Hover action bar */}
                 <div className={`cw-hover-bar nd ${isMe?'cw-hover-bar-left':'cw-hover-bar-right'}`}>
                   <button className={`cw-hbar-btn nd ${isCtxOpen?'cw-hbar-active':''}`}
-                    onClick={(e) => { e.stopPropagation(); setPopover(isCtxOpen ? null : { msgId:msg.id, type:'ctx' }) }}>
+                    onClick={e=>{e.stopPropagation();setPopover(isCtxOpen?null:{msgId:msg.id,type:'ctx'})}}>
                     <IconDots/>
                   </button>
                   <button className="cw-hbar-btn nd"
-                    onClick={(e) => { e.stopPropagation(); setReplyTo({id:msg.id,name:msg.name,text:msg.text,fileName:msg.fileName}); setPopover(null) }}>
+                    onClick={e=>{e.stopPropagation();setReplyTo({id:msg.id,name:msg.name,text:msg.text});closePopover()}}>
                     <IconReply/>
                   </button>
-                  <button className={`cw-hbar-btn nd ${isQuickOpen||isFullPickOpen?'cw-hbar-active':''}`}
-                    onClick={(e) => { e.stopPropagation(); setPopover(isQuickOpen ? null : { msgId:msg.id, type:'quickReact' }) }}>
-                    <span style={{fontSize:15,lineHeight:1}}>{myR || '😊'}</span>
+                  <button className={`cw-hbar-btn nd ${isQuickOpen||isFullOpen?'cw-hbar-active':''}`}
+                    onClick={e=>{e.stopPropagation();setPopover(isQuickOpen?null:{msgId:msg.id,type:'quickReact'})}}>
+                    <span style={{fontSize:15,lineHeight:1}}>{myR||'😊'}</span>
                   </button>
                 </div>
-
-                {isCtxOpen && (
-                  <div onClick={e => e.stopPropagation()}>
-                    <MsgContextMenu msg={msg} isMe={isMe} isPinned={isPinned} dir={popDir}
-                      onEdit={() => { startEdit(msg); closePopover() }}
-                      onDelete={() => { deleteMsg(msg.id); closePopover() }}
-                      onCopy={() => { navigator.clipboard?.writeText(msg.text||''); closePopover() }}
-                      onForward={() => { setForwardMsg(msg); closePopover() }}
-                      onPin={() => { isPinned ? unpinMessage() : pinMessage(msg); closePopover() }}
-                      onClose={closePopover}/>
-                  </div>
-                )}
-                {isQuickOpen && (
-                  <div onClick={e => e.stopPropagation()}>
-                    <QuickReactionBar msgId={msg.id} myReaction={myR} isMe={isMe} dir={popDir}
-                      onReact={(id, emoji) => { addReaction(id, emoji); closePopover() }}
-                      onOpenFull={() => setPopover({ msgId:msg.id, type:'fullPicker' })}
-                      onClose={closePopover}/>
-                  </div>
-                )}
-                {isFullPickOpen && (
-                  <div onClick={e => e.stopPropagation()}>
-                    <FullEmojiPicker isMe={isMe} dir={popDir}
-                      onSelect={(emoji) => { addReaction(msg.id, emoji); closePopover() }}
-                      onClose={closePopover}/>
-                  </div>
-                )}
-              </div>{/* end cw-bubble-wrap */}
-
-              {/* Reactions */}
+                {isCtxOpen && <div onClick={e=>e.stopPropagation()}>
+                  <MsgContextMenu msg={msg} isMe={isMe} isPinned={isPinned} dir={popDir}
+                    onEdit={()=>{startEdit(msg);closePopover()}}
+                    onDelete={()=>{deleteMsg(msg.id);closePopover()}}
+                    onCopy={()=>{navigator.clipboard?.writeText(msg.text||'');closePopover()}}
+                    onForward={()=>{setForwardMsg(msg);closePopover()}}
+                    onPin={()=>{isPinned?unpinMessage():pinMessage(msg);closePopover()}}
+                    onClose={closePopover}/>
+                </div>}
+                {isQuickOpen && <div onClick={e=>e.stopPropagation()}>
+                  <QuickReactionBar msgId={msg.id} myReaction={myR} isMe={isMe} dir={popDir}
+                    onReact={(id,emoji)=>{addReaction(id,emoji);closePopover()}}
+                    onOpenFull={()=>setPopover({msgId:msg.id,type:'fullPicker'})}
+                    onClose={closePopover}/>
+                </div>}
+                {isFullOpen && <div onClick={e=>e.stopPropagation()}>
+                  <FullEmojiPicker isMe={isMe} dir={popDir}
+                    onSelect={emoji=>{addReaction(msg.id,emoji);closePopover()}}
+                    onClose={closePopover}/>
+                </div>}
+              </div>
               {aggR.length > 0 && (
                 <div className={`cw-reactions ${isMe?'reactions-left':'reactions-right'}`}>
-                  {aggR.map(([e, count]) => (
+                  {aggR.map(([e,count])=>(
                     <span key={e} className={`cw-reaction-chip nd ${myR===e?'cw-reaction-mine':''}`}
-                      onClick={(ev) => { ev.stopPropagation(); addReaction(msg.id, e) }}>
-                      {e} {count}
-                    </span>
+                      onClick={ev=>{ev.stopPropagation();addReaction(msg.id,e)}}>{e} {count}</span>
                   ))}
                   <button className="cw-who-btn nd"
-                    onClick={(ev) => { ev.stopPropagation(); setPopover(isWhoOpen ? null : { msgId:msg.id, type:'whoReacted' }) }}>
+                    onClick={ev=>{ev.stopPropagation();setPopover(isWhoOpen?null:{msgId:msg.id,type:'whoReacted'})}}>
                     <IconMembers/>
                   </button>
-                  {isWhoOpen && (
-                    <div onClick={e => e.stopPropagation()}>
-                      <WhoReacted reactions={msg.reactions} nameMap={nameMap} dir={popDir} onClose={closePopover}/>
-                    </div>
-                  )}
+                  {isWhoOpen && <div onClick={e=>e.stopPropagation()}>
+                    <WhoReacted reactions={msg.reactions} nameMap={nameMap} dir={popDir} onClose={closePopover}/>
+                  </div>}
                 </div>
               )}
             </div>
-
-            {/* Time + unread — beside the bubble, bottom-aligned, for ALL message types */}
+            {/* Time + unread indicator */}
             <div className={`cw-side-meta ${isMe?'cw-side-meta-me':'cw-side-meta-them'}`}>
-              {isMe && unreadCount !== null && <span className="cw-unread-num">{unreadCount}</span>}
+              {isMe && showUnread && <span className="cw-unread-num">1</span>}
               <span className="cw-time">{fmtTime(msg.at)}</span>
             </div>
-
           </div>
         </div>
       </div>
@@ -1008,43 +916,33 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
 
   return (
     <>
-    <div className="cw-window" style={{ left:pos.x, top:pos.y }}>
-      {/* Header */}
+    <div className="cw-window" style={{left:pos.x, top:pos.y}}>
       <div className="cw-header" onMouseDown={onMouseDown}>
         <div className="cw-header-left">
-          <div className="cw-av-sm">{room.avatar}</div>
+          <div className="cw-av-sm">{room.avatar || roomDisplayName.charAt(0)}</div>
           <div>
-            <div className="cw-hname">
-              {room.name}
-              {isGroup && <span className="cw-group-badge">그룹</span>}
-            </div>
-            <div className="cw-hsub">{isGroup ? `${fmtMembers(room.memberCount)}명` : room.sub}</div>
+            <div className="cw-hname">{roomDisplayName}{isGroup&&<span className="cw-group-badge">그룹</span>}</div>
+            <div className="cw-hsub">{isGroup ? `${fmtMembers(room.memberCount||0)}명` : otherEmail}</div>
           </div>
         </div>
         <div className="cw-header-actions nd">
-          {isGroup && (
-            <button className={`cw-hbtn nd ${showMembers?'cw-hbtn-active':''}`}
-              onClick={() => { setShowMembers(v=>!v); setShowSearch(false) }}>
-              <IconMembers/>
-            </button>
-          )}
+          {isGroup && <button className={`cw-hbtn nd ${showMembers?'cw-hbtn-active':''}`}
+            onClick={()=>{setShowMembers(v=>!v);setShowSearch(false)}}><IconMembers/></button>}
           <button className={`cw-hbtn nd ${showSearch?'cw-hbtn-active':''}`}
-            onClick={() => { setShowSearch(v=>!v); setShowMembers(false) }}>
-            <IconMsgSrch/>
-          </button>
+            onClick={()=>{setShowSearch(v=>!v);setShowMembers(false)}}><IconMsgSrch/></button>
           <button className="cw-hclose nd" onClick={onClose}>✕</button>
         </div>
       </div>
 
-      {showSearch  && <MsgSearchPanel messages={messages} onJump={jumpToMsg} onClose={() => setShowSearch(false)}/>}
-      {showMembers && <MemberPanel roomId={room.id} myEmail={myEmail} myName={myName} onClose={() => setShowMembers(false)}/>}
-      <PinnedBar pinned={pinned} onJump={() => jumpToMsg(pinned.id)} onUnpin={unpinMessage}/>
+      {showSearch  && <MsgSearchPanel messages={messages} onJump={jumpToMsg} onClose={()=>setShowSearch(false)}/>}
+      {showMembers && <MemberPanel roomId={room.id} myEmail={myEmail} myName={myName} onClose={()=>setShowMembers(false)}/>}
+      {pinned && <PinnedBar pinned={pinned} onJump={()=>jumpToMsg(pinned.id)} onUnpin={unpinMessage}/>}
 
       <div className="cw-messages">
         {!rows.length && (
           <div className="cw-empty">
-            <div className="cw-empty-av">{room.avatar}</div>
-            <div className="cw-empty-name">{room.name}</div>
+            <div className="cw-empty-av">{room.avatar || roomDisplayName.charAt(0)}</div>
+            <div className="cw-empty-name">{roomDisplayName}</div>
             <div className="cw-empty-hint">첫 메시지를 보내보세요 👋</div>
           </div>
         )}
@@ -1059,185 +957,493 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
             <IconPencil/>
             <div className="cw-edit-bar-info">
               <span className="cw-edit-bar-label">메시지 수정 중</span>
-              <span className="cw-edit-bar-text">{editingMsg.text}</span>
+              <span className="cw-edit-bar-text">{input}</span>
             </div>
           </div>
-          <button className="cw-reply-bar-close nd" onClick={() => { setEditingMsg(null); setInput('') }}><IconX/></button>
+          <button className="cw-reply-bar-close nd" onClick={()=>{setEditingMsg(null);setInput('')}}><IconX/></button>
         </div>
       )}
-
       {replyTo && !editingMsg && (
         <div className="cw-reply-bar nd">
           <div className="cw-reply-bar-content">
             <IconReply/>
             <div className="cw-reply-bar-info">
               <span className="cw-reply-bar-name">{replyTo.name}에게 답장</span>
-              <span className="cw-reply-bar-text">{replyTo.fileName?`📎 ${replyTo.fileName}`:replyTo.text}</span>
+              <span className="cw-reply-bar-text">{replyTo.text}</span>
             </div>
           </div>
-          <button className="cw-reply-bar-close nd" onClick={() => setReplyTo(null)}><IconX/></button>
+          <button className="cw-reply-bar-close nd" onClick={()=>setReplyTo(null)}><IconX/></button>
         </div>
       )}
 
       <div className="cw-input-row nd">
-        <button className="cw-attach-btn nd" onClick={() => fileRef.current?.click()}>
-          <IconClip/>
-        </button>
+        <button className="cw-attach-btn nd" onClick={()=>fileRef.current?.click()}><IconClip/></button>
         <input ref={fileRef} type="file" accept="image/*,*/*" style={{display:'none'}}
-          onChange={e => { const f=e.target.files?.[0]; if(f) handleFileSelect(f); e.target.value='' }}/>
+          onChange={e=>{const f=e.target.files?.[0];if(f)handleFileSelect(f);e.target.value=''}}/>
         <textarea ref={inputRef} className="cw-input"
-          placeholder={editingMsg ? '수정할 내용 입력…' : '메시지를 입력하세요… (Enter 전송)'}
+          placeholder={editingMsg?'수정할 내용 입력…':'메시지를 입력하세요… (Enter 전송)'}
           value={input}
-          onChange={e => { setInput(e.target.value); broadcastTyping() }}
+          onChange={e=>{setInput(e.target.value);broadcastTyping()}}
           onKeyDown={onKey} rows={1}/>
-        <button className="cw-send nd" onClick={send} disabled={!input.trim()}>
-          <IconSend/>
-        </button>
+        <button className="cw-send nd" onClick={send} disabled={!input.trim()}><IconSend/></button>
       </div>
     </div>
 
-    {imgPreview && (
-      <ImagePreview
-        file={imgPreview.file} dataUrl={imgPreview.dataUrl}
-        onSend={() => sendFile(imgPreview.file, imgPreview.dataUrl)}
-        onCancel={() => setImgPreview(null)}/>
-    )}
-
-    {forwardMsg && (
-      <ForwardModal
-        msg={forwardMsg}
-        currentRoomId={room.id}
-        onForward={forwardToRoom}
-        onClose={() => setForwardMsg(null)}/>
-    )}
+    {imgPreview && <ImagePreview file={imgPreview.file} dataUrl={imgPreview.dataUrl}
+      onSend={()=>sendFile(imgPreview.file,imgPreview.dataUrl)} onCancel={()=>setImgPreview(null)}/>}
+    {forwardMsg && <ForwardModal msg={forwardMsg} currentRoomId={room.id}
+      onForward={forwardToRoom} onClose={()=>setForwardMsg(null)}/>}
     </>
   )
 }
 
-/* 
-   INBOX
- */
-export default function ChatRoom({ onClose, myEmail='', myName='', profile=null, initialRoom=null }) {
-  const [rooms,          setRooms]        = useState([])
-  const [openRooms,      setOpenRooms]     = useState([])
-  const [tab,            setTab]           = useState('chats')
-  const [search,         setSearch]        = useState('')
-  const [chatFilter,     setChatFilter]    = useState('all')
-  // nickname is from localStorage only — completely independent from myName (real name from DB)
-  // On first open, seed from myName so it's not blank. After that localStorage is source of truth.
-  const [nickname, setNickname] = useState(() => {
-    const stored = localStorage.getItem(NICK_KEY)
-    if (stored) return stored
-    if (myName) { localStorage.setItem(NICK_KEY, myName); return myName }
+/* ═══════════════════════════════════════════════════════════════
+   INBOX — chat list + notifications
+═══════════════════════════════════════════════════════════════ */
+export default function ChatRoom({ onClose, myEmail='', myName='', profile=null, initialRoom=null, onRegisterRefresh=null, onUnreadChange=null, visible=true }) {
+  const [rooms,         setRooms]        = useState([])
+  const [openRooms,     setOpenRooms]    = useState([])
+  const [tab,           setTab]          = useState('chats')
+  const [search,        setSearch]       = useState('')
+  const [chatFilter,    setChatFilter]   = useState('all')
+  const [nickname,      setNickname]     = useState(() => {
+    const s = localStorage.getItem(NICK_KEY(myEmail))
+    if (s) return s
+    if (myName) { localStorage.setItem(NICK_KEY(myEmail), myName); return myName }
     return ''
   })
-  const [photo,          setPhoto]         = useState(() => localStorage.getItem(PHOTO_KEY) || '')
-  const [showPhotoModal, setShowPhotoModal]= useState(false)
-  const [menuOpenId,     setMenuOpenId]    = useState(null)
-  const [blocked,        setBlocked]       = useState(() => load(BLOCKED_KEY, []))
-  const [joinedGroups,   setJoinedGroups]  = useState(() => load('sb_joined_groups', []))
-  const [previewRoom,    setPreviewRoom]   = useState(null)
+  const [photo,         setPhoto]        = useState(() => localStorage.getItem(PHOTO_KEY(myEmail)) || '')
+  const [showPhotoModal,setShowPhotoModal]= useState(false)
+  const [menuOpenId,    setMenuOpenId]   = useState(null)
+  const [blocked,       setBlocked]      = useState(() => load(BLOCKED_KEY, []))
+  const [joinedGroups,  setJoinedGroups] = useState(() => load('sb_joined_groups', []))
+  const [previewRoom,   setPreviewRoom]  = useState(null)
+  // No toast notifications — just unread badges on room list
+  const openRoomsRef = useRef([])
 
   const { pos, onMouseDown } = useDrag({
     x: Math.max(20, window.innerWidth  - 500),
     y: Math.max(20, window.innerHeight - 780),
   })
 
-  // Load rooms from MySQL
+  // Keep ref in sync
+  useEffect(() => { openRoomsRef.current = openRooms }, [openRooms])
+
+  // ── User name cache ──────────────────────────────────────────────────────
+  const [userNames, setUserNames] = useState({}) // email -> name
+
   useEffect(() => {
     if (!myEmail) return
-    fetch(`http://localhost:8080/api/chat/rooms?email=${encodeURIComponent(myEmail)}`)
+    fetch(`http://localhost:8080/api/chat/users?email=${encodeURIComponent(myEmail)}`)
       .then(r => r.json())
-      .then(data => setRooms(Array.isArray(data) ? data.map(r => ({...r, id: r.roomId || r.id})) : []))
-      .catch(err => console.error('Failed to load rooms:', err))
+      .then(data => {
+        if (!Array.isArray(data)) return
+        const map = {}
+        data.forEach(u => { if (u.email && u.name) map[u.email] = u.name })
+        setUserNames(map)
+      })
+      .catch(() => {})
   }, [myEmail])
 
-  // Auto-open a room passed from Community page
+  // ── Load joined group rooms on mount ─────────────────────────────────────
+  useEffect(() => {
+    if (!myEmail) return
+    // Load official groups the user has joined (stored in localStorage)
+    const joined = load('sb_joined_groups', [])
+    if (joined.length === 0) return
+    // Fetch the actual room data from backend for each joined group
+    Promise.all(
+      OFFICIAL_ROOMS
+        .filter(r => joined.includes(r.id))
+        .map(r => fetch('http://localhost:8080/api/chat/groups/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groupId: r.id, name: r.name, sub: r.sub, avatar: r.avatar }),
+        }).then(res => res.json()).catch(() => null))
+    ).then(results => {
+      results.forEach(backendRoom => {
+        if (!backendRoom) return
+        const gid2 = backendRoom.roomId || backendRoom.id
+        const clearedAt2 = localStorage.getItem(`sb_group_cleared_${myEmail}_${gid2}`)
+        const normalized = {
+          ...backendRoom,
+          id: gid2,
+          isGroup: true,
+          isOfficial: true,
+          avatar: OFFICIAL_ROOMS.find(r => r.id === gid2)?.avatar || backendRoom.avatar,
+          memberCount: OFFICIAL_ROOMS.find(r => r.id === gid2)?.memberCount || 0,
+          clearedAt: clearedAt2 || null,
+        }
+        setRooms(prev => prev.find(r => r.id === normalized.id) ? prev : [...prev, normalized])
+      })
+    })
+  }, [myEmail])
+
+  // ── Load rooms from backend ────────────────────────────────────────────────
+  const getHidden = () => {
+    if (!myEmail) return []
+    return JSON.parse(localStorage.getItem(`sb_hidden_${myEmail}`) || '[]')
+  }
+  const setHidden = (list) => {
+    if (!myEmail) return
+    localStorage.setItem(`sb_hidden_${myEmail}`, JSON.stringify(list))
+  }
+
+  const refreshRooms = () => {
+    if (!myEmail) return
+    const hidden = getHidden()
+    fetch(`http://localhost:8080/api/chat/rooms?email=${encodeURIComponent(myEmail)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data)) return
+        const mapped = data.map(r => ({...r, id: r.roomId || r.id}))
+        const visible = hidden.length > 0 ? mapped.filter(r => !hidden.includes(r.id)) : mapped
+        // Preserve existing unread counts AND keep group rooms (not returned by this endpoint)
+        setRooms(prev => {
+          const groupRooms = prev.filter(r => r.isGroup)
+          const merged = visible.map(room => {
+            const existing = prev.find(r => r.id === room.id)
+            return {...room, unread: existing?.unread || 0, muted: existing?.muted || false}
+          })
+          // Add group rooms that aren't in the direct rooms list
+          groupRooms.forEach(gr => {
+            if (!merged.find(r => r.id === gr.id)) merged.push(gr)
+          })
+          return merged
+        })
+      })
+      .catch(err => console.error('refreshRooms failed:', err))
+  }
+
+  useEffect(() => { refreshRooms() }, [myEmail])
+
+  // Poll room list every 5s
+  useEffect(() => {
+    if (!myEmail) return
+    const t = setInterval(refreshRooms, 5000)
+    return () => clearInterval(t)
+  }, [myEmail])
+
+  // Expose to App.jsx
+  useEffect(() => { if (onRegisterRefresh) onRegisterRefresh(refreshRooms) }, [myEmail])
+
+  // ── Notification subscription ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!myEmail) return
+    const unsub = chatService.subscribe(`/topic/notifications_${myEmail}`, (msg) => {
+      if (!msg.roomId || msg.senderEmail === myEmail) return
+      const hidden = getHidden()
+      const isHidden = hidden.includes(msg.roomId)
+      const windowOpen = !!openRoomsRef.current.find(r => r.id === msg.roomId)
+
+      if (isHidden) {
+        const h = getHidden()
+        const room = openRoomsRef.current.find(r => r.id === msg.roomId)
+        // For group rooms that were "deleted for me" — restore with unread badge
+        // For 1:1 rooms — same restore logic
+        setHidden(h.filter(id => id !== msg.roomId))
+        setTimeout(() => {
+          refreshRooms()
+          setTimeout(() => {
+            setRooms(prev => {
+              // If it's a group room, restore it from OFFICIAL_ROOMS data
+              const existing = prev.find(r => r.id === msg.roomId)
+              if (!existing) {
+                const officialRoom = OFFICIAL_ROOMS.find(r => r.id === msg.roomId)
+                if (officialRoom) {
+                  return [...prev, {...officialRoom, unread: 1, lastMsg: msg.text || '', lastAt: msg.sentAt}]
+                }
+              }
+              return prev.map(r => r.id === msg.roomId
+                ? {...r, unread: 1, lastMsg: msg.text || '', lastAt: msg.sentAt}
+                : r
+              )
+            })
+          }, 400)
+        }, 300)
+        return
+      }
+
+      // Update room list unread badge + lastMsg + lastAt for sorting
+      setRooms(prev => {
+        const exists = prev.find(r => r.id === msg.roomId)
+        if (exists) {
+          return prev.map(r => r.id === msg.roomId ? {
+            ...r,
+            lastMsg: msg.text || '',
+            lastAt: msg.sentAt || new Date().toISOString(),
+            unread: windowOpen ? 0 : (r.unread || 0) + 1,
+          } : r)
+        }
+        // New room — refresh list
+        setTimeout(refreshRooms, 300)
+        return prev
+      })
+    })
+    return () => unsub()
+  }, [myEmail])
+
+  // ── Group notification subscriptions ────────────────────────────────────
+  useEffect(() => {
+    if (!myEmail || joinedGroups.length === 0) return
+    const unsubs = joinedGroups.map(gid => {
+      return chatService.subscribe(`/topic/group_notifications_${gid}`, (msg) => {
+        if (!msg.roomId || msg.senderEmail === myEmail) return
+        const hidden = getHidden()
+        const isHidden = hidden.includes(msg.roomId)
+        const windowOpen = !!openRoomsRef.current.find(r => r.id === msg.roomId)
+
+        if (isHidden) {
+          // Fix 2: Deleted group — restore it when new message arrives
+          const h = getHidden()
+          setHidden(h.filter(id => id !== msg.roomId))
+          // Find the room data from OFFICIAL_ROOMS
+          const officialRoom = OFFICIAL_ROOMS.find(r => r.id === msg.roomId)
+          if (officialRoom) {
+            fetch('http://localhost:8080/api/chat/groups/join', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                groupId: officialRoom.id,
+                name: officialRoom.name,
+                sub: officialRoom.sub,
+                avatar: officialRoom.avatar,
+              }),
+            })
+              .then(r => r.json())
+              .then(backendRoom => {
+                const sessionKey = localStorage.getItem(`sb_group_session_${myEmail}_${msg.roomId}`) || Date.now().toString()
+                const clearedTs2 = parseInt(sessionKey, 10)
+                const normalized = {
+                  ...backendRoom,
+                  id: backendRoom.roomId || backendRoom.id,
+                  isGroup: true,
+                  isOfficial: true,
+                  memberCount: officialRoom.memberCount,
+                  avatar: officialRoom.avatar,
+                  unread: 1,
+                  lastMsg: msg.text || '',
+                  lastAt: msg.sentAt,
+                  clearedAt: sessionKey,
+                }
+                setRooms(prev => prev.find(r => r.id === normalized.id)
+                  ? prev.map(r => r.id === normalized.id ? {
+                      ...r, unread: (r.unread||0)+1,
+                      lastMsg: msg.text||'',
+                      lastAt: msg.sentAt,
+                      clearedAt: sessionKey
+                    } : r)
+                  : [normalized, ...prev]
+                )
+              })
+              .catch(() => {})
+          }
+          return
+        }
+
+        // Fix 1: Update unread badge + lastMsg
+        setRooms(prev => prev.map(r => r.id === msg.roomId ? {
+          ...r,
+          lastMsg: msg.text || '',
+          lastAt: msg.sentAt,
+          unread: windowOpen ? 0 : (r.unread || 0) + 1,
+        } : r))
+      })
+    })
+    return () => unsubs.forEach(u => u())
+  }, [myEmail, joinedGroups.join(',')])
+
+  // ── Open initialRoom from Community ──────────────────────────────────────
   useEffect(() => {
     if (!initialRoom) return
-    const normalized = { ...initialRoom, id: initialRoom.roomId || initialRoom.id }
-    setOpenRooms([normalized])
+    const normalized = {...initialRoom, id: initialRoom.roomId || initialRoom.id}
+    if (!normalized.id) return
+
+    // Remove from hidden list in case it was previously deleted
+    const hidden = getHidden()
+    if (hidden.includes(normalized.id)) {
+      setHidden(hidden.filter(id => id !== normalized.id))
+    }
+
+    // Add to room list immediately so it shows right away
+    setRooms(prev => prev.find(r => r.id === normalized.id) ? prev : [normalized, ...prev])
+    // Open the chat window
+    setOpenRooms(prev => prev.find(r => r.id === normalized.id) ? prev : [normalized])
     setTab('chats')
-  }, [initialRoom])
+    // Refresh from backend to get full room data
+    setTimeout(refreshRooms, 300)
+  }, [initialRoom?.roomId || initialRoom?.id])
 
-  const handleProfileSave = ({ nickname:nick, photo:ph }) => {
-    setNickname(nick); setPhoto(ph)
-    localStorage.setItem(NICK_KEY, nick); localStorage.setItem(PHOTO_KEY, ph)
-    setShowPhotoModal(false)
+
+  // ── Room actions ──────────────────────────────────────────────────────────
+  const openChat = (room, isGroup=false) => {
+    setOpenRooms(prev => prev.find(r=>r.id===room.id) ? prev : [...prev, {...room, isGroup}])
+    // Clear unread + dismiss notification
+    setRooms(prev => prev.map(r => r.id===room.id ? {...r, unread:0} : r))
   }
-
-  const openChat = (room, isGroup=false) =>
-    setOpenRooms(prev => prev.find(r => r.id===room.id) ? prev : [...prev, {...room, isGroup}])
 
   const deleteRoom = (id) => {
-    const updated = rooms.filter(r => r.id!==id); setRooms(updated); save(ROOMS_KEY, updated)
-    setOpenRooms(prev => prev.filter(r => r.id!==id))
+    setRooms(prev => prev.filter(r => r.id !== id))
+    setOpenRooms(prev => prev.filter(r => r.id !== id))
+    // Remember as hidden so polling doesn't bring it back
+    const hidden = getHidden()
+    if (!hidden.includes(id)) {
+      setHidden([...hidden, id])
+    }
+    // Clear local cache
+    localStorage.removeItem(msgsKey(id))
+    // Clear messages from backend so old messages don't reappear
+    fetch(`http://localhost:8080/api/chat/rooms/${id}/messages?email=${encodeURIComponent(myEmail)}`, {
+      method: 'DELETE',
+    }).catch(() => {})
   }
-  const muteRoom  = (id) => { const u=rooms.map(r=>r.id===id?{...r,muted:!r.muted}:r); setRooms(u); save(ROOMS_KEY,u) }
-  const markRead  = (id) => { const u=rooms.map(r=>r.id===id?{...r,unread:0}:r); setRooms(u); save(ROOMS_KEY,u) }
-  const blockRoom = (id) => { const u=[...blocked,id]; setBlocked(u); save(BLOCKED_KEY,u); deleteRoom(id) }
 
-  const joinGroup = (gid) => {
-    const u = [...joinedGroups, gid]; setJoinedGroups(u); save('sb_joined_groups', u)
-    const room = OFFICIAL_ROOMS.find(r => r.id===gid)
-    if (room) {
-      const msgs = loadM(gid)
-      saveM(gid, [...msgs, {
-        id: Date.now(), email:'system', name:'시스템',
-        text: `${nickname||myName}님이 입장하셨습니다 👋`,
-        at: new Date().toISOString(), reactions:{}, status:'sent', isSystem:true,
-      }])
+  const muteRoom  = (id) => setRooms(prev => prev.map(r => r.id===id ? {...r, muted:!r.muted} : r))
+  const blockRoom = (id) => { setBlocked(prev=>{const u=[...prev,id];save(BLOCKED_KEY,u);return u}); deleteRoom(id) }
+
+  const joinGroup = async (room) => {
+    const gid = room.id
+    // Create or get the group room in backend
+    try {
+      const res = await fetch('http://localhost:8080/api/chat/groups/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupId: gid,
+          name: room.name,
+          sub: room.sub,
+          avatar: room.avatar,
+        }),
+      })
+      const backendRoom = await res.json()
+      const clearedAtVal = localStorage.getItem(`sb_group_cleared_${myEmail}_${gid}`)
+      const normalized = {
+        ...backendRoom,
+        id: backendRoom.roomId || backendRoom.id,
+        isGroup: true,
+        isOfficial: true,
+        memberCount: room.memberCount,
+        avatar: room.avatar || backendRoom.avatar,
+        clearedAt: clearedAtVal || null,
+      }
+      // Add to joined groups list
+      const u = [...joinedGroups, gid]
+      setJoinedGroups(u)
+      save('sb_joined_groups', u)
+      // Add to rooms list so it shows in chat tab
+      setRooms(prev => prev.find(r => r.id === normalized.id)
+        ? prev
+        : [normalized, ...prev]
+      )
+    } catch(e) {
+      console.error('[joinGroup]', e)
+      // Fallback: just track locally
+      const u = [...joinedGroups, gid]
+      setJoinedGroups(u)
+      save('sb_joined_groups', u)
     }
     setPreviewRoom(null)
   }
   const leaveGroup = (gid) => {
-    const u = joinedGroups.filter(id => id!==gid); setJoinedGroups(u); save('sb_joined_groups', u)
-    setOpenRooms(prev => prev.filter(r => r.id!==gid))
+    // Permanent leave — remove from joined groups, won't auto-restore
+    const u = joinedGroups.filter(id=>id!==gid)
+    setJoinedGroups(u)
+    save('sb_joined_groups', u)
+    setRooms(prev => prev.filter(r => r.id !== gid))
+    setOpenRooms(prev => prev.filter(r=>r.id!==gid))
   }
 
-  const unreadTotal = rooms.reduce((s,r) => s+(r.unread||0), 0)
-  const filteredRooms = rooms.filter(r => {
-    if (blocked.includes(r.id)) return false
-    const matchS = r.name.includes(search)||(r.lastMsg||'').includes(search)
-    const matchF = chatFilter==='all'||(chatFilter==='unread'&&r.unread>0)
-    return matchS && matchF
-  })
+  const deleteGroupForMe = (gid) => {
+    // Exactly same as 1:1 deleteRoom — hide + delete backend messages
+    const hidden = getHidden()
+    if (!hidden.includes(gid)) setHidden([...hidden, gid])
+    setRooms(prev => prev.filter(r => r.id !== gid))
+    setOpenRooms(prev => prev.filter(r => r.id !== gid))
+    localStorage.removeItem(msgsKey(gid))
+    // Clear all clearedAt flags for this room
+    localStorage.removeItem(`sb_group_cleared_${myEmail}_${gid}`)
+    localStorage.removeItem(`sb_group_session_${myEmail}_${gid}`)
+    // Delete messages from backend
+    fetch(`http://localhost:8080/api/chat/rooms/${gid}/messages?email=${encodeURIComponent(myEmail)}`, {
+      method: 'DELETE',
+    }).catch(() => {})
+  }
 
-  // realName = from DB (via myName prop from App.jsx) — shown in profile tab
-  // nickname = from localStorage — shown in chat header and bubble
-  // chatDisplayName (in ChatWindow) = nickname if set, otherwise realName
-  const realName    = myName || '사용자'
-  const displayName = profile?.name || realName
-  const displayEmail = profile?.email || myEmail  || '-'
+  const handleProfileSave = ({nickname:nick, photo:ph}) => {
+    setNickname(nick); setPhoto(ph)
+    localStorage.setItem(NICK_KEY(myEmail), nick)
+    localStorage.setItem(PHOTO_KEY(myEmail), ph)
+    setShowPhotoModal(false)
+  }
+
+  // ── Derived ───────────────────────────────────────────────────────────────
+  const unreadTotal = rooms.reduce((s,r) => s+(r.unread||0), 0)
+  useEffect(() => { onUnreadChange?.(unreadTotal) }, [unreadTotal])
+
+  const getRoomName = (room) => {
+    if (room.isGroup) return room.name
+    if (!room.participants) return room.name || '상대방'
+    const parts = room.participants.split(',').map(e => e.trim())
+    const otherEmail = parts.find(e => e !== myEmail)
+    if (!otherEmail) return '상대방'
+    // Best: real name from users API
+    if (userNames[otherEmail]) return userNames[otherEmail]
+    // Fallback: participant order logic
+    const iAmA = parts[0] === myEmail
+    if (iAmA) {
+      if (room.name && !room.name.includes('@')) return room.name
+    } else {
+      if (room.sub && !room.sub.includes('@')) return room.sub
+    }
+    return otherEmail.split('@')[0]
+  }
+
+  const filteredRooms = rooms
+    .filter(r => {
+      if (blocked.includes(r.id)) return false
+      const name = getRoomName(r)
+      const matchS = name.toLowerCase().includes(search.toLowerCase()) || (r.lastMsg||'').includes(search)
+      const matchF = chatFilter==='all' || (chatFilter==='unread' && r.unread>0)
+      return matchS && matchF
+    })
+    .sort((a, b) => {
+      // Sort by lastAt descending — most recent message at top
+      const ta = a.lastAt ? new Date(a.lastAt).getTime() : 0
+      const tb = b.lastAt ? new Date(b.lastAt).getTime() : 0
+      return tb - ta
+    })
+
+  const displayName  = profile?.name  || myName || '사용자'
+  const displayEmail = profile?.email || myEmail || '-'
   const joined = profile?.joinedAt ? new Date(profile.joinedAt).toLocaleDateString('ko-KR') : '-'
 
   return (
     <>
-    <div className="ci-window" style={{ left:pos.x, top:pos.y }}>
+    <div className="ci-window" style={{left:pos.x, top:pos.y, display: visible ? '' : 'none'}}>
       <div className="ci-rail nd">
         <div className="ci-rail-logo">
           <img src="/SignBridge.png" alt="SB" className="ci-rail-logo-img"
-               onError={e => { e.target.style.display='none'; e.target.nextElementSibling.style.display='flex' }}/>
+            onError={e=>{e.target.style.display='none';e.target.nextElementSibling.style.display='flex'}}/>
           <div className="ci-rail-logo-fallback" style={{display:'none'}}>🤟</div>
         </div>
         <nav className="ci-rail-nav">
-          <button className={`ci-rail-tab nd ${tab==='profile'?'active':''}`} onClick={() => setTab('profile')}>
+          <button className={`ci-rail-tab nd ${tab==='profile'?'active':''}`} onClick={()=>setTab('profile')}>
             <IconUser/><span className="ci-rail-tab-label">프로필</span>
           </button>
-          <button className={`ci-rail-tab nd ${tab==='chats'?'active':''}`} onClick={() => setTab('chats')}>
+          <button className={`ci-rail-tab nd ${tab==='chats'?'active':''}`} onClick={()=>setTab('chats')}>
             <span className="ci-rail-tab-icon-wrap">
               <IconChat/>
               {unreadTotal>0 && <span className="ci-rail-badge">{unreadTotal}</span>}
             </span>
             <span className="ci-rail-tab-label">채팅</span>
           </button>
-          <button className={`ci-rail-tab nd ${tab==='groups'?'active':''}`} onClick={() => setTab('groups')}>
+          <button className={`ci-rail-tab nd ${tab==='groups'?'active':''}`} onClick={()=>setTab('groups')}>
             <span className="ci-rail-tab-icon-wrap"><IconGroup/></span>
             <span className="ci-rail-tab-label">그룹</span>
           </button>
         </nav>
         <div className="ci-rail-bottom">
-          <button className="ci-rail-av-btn nd" onClick={() => setShowPhotoModal(true)}>
+          <button className="ci-rail-av-btn nd" onClick={()=>setShowPhotoModal(true)}>
             <div className="ci-rail-av">
               {photo ? <span style={{fontSize:22}}>{photo}</span> : <span>{displayName.charAt(0)}</span>}
             </div>
@@ -1253,16 +1459,13 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
               <button className="ci-pane-close nd" onClick={onClose}>✕</button>
             </div>
             <div className="ci-pane-scroll nd">
-              <div className="ci-prof-hero nd" onClick={() => setShowPhotoModal(true)}>
+              <div className="ci-prof-hero nd" onClick={()=>setShowPhotoModal(true)}>
                 <div className="ci-prof-hero-av">
                   {photo ? <span style={{fontSize:30}}>{photo}</span> : <span>{displayName.charAt(0)}</span>}
                   <div className="ci-prof-hero-cam">📷</div>
                 </div>
                 <div className="ci-prof-hero-info">
-                  {/* Nickname shown separately if set */}
-                  {nickname && nickname !== displayName && (
-                    <div className="ci-prof-hero-nick">{nickname}</div>
-                  )}
+                  {nickname && nickname !== displayName && <div className="ci-prof-hero-nick">{nickname}</div>}
                   <div className="ci-prof-hero-email">{displayEmail}</div>
                 </div>
                 <div className="ci-prof-hero-arrow">›</div>
@@ -1270,20 +1473,23 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
               <div className="ci-section-label">기본 정보</div>
               <div className="ci-info-card">
                 {[
-                  ['이름',        displayName],
-                  ['닉네임',      nickname || '(미설정 — 채팅 아이콘으로 변경)'],
-                  ['이메일',      displayEmail],
+                  ['이름', displayName],
+                  ['닉네임', nickname||'(미설정)'],
+                  ['이메일', displayEmail],
                   ['사용자 유형', profile?.orgType||'개인 사용자'],
-                  ['가입일',      joined],
-                  ['장애 등급',   profile?.disabilityGrade||'-'],
-                  ['주 사용 수어',profile?.preferredSign||'-'],
+                  ['가입일', joined],
+                  ['장애 등급', profile?.disabilityGrade||'-'],
+                  ['주 사용 수어', profile?.preferredSign||'-'],
                 ].map(([k,v]) => (
-                  <div className="ci-info-row" key={k}><span className="ci-info-key">{k}</span><span className="ci-info-val">{v}</span></div>
+                  <div className="ci-info-row" key={k}>
+                    <span className="ci-info-key">{k}</span>
+                    <span className="ci-info-val">{v}</span>
+                  </div>
                 ))}
               </div>
               <div className="ci-section-label">주소 정보</div>
               <div className="ci-info-card" style={{marginBottom:20}}>
-                {[['주소',profile?.address||'-'],['상세주소',profile?.addressDetail||'-'],['우편번호',profile?.zonecode||'-']].map(([k,v]) => (
+                {[['주소',profile?.address||'-'],['상세주소',profile?.addressDetail||'-'],['우편번호',profile?.zonecode||'-']].map(([k,v])=>(
                   <div className="ci-info-row" key={k}><span className="ci-info-key">{k}</span><span className="ci-info-val">{v}</span></div>
                 ))}
               </div>
@@ -1295,23 +1501,23 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
           <div className="ci-pane">
             <div className="ci-pane-hd ci-chats-hd" onMouseDown={onMouseDown}>
               <div className="ci-chats-brand">
-                <img src="/SignBridge.png" alt="SignBridge" className="ci-chats-logo" onError={e => e.target.style.display='none'}/>
+                <img src="/SignBridge.png" alt="SignBridge" className="ci-chats-logo" onError={e=>e.target.style.display='none'}/>
                 <span className="ci-pane-title">Chats</span>
               </div>
               <button className="ci-pane-close nd" onClick={onClose}>✕</button>
             </div>
             <div className="ci-search nd">
               <span style={{color:'#a0aec0',flexShrink:0,display:'flex'}}><IconSearch/></span>
-              <input className="ci-search-input" placeholder="검색..." value={search} onChange={e => setSearch(e.target.value)}/>
-              {search && <button className="ci-search-clear nd" onClick={() => setSearch('')}>✕</button>}
+              <input className="ci-search-input" placeholder="검색..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              {search && <button className="ci-search-clear nd" onClick={()=>setSearch('')}>✕</button>}
             </div>
             <div className="ci-filter-row nd">
-              <button className={`ci-filter-btn nd ${chatFilter==='all'?'active':''}`} onClick={() => setChatFilter('all')}>전체</button>
-              <button className={`ci-filter-btn nd ${chatFilter==='unread'?'active':''}`} onClick={() => setChatFilter('unread')}>
+              <button className={`ci-filter-btn nd ${chatFilter==='all'?'active':''}`} onClick={()=>setChatFilter('all')}>전체</button>
+              <button className={`ci-filter-btn nd ${chatFilter==='unread'?'active':''}`} onClick={()=>setChatFilter('unread')}>
                 읽지 않음{unreadTotal>0&&<span className="ci-filter-count">{unreadTotal}</span>}
               </button>
             </div>
-            <div className="ci-pane-scroll nd" onClick={() => setMenuOpenId(null)}>
+            <div className="ci-pane-scroll nd" onClick={()=>setMenuOpenId(null)}>
               {!filteredRooms.length ? (
                 <div className="ci-empty">
                   <div className="ci-empty-icon">{chatFilter==='unread'?'✅':'💬'}</div>
@@ -1320,31 +1526,34 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
               ) : filteredRooms.map(room => (
                 <div key={room.id} className="ci-room-wrap">
                   <div className={`ci-room-row ${room.unread>0?'ci-room-unread':''}`}
-                    onClick={() => { if(menuOpenId===room.id){setMenuOpenId(null);return} openChat(room) }}>
+                    onClick={()=>{if(menuOpenId===room.id){setMenuOpenId(null);return}openChat(room)}}>
                     <div className="ci-room-av">
-                      {room.avatar}
+                      {room.avatar || getRoomName(room).charAt(0)}
                       {room.muted && <span className="ci-room-mute-badge">🔕</span>}
                     </div>
                     <div className="ci-room-info">
                       <div className="ci-room-top">
-                        <span className="ci-room-name">{room.name}</span>
+                        <span className="ci-room-name">{getRoomName(room)}</span>
                         <span className="ci-room-time">{fmtRecent(room.lastAt)}</span>
                       </div>
                       <div className="ci-room-bottom">
                         <span className="ci-room-last">{room.lastMsg||'대화를 시작하세요'}</span>
-                        {room.unread>0&&<span className="ci-unread-badge">{room.unread}</span>}
+                        {room.unread>0 && <span className="ci-unread-badge">{room.unread}</span>}
                       </div>
                     </div>
                     <button className="ci-room-dots nd"
-                      onClick={e => { e.stopPropagation(); setMenuOpenId(menuOpenId===room.id?null:room.id) }}>
+                      onClick={e=>{e.stopPropagation();setMenuOpenId(menuOpenId===room.id?null:room.id)}}>
                       <IconRoomDots/>
                     </button>
                   </div>
                   {menuOpenId===room.id && (
                     <RoomMenu room={room}
-                      onMarkRead={() => markRead(room.id)} onMute={() => muteRoom(room.id)}
-                      onDelete={() => deleteRoom(room.id)} onBlock={() => blockRoom(room.id)}
-                      onClose={() => setMenuOpenId(null)}/>
+                      onMarkRead={()=>{setRooms(prev=>prev.map(r=>r.id===room.id?{...r,unread:0}:r))}}
+                      onMute={()=>muteRoom(room.id)}
+                      onDelete={()=>room.isGroup ? deleteGroupForMe(room.id) : deleteRoom(room.id)}
+                      onBlock={()=>blockRoom(room.id)}
+                      onLeave={()=>leaveGroup(room.id)}
+                      onClose={()=>setMenuOpenId(null)}/>
                   )}
                 </div>
               ))}
@@ -1363,10 +1572,10 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
               {OFFICIAL_ROOMS.map(room => (
                 <OfficialRoomBanner key={room.id} room={room}
                   joined={joinedGroups.includes(room.id)}
-                  onJoin={() => joinGroup(room.id)}
-                  onLeave={() => leaveGroup(room.id)}
-                  onOpen={() => openChat(room, true)}
-                  onPreview={() => setPreviewRoom(room)}/>
+                  onJoin={()=>joinGroup(room)}
+                  onLeave={()=>leaveGroup(room.id)}
+                  onOpen={()=>openChat(room, true)}
+                  onPreview={()=>setPreviewRoom(room)}/>
               ))}
               <div className="ci-groups-hint">참여한 그룹 채팅은 여기에서 열 수 있어요.</div>
             </div>
@@ -1377,20 +1586,23 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
 
     {showPhotoModal && (
       <ProfileEditModal nickname={nickname} photo={photo} myName={myName}
-        onSave={handleProfileSave} onClose={() => setShowPhotoModal(false)}/> 
+        onSave={handleProfileSave} onClose={()=>setShowPhotoModal(false)}/>
     )}
-
     {previewRoom && (
       <GroupPreviewModal room={previewRoom}
-        onJoin={() => { joinGroup(previewRoom.id); openChat(previewRoom, true) }}
-        onClose={() => setPreviewRoom(null)}/>
+        onJoin={()=>{joinGroup(previewRoom);openChat(previewRoom,true)}}
+        onClose={()=>setPreviewRoom(null)}/>
     )}
 
-    {openRooms.map(room => (
+    {visible && openRooms.map(room => (
       <ChatWindow key={room.id} room={room} isGroup={!!room.isGroup}
         myEmail={myEmail} myName={myName} myNickname={nickname} myPhoto={photo}
-        onClose={() => setOpenRooms(prev => prev.filter(r => r.id!==room.id))}/>
+        onClose={()=>setOpenRooms(prev=>prev.filter(r=>r.id!==room.id))}
+        onRefreshRooms={refreshRooms}
+        userNames={userNames}/>
     ))}
+
+
     </>
   )
 }

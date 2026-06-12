@@ -13,60 +13,67 @@ const CONTACT_TYPES = [
 export default function Registration({ onBack, onSubmit, defaultName = '', initialData = null, isEdit = false, existingChatId = '' }) {
     const [step, setStep] = useState(1)
 
-    // chatId is locked if: editing (can't change), or a prior registration already set it
-    const lockedChatId = isEdit ? (initialData?.chatId || '') : existingChatId
+    // chatId is ALWAYS locked when:
+    // 1. Editing (isEdit=true) — can never change after first registration
+    // 2. existingChatId is set (already registered before)
+    const lockedChatId = isEdit
+        ? (initialData?.chatId || existingChatId || '')
+        : existingChatId
+
+    const chatIdLocked = !!lockedChatId
 
     const [form, setForm] = useState(() => {
-        const base = {
-            name:         '',
-            chatId:       lockedChatId,
-            role:         '',
-            region:       '',
-            intro:        '',
-            experience:   '',
-            speciality:   '',
-            contactType:  'signbridge',
-            contactValue: lockedChatId,
-            certFiles:    [],
-            publicProfile: true,
-        }
         if (initialData) {
+            const chatId = initialData.chatId || lockedChatId || ''
             return {
-                ...base,
-                name:         initialData.name         || defaultName,
-                chatId:       initialData.chatId       || lockedChatId,
-                role:         initialData.role         || '',
-                region:       initialData.region       || '',
-                intro:        initialData.intro        || '',
-                experience:   initialData.experience   || '',
-                speciality:   initialData.speciality   || '',
-                contactType:  initialData.contactType  || initialData.contact?.type  || 'signbridge',
-                contactValue: initialData.contactValue || initialData.contact?.value || lockedChatId,
+                name:          initialData.name         || defaultName || '',
+                chatId,
+                role:          initialData.role         || '',
+                region:        initialData.region       || '',
+                intro:         initialData.intro        || '',
+                experience:    initialData.experience   || '',
+                speciality:    initialData.speciality   || '',
+                contactType:   initialData.contactType  || initialData.contact?.type  || 'signbridge',
+                contactValue:  initialData.contactValue || initialData.contact?.value || chatId,
+                certFiles:     [],
+                publicProfile: initialData.publicProfile !== undefined ? initialData.publicProfile : true,
             }
         }
-        return { ...base, name: defaultName }
+        return {
+            name:          defaultName || '',
+            chatId:        lockedChatId,
+            role:          '',
+            region:        '',
+            intro:         '',
+            experience:    '',
+            speciality:    '',
+            contactType:   'signbridge',
+            contactValue:  lockedChatId,
+            certFiles:     [],
+            publicProfile: true,
+        }
     })
 
     const [errors,       setErrors]       = useState({})
-    const [chatIdStatus, setChatIdStatus] = useState(
-        // If chatId is pre-filled and locked, mark as already ok — no need to check
-        lockedChatId ? 'locked' : null
-    )
+    const [chatIdStatus, setChatIdStatus] = useState(chatIdLocked ? 'locked' : null)
     const [preview,      setPreview]      = useState([])
     const fileRef = useRef(null)
 
     const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-    // Is the chatId field locked (pre-filled from a prior registration or edit mode)?
-    const chatIdLocked = !!lockedChatId
-
     const validateChatIdFormat = (id) => /^[\uAC00-\uD7A3a-zA-Z0-9\-_.]{4,20}$/.test(id)
 
     const checkChatId = async (id) => {
         if (!validateChatIdFormat(id)) { setChatIdStatus('invalid'); return }
+        // Skip check if same as locked chatId
+        if (id === lockedChatId) { setChatIdStatus('locked'); return }
         setChatIdStatus('checking')
         try {
-            const res  = await fetch(`/api/community/check-chat-id?chatId=${encodeURIComponent(id)}`)
+            // Pass email so backend skips the user's own existing chatId
+            const emailParam = typeof window !== 'undefined'
+                ? encodeURIComponent(localStorage.getItem('userEmail') || '')
+                : ''
+            const res  = await fetch(`/api/community/check-chat-id?chatId=${encodeURIComponent(id)}&email=${emailParam}`)
             const data = await res.json()
             setChatIdStatus(data.available ? 'ok' : 'taken')
         } catch {
@@ -80,7 +87,7 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
     }
 
     const handleChatIdChange = (val) => {
-        if (chatIdLocked) return  // no-op if locked
+        if (chatIdLocked) return
         const clean = val.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\-_.]/g, '').slice(0, 20)
         update('chatId', clean)
         if (form.contactType === 'signbridge') update('contactValue', clean)
@@ -100,6 +107,7 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
             type: f.type.includes('pdf') ? 'pdf' : 'img',
         }))])
     }
+
     const removeFile = (i) => {
         setForm(f => ({ ...f, certFiles: f.certFiles.filter((_,j) => j !== i) }))
         setPreview(p => p.filter((_,j) => j !== i))
@@ -119,18 +127,17 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
     }
     const validate3 = () => {
         const e = {}
-        const chatIdBlocked = !chatIdLocked && (
-            !form.chatId.trim() ||
-            !validateChatIdFormat(form.chatId) ||
-            chatIdStatus === 'taken' ||
-            chatIdStatus === 'checking' ||
-            chatIdStatus === 'invalid'
-        )
-        if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
+        if (!chatIdLocked) {
+            if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
+            else if (!validateChatIdFormat(form.chatId)) e.chatId = '올바른 형식이 아닙니다.'
+            else if (chatIdStatus === 'taken') e.chatId = '이미 사용 중인 ID입니다.'
+            else if (chatIdStatus === 'checking') e.chatId = 'ID 확인 중입니다.'
+            // If status is null but format is valid, allow through
+        }
         if (form.contactType !== 'signbridge' && !form.contactValue.trim())
             e.contact = '연락처를 입력해 주세요.'
         setErrors(e)
-        return !chatIdBlocked && !e.contact
+        return !Object.keys(e).length
     }
 
     const next = () => {
@@ -139,6 +146,7 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
         setErrors({})
         setStep(s => s + 1)
     }
+
     const handleSubmit = () => {
         if (validate3()) {
             onSubmit({
@@ -199,7 +207,7 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                             <select className={`reg-input${errors.role?' error':''}`}
                                     value={form.role} onChange={e => update('role', e.target.value)}>
                                 <option value="">선택하세요</option>
-                                {ROLE_OPTIONS.map(r => <option key={r}>{r}</option>)}
+                                {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
                             {errors.role && <span className="reg-err">{errors.role}</span>}
                         </div>
@@ -208,7 +216,7 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                             <select className={`reg-input${errors.region?' error':''}`}
                                     value={form.region} onChange={e => update('region', e.target.value)}>
                                 <option value="">선택하세요</option>
-                                {REGION_OPTIONS.map(r => <option key={r}>{r}</option>)}
+                                {REGION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
                             {errors.region && <span className="reg-err">{errors.region}</span>}
                         </div>
@@ -300,12 +308,11 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                 </div>
             )}
 
-            {/* STEP 3 — Chat ID + contact */}
+            {/* STEP 3 */}
             {step === 3 && (
                 <div className="reg-card">
                     <div className="reg-section-title">📞 연락처</div>
 
-                    {/* Chat ID */}
                     <div className="reg-field">
                         <label className="reg-label">
                             채팅 ID <span className="reg-req">*</span>
@@ -313,16 +320,12 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                         </label>
 
                         {chatIdLocked ? (
-                            /* ── Locked: show as read-only pill ── */
                             <div className="reg-chatid-locked">
                                 <span className="reg-chatid-locked-at">@</span>
                                 <span className="reg-chatid-locked-value">{form.chatId}</span>
-                                <span className="reg-chatid-locked-badge">
-                                    {isEdit ? '🔒 변경 불가' : '✓ 이미 설정됨'}
-                                </span>
+                                <span className="reg-chatid-locked-badge">🔒 변경 불가</span>
                             </div>
                         ) : (
-                            /* ── Free input ── */
                             <>
                                 <div className="reg-chatid-wrap">
                                     <span className="reg-chatid-at">@</span>
@@ -340,7 +343,6 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                         )}
                     </div>
 
-                    {/* Contact method */}
                     <div className="reg-field">
                         <label className="reg-label">연락 방법 <span className="reg-req">*</span></label>
                         <div className="reg-contact-types">
@@ -367,7 +369,6 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                         {errors.contact && <span className="reg-err">{errors.contact}</span>}
                     </div>
 
-                    {/* Summary */}
                     <div className="reg-summary">
                         <div className="reg-summary-title">📋 등록 내용 확인</div>
                         {[
@@ -385,7 +386,9 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                     </div>
                     <div className="reg-btn-row">
                         <button className="reg-btn-back-step" onClick={()=>{ setErrors({}); setStep(2) }}>← 이전</button>
-                        <button className="reg-btn-submit" onClick={handleSubmit}>{isEdit ? '✅ 수정 완료' : '✅ 등록 완료'}</button>
+                        <button className="reg-btn-submit" onClick={handleSubmit}>
+                            {isEdit ? '✅ 수정 완료' : '✅ 등록 완료'}
+                        </button>
                     </div>
                 </div>
             )}
