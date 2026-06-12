@@ -1,0 +1,173 @@
+/* ── 오버레이 배경 ── */
+.np-page {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 27, 75, 0.35);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 80px 20px 20px;
+    animation: np-fade-in 0.18s ease;
+}
+@keyframes np-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── 가운데 카드 ── */
+.np-card-wrap {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 24px 80px rgba(99,102,241,0.18), 0 4px 16px rgba(0,0,0,0.10);
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: np-slide-up 0.2s cubic-bezier(.4,0,.2,1);
+}
+@keyframes np-slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 상단 바 ── */
+.np-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1.5px solid #f0f0ff;
+}
+
+.np-back {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1.5px solid #e0e7ff;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6366f1;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.13s, border-color 0.13s;
+}
+.np-back svg { width: 14px; height: 14px; }
+.np-back:hover { background: #eef2ff; border-color: #6366f1; }
+
+.np-topbar-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.np-title { font-size: 17px; font-weight: 800; color: #1e1b4b; }
+.np-unread-pill {
+    background: #6366f1;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 2px 8px;
+}
+
+.np-mark-all {
+    background: none;
+    border: none;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6366f1;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.np-mark-all:hover { text-decoration: underline; }
+
+/* ── 본문 스크롤 ── */
+.np-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 16px;
+}
+.np-body::-webkit-scrollbar { width: 4px; }
+.np-body::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
+
+/* ── 알림 아이템 ── */
+.np-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 14px;
+    background: #fff;
+    border: 1.5px solid #f3f4f6;
+    border-left: 4px solid transparent;
+    border-radius: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.15s;
+}
+.np-item:hover { background: #f8f9ff; }
+.np-item-unread { background: #fafbff; }
+
+.np-item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.np-item-body { flex: 1; min-width: 0; }
+.np-item-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 5px;
+}
+.np-cat {
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+.np-time { font-size: 11px; color: #9ca3af; margin-left: auto; white-space: nowrap; }
+.np-text { font-size: 13px; color: #374151; line-height: 1.5; }
+.np-text-bold { font-weight: 600; color: #1e1b4b; }
+
+.np-remove {
+    background: none;
+    border: none;
+    color: #d1d5db;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 3px 5px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: color 0.12s, background 0.12s;
+}
+.np-remove:hover { color: #ef4444; background: #fef2f2; }
+
+/* ── 빈 상태 ── */
+.np-empty { text-align: center; padding: 48px 0; }
+.np-empty-icon  { font-size: 40px; margin-bottom: 12px; }
+.np-empty-title { font-size: 15px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+.np-empty-sub   { font-size: 13px; color: #9ca3af; }
+
+/* ── 반응형 ── */
+@media (max-width: 600px) {
+    .np-page { padding: 70px 12px 12px; }
+}

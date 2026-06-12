@@ -136,6 +136,7 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
         }
         if (form.contactType !== 'signbridge' && !form.contactValue.trim())
             e.contact = '연락처를 입력해 주세요.'
+
         setErrors(e)
         return !Object.keys(e).length
     }
@@ -148,11 +149,7 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
     }
 
     const handleSubmit = () => {
-        if (validate3()) {
-            onSubmit({
-                ...form,
                 contactValue: form.contactType === 'signbridge' ? form.chatId : form.contactValue,
-            })
         }
     }
 

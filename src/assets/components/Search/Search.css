@@ -1,0 +1,290 @@
+/* ── 오버레이 배경 ── */
+.sp-page {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 27, 75, 0.35);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 80px 20px 20px;
+    animation: sp-fade-in 0.18s ease;
+}
+@keyframes sp-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── 가운데 카드 ── */
+.sp-card-wrap {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 24px 80px rgba(99,102,241,0.18), 0 4px 16px rgba(0,0,0,0.10);
+    width: 100%;
+    max-width: 620px;
+    max-height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: sp-slide-up 0.2s cubic-bezier(.4,0,.2,1);
+}
+@keyframes sp-slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 상단 바 ── */
+.sp-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1.5px solid #f0f0ff;
+}
+
+.sp-back {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1.5px solid #e0e7ff;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6366f1;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.13s, border-color 0.13s;
+}
+.sp-back svg { width: 14px; height: 14px; }
+.sp-back:hover { background: #eef2ff; border-color: #6366f1; }
+
+.sp-input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f1f3ff;
+    border: 1.5px solid #e0e7ff;
+    border-radius: 10px;
+    padding: 8px 12px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sp-input-wrap:focus-within {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    background: #fff;
+}
+.sp-input-icon { width: 15px; height: 15px; color: #6366f1; flex-shrink: 0; }
+
+.sp-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: #1f2937;
+    background: transparent;
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+}
+.sp-input::placeholder { color: #9ca3af; }
+
+.sp-clear {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 50%;
+    transition: color 0.12s, background 0.12s;
+}
+.sp-clear:hover { color: #374151; background: #e5e7eb; }
+
+.sp-search-btn {
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.sp-search-btn:hover { background: #4f46e5; }
+
+/* ── 본문 스크롤 ── */
+.sp-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 20px;
+}
+.sp-body::-webkit-scrollbar { width: 4px; }
+.sp-body::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
+
+/* ── 섹션 공통 ── */
+.sp-section { margin-bottom: 16px; }
+
+.sp-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.sp-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9ca3af;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+.sp-clear-all {
+    background: none;
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6366f1;
+    cursor: pointer;
+    font-family: inherit;
+}
+.sp-clear-all:hover { text-decoration: underline; }
+
+/* ── 행 ── */
+.sp-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.12s;
+    margin-bottom: 4px;
+}
+.sp-row:hover { background: #f5f3ff; }
+.sp-row-text { flex: 1; font-size: 13px; color: #374151; }
+
+.sp-fill-btn, .sp-remove {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 6px;
+    transition: color 0.12s, background 0.12s;
+}
+.sp-fill-btn:hover, .sp-remove:hover { color: #6366f1; background: #eef2ff; }
+
+/* ── 결과 카운트 ── */
+.sp-results { }
+.sp-result-count { font-size: 12px; color: #9ca3af; margin-bottom: 12px; }
+.sp-result-count span { color: #6366f1; font-weight: 700; }
+
+/* ── 결과 카드 ── */
+.sp-card {
+    background: #fafafa;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+.sp-card:hover { border-color: #a5b4fc; }
+
+.sp-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 6px;
+    cursor: pointer;
+}
+.sp-card-left { display: flex; align-items: center; gap: 10px; }
+.sp-emoji { font-size: 22px; }
+.sp-word { font-size: 14px; font-weight: 700; color: #1e1b4b; margin-bottom: 3px; }
+.sp-cat {
+    font-size: 10px;
+    font-weight: 700;
+    background: #eef2ff;
+    color: #6366f1;
+    border-radius: 20px;
+    padding: 2px 8px;
+}
+.sp-chevron { font-size: 11px; color: #9ca3af; }
+.sp-card-desc { font-size: 12px; color: #6b7280; padding: 0 14px 12px; line-height: 1.5; }
+
+/* ── 상세 ── */
+.sp-detail {
+    border-top: 1px solid #f0f0ff;
+    padding: 12px 14px;
+    background: #f8f9ff;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sp-detail-row { display: flex; gap: 8px; font-size: 12px; }
+.sp-detail-row span:first-child { flex-shrink: 0; }
+.sp-detail-row b { display: block; font-size: 10px; color: #9ca3af; font-weight: 700; margin-bottom: 1px; }
+.sp-detail-row p { margin: 0; color: #374151; line-height: 1.5; }
+.sp-detail-tip { background: #fffbeb; border-radius: 8px; padding: 8px 10px; }
+
+.sp-related { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.sp-related-label { font-size: 10px; font-weight: 700; color: #9ca3af; }
+.sp-related-tag {
+    background: #eef2ff; color: #6366f1; border: none;
+    border-radius: 20px; padding: 3px 9px; font-size: 11px;
+    font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: background 0.12s;
+}
+.sp-related-tag:hover { background: #e0e7ff; }
+
+/* ── 빈 결과 ── */
+.sp-empty { text-align: center; padding: 32px 0; }
+.sp-empty-icon { font-size: 34px; margin-bottom: 10px; }
+.sp-empty-title { font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 4px; }
+.sp-empty-sub { font-size: 12px; color: #9ca3af; margin-bottom: 14px; }
+.sp-dict-btn {
+    background: #6366f1; color: #fff; border: none;
+    border-radius: 9px; padding: 9px 18px; font-size: 13px;
+    font-weight: 700; font-family: inherit; cursor: pointer;
+    transition: background 0.15s;
+}
+.sp-dict-btn:hover { background: #4f46e5; }
+
+/* ── 수어 사전 배너 ── */
+.sp-dict-banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; background: #f5f3ff; border-radius: 12px;
+    cursor: pointer; margin-top: 6px; transition: background 0.15s;
+}
+.sp-dict-banner:hover { background: #ede9fe; }
+.sp-dict-banner-title { font-size: 13px; font-weight: 700; color: #1e1b4b; }
+.sp-dict-banner-sub { font-size: 11px; color: #6b7280; }
+.sp-dict-arrow { font-size: 18px; color: #6366f1; margin-left: auto; }
+
+/* ── 자주 찾는 수어 ── */
+.sp-quick { margin-top: 4px; }
+.sp-quick-title {
+    font-size: 11px; font-weight: 700; color: #9ca3af;
+    letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 10px;
+}
+.sp-quick-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+.sp-chip {
+    display: flex; align-items: center; gap: 5px;
+    background: #f8f9ff; border: 1.5px solid #e0e7ff;
+    border-radius: 20px; padding: 6px 13px; font-size: 12px;
+    font-weight: 600; color: #374151; font-family: inherit;
+    cursor: pointer; transition: all 0.13s;
+}
+.sp-chip:hover { background: #eef2ff; border-color: #6366f1; color: #6366f1; }
+
+/* ── 반응형 ── */
+@media (max-width: 600px) {
+    .sp-page { padding: 70px 12px 12px; }
+}

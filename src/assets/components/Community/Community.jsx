@@ -56,10 +56,7 @@ export default function Community({
 
     // ── Edit specific post ────────────────────────────────
     const handleEditPost = (post) => {
-        setEditingPost(post)
         setView('edit')
-    }
-
     // ── Submit (create or update) ─────────────────────────
     const handleRegisterSubmit = async (form) => {
         try {

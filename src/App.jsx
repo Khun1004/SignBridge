@@ -141,7 +141,6 @@ export default function App() {
     const [userProfile,  setUserProfile]  = useState(null)
 
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
-    const [showNotifs, setShowNotifs] = useState(false)
     const unreadCount = notifs.filter(n => n.unread).length
 
     const [showChat,    setShowChat]    = useState(false)
@@ -204,10 +203,6 @@ export default function App() {
         const type = orgType || 'personal'
         setRegisterScreen(`register_${type}`)
     }
-    const handleLogoClick = () => {
-        setShowConv(false); setRegisterScreen(null)
-        setShowDemo(false); setShowAbout(false)
-        setTab('home'); setQuery('')
     }
 
     const handleLogin = (name, type, email) => {
@@ -243,8 +238,6 @@ export default function App() {
             .forEach(k => localStorage.removeItem(k))
     }
 
-    const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
-
     const handleQuickChat = () => {
         if (!loggedIn) { setAuthModal('login') }
         else { setShowChat(true) }
@@ -254,24 +247,20 @@ export default function App() {
         if (!loggedIn) { setAuthModal('login'); return }
         setChatInitialRoom(room)
         setShowChat(true)
-        setTimeout(() => { chatRoomRefreshRef.current?.() }, 500)
     }
 
     const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
     const handleQuickAiChat = () => setShowAiChat(v => !v)
 
+    // ── 커뮤니티에서 채팅 시작 ──
+    const handleCommunityChat = (room) => {
+        setChatInitialRoom(room)
+        setShowChat(true)
+    }
+
     const renderMain = () => {
         if (registerScreen === 'register_personal')
             return <RegisterPersonal messages={convMessages} videos={convVideos}
-                onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }}
-                userEmail={userEmail} displayName={displayName} />
-        if (registerScreen === 'register_immigration')
-            return <RegisterImmigration messages={convMessages} videos={convVideos}
-                onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }}
-                userEmail={userEmail} displayName={displayName} />
-        if (registerScreen === 'register_police')
-            return <RegisterPolice messages={convMessages} videos={convVideos}
-                onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }}
                 userEmail={userEmail} displayName={displayName} />
         if (showConv)
             return <ConversationPage messages={convMessages} videoBlobs={convVideoBlobs}
@@ -357,6 +346,23 @@ export default function App() {
                 </div>
                 <div className="navbar-bottom">
                     <nav className="navbar-bottom-inner">
+                        {/* ← 뒤로가기 버튼 */}
+                        {(showConv || registerScreen || showDemo || showAbout) && (
+                            <button
+                                className="nav-back-btn"
+                                onClick={() => {
+                                    if (registerScreen) { setRegisterScreen(null); return }
+                                    if (showConv)  { setShowConv(false); setTab('trans'); return }
+                                    if (showDemo)  { setShowDemo(false); setTab('home'); return }
+                                    if (showAbout) { setShowAbout(false); setTab('home'); return }
+                                }}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                                    <path d="M15 18l-6-6 6-6"/>
+                                </svg>
+                                뒤로
+                            </button>
+                        )}
                         {MENUS.map(m => (
                             <button key={m.id}
                                 className={`nav-menu-btn ${(isNormalTab && tab === m.id) || (showAbout && m.id === 'about') ? 'active' : ''}`}
