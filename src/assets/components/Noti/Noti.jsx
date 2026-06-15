@@ -28,20 +28,18 @@ export default function NotiPage({ notifications, setNotifications, onBack }) {
     const unreadCount = notifications.filter(n => n.unread).length
 
     return (
-        <div className="np-page" onClick={onBack}>
-            <div className="np-card-wrap" onClick={e => e.stopPropagation()}>
-                {/* ── 상단 바 ── */}
-                <div className="np-topbar">
-                    <button className="np-back" onClick={onBack}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="np-page">
+            <div className="np-card-wrap">
+                {/* ── 페이지 헤더 ── */}
+                <div className="np-header">
+                    <button className="np-back-btn" onClick={onBack}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
                             <path d="M15 18l-6-6 6-6"/>
                         </svg>
                         뒤로
                     </button>
-                    <div className="np-topbar-center">
-                        <span className="np-title">알림</span>
-                        {unreadCount > 0 && <span className="np-unread-pill">{unreadCount}</span>}
-                    </div>
+                    <span className="np-header-title">알림</span>
+                    {unreadCount > 0 && <span className="np-unread-pill">{unreadCount}</span>}
                     {unreadCount > 0 && (
                         <button className="np-mark-all" onClick={markAll}>모두 읽음</button>
                     )}

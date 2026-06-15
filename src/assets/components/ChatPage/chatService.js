@@ -1,56 +1,26 @@
-/**
- * chatService.js
- *
- * Drop-in replacement for the localStorage helpers in ChatRoom.jsx.
- * Uses SockJS + STOMP to talk to your Spring Boot WebSocket server.
- *
- * Usage:
- *   import chatService from './chatService'
- *
- *   // Connect once (e.g. in App.jsx or when ChatRoom mounts)
- *   chatService.connect('http://192.168.0.80:8080')
- *
- *   // Subscribe to a room
- *   const unsub = chatService.subscribeToRoom(roomId, (msg) => {
- *     setMessages(prev => [...prev, msg])
- *   })
- *
- *   // Send a message
- *   chatService.sendMessage({ roomId, senderEmail, senderName, text })
- *
- *   // Unsubscribe when leaving a room
- *   unsub()
- *
- *   // Disconnect on logout
- *   chatService.disconnect()
- */
-
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
 
-// Change this to match your Spring Boot server IP/URL
-// In development use your local IP, in production use your ngrok/Railway URL
 const DEFAULT_BASE_URL = 'http://localhost:8080'
+
 class ChatService {
   constructor() {
-    this.client     = null
-    this.connected  = false
-    this.pendingQueue = []   // messages queued before connection is ready
+    this.client       = null
+    this.connected    = false
+    this.pendingQueue = []
+    this._globalListeners = []   // ← 전역 메시지 리스너 목록
   }
 
   connect(baseUrl = DEFAULT_BASE_URL) {
     if (this.connected) return
 
     this.client = new Client({
-      // SockJS fallback — matches your WebSocketConfig endpoint
       webSocketFactory: () => new SockJS(`${baseUrl}/ws-chat`),
-
-      reconnectDelay: 3000,   // auto-reconnect every 3s if disconnected
+      reconnectDelay: 3000,
 
       onConnect: () => {
         console.log('[ChatService] Connected')
         this.connected = true
-        // Flush any messages sent before connection was ready
         this.pendingQueue.forEach(fn => fn())
         this.pendingQueue = []
       },
@@ -73,8 +43,7 @@ class ChatService {
     this.connected = false
   }
 
-  // Subscribe to messages for a specific room.
-  // Returns an unsubscribe function — call it when leaving the room.
+  // ── 방 구독 (기존) ──
   subscribeToRoom(roomId, onMessage) {
     if (!this.client) {
       console.warn('[ChatService] Not connected yet')
@@ -82,28 +51,38 @@ class ChatService {
     }
 
     const subscription = this.client.subscribe(
-      `/topic/room/${roomId}`,
-      (stompMsg) => {
-        const msg = JSON.parse(stompMsg.body)
-        onMessage(msg)
-      }
+        `/topic/room/${roomId}`,
+        (stompMsg) => {
+          const msg = JSON.parse(stompMsg.body)
+          // 방 구독 콜백
+          onMessage(msg)
+          // 전역 리스너에도 알림 ← 추가
+          this._globalListeners.forEach(fn => fn(msg))
+        }
     )
 
-    // Return unsubscribe fn
     return () => subscription.unsubscribe()
   }
 
-  // Send a new message
+  // ── 전역 메시지 리스너 등록/해제 ──
+  // App.jsx에서 채팅창 닫혔을 때 새 메시지 감지용
+  onMessage(callback) {
+    this._globalListeners.push(callback)
+    // 해제 함수 반환
+    return () => {
+      this._globalListeners = this._globalListeners.filter(fn => fn !== callback)
+    }
+  }
+
+  // ── 메시지 전송 ──
   sendMessage(payload) {
     this._publish('/app/chat.send', payload)
   }
 
-  // Edit an existing message
   editMessage(id, roomId, newText) {
     this._publish('/app/chat.edit', { id, roomId, text: newText, type: 'EDIT' })
   }
 
-  // Delete a message
   deleteMessage(id, roomId) {
     this._publish('/app/chat.delete', { id, roomId, type: 'DELETE' })
   }
@@ -119,30 +98,23 @@ class ChatService {
     if (this.connected) {
       send()
     } else {
-      // Queue it — will be flushed on connect
       this.pendingQueue.push(send)
     }
   }
 
-  // -------------------------------------------------------
-  // REST helpers — these replace your localStorage reads
-  // -------------------------------------------------------
-
-  // Load a user's room list (replaces load(ROOMS_KEY, []))
+  // ── REST helpers ──
   async getRooms(email, baseUrl = DEFAULT_BASE_URL) {
     const res = await fetch(`${baseUrl}/api/chat/rooms?email=${encodeURIComponent(email)}`)
     if (!res.ok) throw new Error('Failed to load rooms')
     return res.json()
   }
 
-  // Load message history for a room (replaces loadM(roomId))
   async getMessages(roomId, baseUrl = DEFAULT_BASE_URL) {
     const res = await fetch(`${baseUrl}/api/chat/rooms/${roomId}/messages`)
     if (!res.ok) throw new Error('Failed to load messages')
     return res.json()
   }
 
-  // Create a new 1:1 room (replaces the startChat localStorage logic)
   async createRoom(room, baseUrl = DEFAULT_BASE_URL) {
     const res = await fetch(`${baseUrl}/api/chat/rooms`, {
       method:  'POST',
@@ -154,6 +126,5 @@ class ChatService {
   }
 }
 
-// Export a singleton so the same connection is reused across components
 const chatService = new ChatService()
 export default chatService

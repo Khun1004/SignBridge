@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import './App.css'
 import SignBridgeLogo from './assets/SignBridge.png'
-import { commonApi } from './assets/components/api/api.jsx';
+import { commonApi, communityApi, myPageApi } from './assets/components/api/api.jsx';
 import About            from './assets/components/About/About.jsx'
 import ConversationPage from './assets/components/ConversationPage/ConversationPage.jsx'
 import Practice         from './assets/components/Practice/Practice.jsx'
@@ -15,9 +16,9 @@ import RegisterPersonal    from './assets/components/RegisterPersonal/RegisterPe
 import RegisterImmigration from './assets/components/RegisterImmigration/RegisterImmigration.jsx'
 import RegisterPolice      from './assets/components/RegisterPolice/RegisterPolice.jsx'
 
+import LoginPage  from './assets/components/LoginPage/LoginPage.jsx'
 import SearchPage from './assets/components/Search/Search.jsx'
 import NotiPage   from './assets/components/Noti/Noti.jsx'
-import LoginPage  from './assets/components/LoginPage/LoginPage.jsx'
 import SignupPage from './assets/components/SignupPage/SignupPage.jsx'
 import DemoPage    from "./assets/components/DemoPage/DemoPage.jsx";
 import Community  from './assets/components/Community/Community.jsx'
@@ -41,8 +42,99 @@ const SAMPLE_NOTIFICATIONS = [
     { id: 6, icon: '🤟', text: '실시간 번역 기능이 업데이트되었습니다.',         time: '2일 전',  unread: false, category: 'translate' },
 ]
 
+// ── 알림 드롭다운 (앱 Noti.tsx 기반 업그레이드) ──
+const CATEGORY_COLORS = {
+    system:    '#7c6fff',
+    update:    '#10b981',
+    community: '#3b82f6',
+    translate: '#f59e0b',
+}
+const CATEGORY_LABELS = {
+    system:    '시스템',
+    update:    '업데이트',
+    community: '커뮤니티',
+    translate: '번역',
+}
 
+function NotificationDropdown({ notifications, setNotifications, onClose, onMarkAll }) {
+    const ref = useRef(null)
 
+    useEffect(() => {
+        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [onClose])
+
+    const handleMarkRead = (id) => {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, unread: false } : n))
+    }
+
+    const handleDelete = (id) => {
+        setNotifications(prev => prev.filter(n => n.id !== id))
+    }
+
+    const unreadCount = notifications.filter(n => n.unread).length
+
+    return (
+        <div className="notif-dropdown" ref={ref}>
+            {/* 요약 바 */}
+            <div className="notif-header">
+                <div className="notif-header-left">
+                    <span className="notif-unread-badge">{unreadCount}</span>
+                    <span className="notif-title">읽지 않은 알림</span>
+                </div>
+                {unreadCount > 0 && (
+                    <button className="notif-mark-all" onClick={onMarkAll}>모두 읽음</button>
+                )}
+            </div>
+
+            {/* 알림 목록 */}
+            <div className="notif-list">
+                {notifications.length === 0 ? (
+                    <div className="notif-empty">
+                        <span className="notif-empty-icon">🔔</span>
+                        <div className="notif-empty-title">알림이 없습니다</div>
+                        <div className="notif-empty-sub">새로운 알림이 오면 여기에 표시됩니다.</div>
+                    </div>
+                ) : notifications.map(n => {
+                    const catColor = CATEGORY_COLORS[n.category ?? 'system'] ?? '#7c6fff'
+                    const catLabel = CATEGORY_LABELS[n.category ?? 'system'] ?? '시스템'
+                    return (
+                        <div
+                            key={n.id}
+                            className={`notif-item ${n.unread ? 'unread' : ''}`}
+                            onClick={() => handleMarkRead(n.id)}
+                            style={n.unread ? { borderLeft: `4px solid ${catColor}` } : {}}
+                        >
+                            {/* 아이콘 */}
+                            <div className="notif-icon-wrap" style={{ background: catColor + '22' }}>
+                                <span className="notif-icon">{n.icon}</span>
+                            </div>
+
+                            {/* 본문 */}
+                            <div className="notif-body">
+                                <div className="notif-top-row">
+                                    <span className="notif-cat-badge" style={{ background: catColor + '22', color: catColor }}>{catLabel}</span>
+                                    <span className="notif-time">{n.time}</span>
+                                </div>
+                                <div className={`notif-text ${n.unread ? 'notif-text-bold' : ''}`}>{n.text}</div>
+                            </div>
+
+                            {/* 삭제 버튼 */}
+                            <button
+                                className="notif-delete-btn"
+                                onClick={(e) => { e.stopPropagation(); handleDelete(n.id) }}
+                                title="삭제"
+                            >✕</button>
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
+
+// ── AI 채팅 창 ──
 function AiChatWindow({ onClose }) {
     const [messages, setMessages] = useState([
         { role: 'assistant', text: '안녕하세요! SignBridge AI 어시스턴트입니다. 수어나 서비스에 관해 궁금한 점을 물어보세요 🤟' }
@@ -144,7 +236,8 @@ function AiChatWindow({ onClose }) {
     )
 }
 
-function FloatingSidebar({ onChat, onCall, onAiChat }) {
+// ── 오른쪽 플로팅 사이드바 ──
+function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0 }) {
     const scrollTo = (dir) =>
         window.scrollTo({ top: dir === 'top' ? 0 : document.body.scrollHeight, behavior: 'smooth' })
 
@@ -159,7 +252,21 @@ function FloatingSidebar({ onChat, onCall, onAiChat }) {
                 <span className="fsb-label">위로</span>
             </button>
 
-            <button className="fsb-btn fsb-chat" onClick={onChat} title="채팅">
+            <button className="fsb-btn fsb-chat" onClick={onChat} title="채팅" style={{position:'relative'}}>
+                {chatUnread > 0 && (
+                    <span style={{
+                        position:'absolute', top:6, right:6,
+                        minWidth:18, height:18,
+                        background:'#ef4444', color:'#fff',
+                        fontSize:10, fontWeight:800,
+                        borderRadius:9, padding:'0 5px',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        border:'2px solid #fff',
+                        lineHeight:1, zIndex:10,
+                    }}>
+                        {chatUnread > 99 ? '99+' : chatUnread}
+                    </span>
+                )}
                 <span className="fsb-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -177,6 +284,7 @@ function FloatingSidebar({ onChat, onCall, onAiChat }) {
                 <span className="fsb-label">전화</span>
             </button>
 
+            {/* AI 채팅 버튼 */}
             <button className="fsb-btn fsb-ai" onClick={onAiChat} title="AI 채팅">
                 <span className="fsb-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -200,6 +308,179 @@ function FloatingSidebar({ onChat, onCall, onAiChat }) {
     )
 }
 
+// ── 수어 데이터베이스 ──
+const SIGN_DB = [
+    { id:'1', word:'안녕하세요',     category:'인사', emoji:'👋', description:'상대방을 처음 만나거나 하루를 시작할 때 사용하는 기본 인사 표현입니다.', handShape:'오른손을 펴서 손바닥이 앞을 향하게 합니다', movement:'손을 이마 옆에서 앞으로 내밀며 가볍게 흔듭니다', expression:'밝고 친근한 표정, 눈 맞춤 유지', tips:'손을 너무 크게 흔들지 않고 자연스럽게 움직이는 것이 포인트입니다', related:['안녕히 가세요','안녕히 계세요','반갑습니다'] },
+    { id:'2', word:'감사합니다',     category:'예절', emoji:'🙏', description:'고마움을 표현할 때 사용하는 수어입니다. 일상에서 가장 많이 쓰이는 표현 중 하나입니다.', handShape:'오른손 손끝을 모아 입술 아래에 댑니다', movement:'손을 앞으로 뻗으며 약간 아래로 내립니다', expression:'진심 어린 표정, 가벼운 목례와 함께 사용하면 더욱 자연스럽습니다', tips:'손의 속도를 너무 빠르게 하지 말고 천천히 정성스럽게 표현하세요', related:['고맙습니다','죄송합니다','괜찮습니다'] },
+    { id:'3', word:'도와주세요',     category:'요청', emoji:'🤝', description:'도움이 필요할 때 상대방에게 요청하는 표현입니다. 긴급 상황에서도 활용됩니다.', handShape:'왼손 주먹 위에 오른손 엄지를 올려 받칩니다', movement:'두 손을 함께 앞으로 내밀며 올립니다', expression:'간절하거나 급한 표정, 눈썹을 약간 올립니다', tips:'긴급할 때는 동작을 빠르고 크게, 일상적 요청은 작고 부드럽게 표현하세요', related:['부탁합니다','필요해요','긴급'] },
+    { id:'4', word:'만나서 반갑습니다', category:'인사', emoji:'🤗', description:'처음 만나는 사람에게 반가움을 표현하는 수어입니다. 공식적인 자리에서도 사용됩니다.', handShape:'양손을 가슴 앞에서 마주 보게 펼칩니다', movement:'양손을 가슴 중앙으로 모으듯 합장하며 살짝 흔듭니다', expression:'밝고 환한 미소, 상대방과 눈을 맞춥니다', tips:'악수하듯 자연스럽게 연결하면 더욱 자연스러운 표현이 됩니다', related:['안녕하세요','처음 뵙겠습니다','반갑습니다'] },
+    { id:'5', word:'사랑합니다',     category:'감정', emoji:'❤️', description:'깊은 애정과 사랑을 표현하는 수어입니다. 가족, 친구, 연인 모두에게 사용할 수 있습니다.', handShape:'오른손 엄지·검지·소지를 펴고 나머지를 접습니다 (I Love You 핸드셰이프)', movement:'손을 가슴에서 상대방을 향해 부드럽게 내밉니다', expression:'따뜻하고 진심 어린 표정, 부드러운 눈빛', tips:"국제 수어에서도 통용되는 'ILY' 핸드셰이프로 표현하면 전 세계 농인에게 전달됩니다", related:['좋아해요','보고 싶어요','행복해요'] },
+]
+const RECENT_KEY = 'sb_search_recent'
+
+function SearchOverlay({ onClose, onGoDict }) {
+    const [query, setQuery]           = useState('')
+    const [recent, setRecent]         = useState(() => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') } catch { return [] } })
+    const [results, setResults]       = useState([])
+    const [searched, setSearched]     = useState(false)
+    const [expandedId, setExpandedId] = useState(null)
+    const inputRef = useRef(null)
+
+    useEffect(() => { setTimeout(() => inputRef.current?.focus(), 80) }, [])
+
+    useEffect(() => {
+        const h = (e) => { if (e.key === 'Escape') onClose() }
+        document.addEventListener('keydown', h)
+        return () => document.removeEventListener('keydown', h)
+    }, [onClose])
+
+    const suggestions = query.trim()
+        ? SIGN_DB.filter(s => s.word.includes(query) || s.category.includes(query)).map(s => s.word)
+        : []
+
+    const doSearch = (text) => {
+        const t = text.trim()
+        if (!t) return
+        const next = [t, ...recent.filter(r => r !== t)].slice(0, 10)
+        setRecent(next)
+        localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+        setQuery(t)
+        setResults(SIGN_DB.filter(w => w.word.includes(t) || w.category.includes(t) || w.description.includes(t) || w.related.some(r => r.includes(t))))
+        setSearched(true)
+        setExpandedId(null)
+    }
+
+    const reset = () => { setSearched(false); setResults([]); setQuery(''); setExpandedId(null); inputRef.current?.focus() }
+    const removeRecent = (item, e) => { e.stopPropagation(); const next = recent.filter(r => r !== item); setRecent(next); localStorage.setItem(RECENT_KEY, JSON.stringify(next)) }
+
+    const inner = (
+        <div className="search-overlay-panel" onClick={e => e.stopPropagation()}>
+            {/* 입력 */}
+            <div className="so-input-wrap">
+                <span className="so-lead-icon">🔍</span>
+                <input
+                    ref={inputRef}
+                    className="so-input"
+                    placeholder="수어 단어를 검색하세요..."
+                    value={query}
+                    onChange={e => { setQuery(e.target.value); if (!e.target.value.trim()) { setSearched(false); setResults([]) } }}
+                    onKeyDown={e => { if (e.key === 'Enter') doSearch(query) }}
+                />
+                {query && <button className="so-clear" onClick={reset}>✕</button>}
+                <button className="so-search-btn" onClick={() => doSearch(query)}>검색</button>
+                <button className="so-close-btn" onClick={onClose}>✕ 닫기</button>
+            </div>
+
+            <div className="so-body">
+                {!searched && suggestions.length > 0 && (
+                    <div className="so-section">
+                        {suggestions.map(item => (
+                            <div key={item} className="so-sugg-row" onClick={() => doSearch(item)}>
+                                <span className="so-row-icon">🔍</span>
+                                <span className="so-row-text">{item}</span>
+                                <button className="so-fill-btn" onClick={e => { e.stopPropagation(); setQuery(item) }}>↙</button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {searched && (
+                    <>
+                        <div className="so-result-count">"{query}" 검색 결과 {results.length}개</div>
+                        {results.length > 0 ? results.map(item => (
+                            <div key={item.id} className="so-card">
+                                <div className="so-card-header" onClick={() => setExpandedId(v => v === item.id ? null : item.id)}>
+                                    <div className="so-card-left">
+                                        <span className="so-card-emoji">{item.emoji}</span>
+                                        <div>
+                                            <div className="so-card-word">{item.word}</div>
+                                            <span className="so-cat-badge">{item.category}</span>
+                                        </div>
+                                    </div>
+                                    <span className="so-chevron">{expandedId === item.id ? '▲' : '▼'}</span>
+                                </div>
+                                <div className="so-card-body">{item.description}</div>
+                                {expandedId === item.id && (
+                                    <div className="so-card-detail">
+                                        <div className="so-detail-divider"/>
+                                        <div className="so-detail-row"><div className="so-detail-icon-wrap">✋</div><div><div className="so-detail-label">손 모양</div><div className="so-detail-value">{item.handShape}</div></div></div>
+                                        <div className="so-detail-row"><div className="so-detail-icon-wrap">↔️</div><div><div className="so-detail-label">동작</div><div className="so-detail-value">{item.movement}</div></div></div>
+                                        <div className="so-detail-row"><div className="so-detail-icon-wrap">😊</div><div><div className="so-detail-label">표정</div><div className="so-detail-value">{item.expression}</div></div></div>
+                                        <div className="so-detail-row so-detail-row-accent"><div className="so-detail-icon-wrap so-detail-icon-accent">💡</div><div><div className="so-detail-label">학습 팁</div><div className="so-detail-value">{item.tips}</div></div></div>
+                                        <div className="so-related-wrap">
+                                            <div className="so-related-label">관련 단어</div>
+                                            <div className="so-related-tags">
+                                                {item.related.map(r => (
+                                                    <button key={r} className="so-related-tag" onClick={() => doSearch(r)}>{r}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )) : (
+                            <div className="so-no-result">
+                                <div className="so-no-result-icon">🔍</div>
+                                <div className="so-no-result-title">"{query}" 검색 결과가 없습니다</div>
+                                <div className="so-no-result-sub">다른 단어로 검색하거나 수어 사전을 이용해 보세요</div>
+                                <button className="so-dict-btn" onClick={() => { onGoDict(query); onClose() }}>수어 사전으로 이동 →</button>
+                            </div>
+                        )}
+                        {results.length > 0 && (
+                            <div className="so-dict-banner" onClick={() => { onGoDict(query); onClose() }}>
+                                <div className="so-dict-banner-left">
+                                    <span>📖</span>
+                                    <div>
+                                        <div className="so-dict-banner-title">수어 사전</div>
+                                        <div className="so-dict-banner-sub">수어 사전에서도 더 많은 수어를 찾아보세요</div>
+                                    </div>
+                                </div>
+                                <span>›</span>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {!searched && query.length === 0 && recent.length > 0 && (
+                    <div className="so-section">
+                        <div className="so-section-header">
+                            <span className="so-section-title">최근 검색어</span>
+                            <button className="so-clear-all" onClick={() => { setRecent([]); localStorage.removeItem(RECENT_KEY) }}>전체 삭제</button>
+                        </div>
+                        {recent.map(item => (
+                            <div key={item} className="so-recent-row" onClick={() => doSearch(item)}>
+                                <span className="so-row-icon">🕐</span>
+                                <span className="so-row-text">{item}</span>
+                                <button className="so-remove-btn" onClick={(e) => removeRecent(item, e)}>✕</button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {!searched && (
+                    <div className="so-quick-wrap">
+                        <div className="so-quick-title">자주 찾는 수어</div>
+                        <div className="so-quick-grid">
+                            {SIGN_DB.map(w => (
+                                <button key={w.id} className="so-quick-chip" onClick={() => doSearch(w.word)}>
+                                    <span className="so-quick-emoji">{w.emoji}</span>
+                                    <span className="so-quick-word">{w.word}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+
+    return (
+        <div className="search-overlay" onClick={onClose}>
+            {inner}
+        </div>
+    )
+}
+
 
 // ── 메인 App ──
 export default function App() {
@@ -214,24 +495,34 @@ export default function App() {
     const [showConv,       setShowConv]       = useState(false)
     const [registerScreen, setRegisterScreen] = useState(null)
     const [chatInitialRoom, setChatInitialRoom] = useState(null)
-
+    // 인증 상태
     const [authModal,    setAuthModal]    = useState(null)
     const [loggedIn,     setLoggedIn]     = useState(false)
     const [displayName,  setDisplayName]  = useState('')
     const [orgType,      setOrgType]      = useState('')
     const [userEmail,    setUserEmail]    = useState('')
-    const [communityProfile, setCommunityProfile] = useState(null)
+    const [communityProfiles, setCommunityProfiles] = useState([])
+    const [userProfile,       setUserProfile]       = useState(null)
 
+    // 알림 상태
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
+    const [showNotifs, setShowNotifs] = useState(false)
     const unreadCount = notifs.filter(n => n.unread).length
 
-    const [showChat,   setShowChat]   = useState(false)
-    const [showAiChat, setShowAiChat] = useState(false)
-    const [showSearch, setShowSearch] = useState(false)
-    const [showNoti,   setShowNoti]   = useState(false)
+    // 검색/알림 전체 화면
+    const [showSearchOverlay, setShowSearchOverlay] = useState(false)
+    const [showSearchPage, setShowSearchPage] = useState(false)
+    const [showNotiPage,   setShowNotiPage]   = useState(false)
 
+    // 채팅 / AI 채팅 상태
+    const [showChat,        setShowChat]        = useState(false)
+    const [showAiChat,      setShowAiChat]      = useState(false)
+    const [chatUnreadCount, setChatUnreadCount] = useState(0)
+
+    // 네비바에 표시할 짧은 이름
     const navLabel = displayName.length > 6 ? displayName.slice(0, 6) + '…' : displayName
 
+    // 새로고침 시 로그인 유지
     useEffect(() => {
         const savedEmail = localStorage.getItem('userEmail');
         const savedName  = localStorage.getItem('displayName');
@@ -244,10 +535,50 @@ export default function App() {
         }
     }, []);
 
+    // showChat을 ref로 유지 — useEffect 재구독 없이 최신 값 참조
+    const showChatRef = useRef(showChat)
+    useEffect(() => { showChatRef.current = showChat }, [showChat])
+
+    const userEmailRef = useRef(userEmail)
+    useEffect(() => { userEmailRef.current = userEmail }, [userEmail])
+
     useEffect(() => {
         chatService.connect('http://localhost:8080')
-        return () => chatService.disconnect()
+        // 새 메시지 수신 시 채팅창이 닫혀 있으면 뱃지 증가
+        const unsub = chatService.onMessage((msg) => {
+            if (!showChatRef.current && msg?.senderEmail !== userEmailRef.current) {
+                setChatUnreadCount(c => c + 1)
+            }
+        })
+        return () => { chatService.disconnect(); unsub() }
     }, [])
+
+    // ── 로그인 시 내 프로필 로드 ──
+    useEffect(() => {
+        if (!userEmail) { setUserProfile(null); return }
+        myPageApi.getProfile(userEmail)
+            .then(data => { if (data) setUserProfile(data) })
+            .catch(() => {})
+    }, [userEmail])
+
+    // ── 로그인 시 커뮤니티 프로필 자동 로드 ──
+    useEffect(() => {
+        if (!userEmail) return
+        fetch(`/api/community/members/me?email=${encodeURIComponent(userEmail)}`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setCommunityProfiles(data.map(p => ({
+                        ...p,
+                        avatar: p.name?.charAt(0) || '?',
+                        contact: { type: p.contactType, value: p.contactValue },
+                    })))
+                } else {
+                    setCommunityProfiles([])
+                }
+            })
+            .catch(() => {})
+    }, [userEmail])
 
     const handleSearch = (e) => {
         e.preventDefault()
@@ -301,32 +632,51 @@ export default function App() {
         setDisplayName('')
         setOrgType('')
         setUserEmail('')
+        setCommunityProfiles([])
         setTab('home')
         localStorage.removeItem('userEmail');
         localStorage.removeItem('displayName');
         localStorage.removeItem('orgType');
+        // In handleLogout — add this:
         localStorage.removeItem('sb_my_nickname')
         localStorage.removeItem('sb_my_photo')
     }
+
+    const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
 
     const handleQuickChat = () => {
         if (!loggedIn) {
             setAuthModal('login')
         } else {
             setShowChat(true)
+            setChatUnreadCount(0)
         }
     }
 
-    const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
-    const handleQuickAiChat = () => setShowAiChat(v => !v)
-
-    // ── 커뮤니티에서 채팅 시작 ──
     const handleCommunityChat = (room) => {
         setChatInitialRoom(room)
         setShowChat(true)
     }
 
+    const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
+    const handleQuickAiChat = () => setShowAiChat(v => !v)
+
     const renderMain = () => {
+        // 검색 전체 화면
+        if (showSearchPage) return (
+            <SearchPage
+                onBack={() => setShowSearchPage(false)}
+                onGoDict={(q) => { setQuery(q); setSearchInput(q); setShowConv(false); setRegisterScreen(null); setShowSearchPage(false); setTab('dict') }}
+            />
+        )
+        // 알림 전체 화면
+        if (showNotiPage) return (
+            <NotiPage
+                notifications={notifs}
+                setNotifications={setNotifs}
+                onBack={() => setShowNotiPage(false)}
+            />
+        )
         if (registerScreen === 'register_personal')    return <RegisterPersonal    messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (registerScreen === 'register_immigration') return <RegisterImmigration messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
         if (registerScreen === 'register_police')      return <RegisterPolice      messages={convMessages} videos={convVideos} onBack={() => { setRegisterScreen(null); setShowConv(false); setConvMessages([]); setConvVideoBlobs([]); setConvVideos([]); setTab('mypage') }} userEmail={userEmail} displayName={displayName} />
@@ -342,9 +692,8 @@ export default function App() {
                 userEmail={userEmail}
                 displayName={displayName}
                 onLoginRequired={() => setAuthModal('login')}
-                myProfile={communityProfile}
-                onProfileSave={setCommunityProfile}
-                onProfileDelete={() => setCommunityProfile(null)}
+                myProfiles={communityProfiles}
+                onProfilesChange={setCommunityProfiles}
                 onChat={handleCommunityChat}
             />
         )
@@ -354,8 +703,8 @@ export default function App() {
                 displayName={displayName}
                 orgType={orgType}
                 userEmail={userEmail}
-                communityProfile={communityProfile}
-                onCommunityProfileSave={setCommunityProfile}
+                communityProfiles={communityProfiles}
+                onCommunityProfilesChange={setCommunityProfiles}
             />
         )
         return null
@@ -366,7 +715,7 @@ export default function App() {
     return (
         <div className="app">
             {/* ── 네비바 ── */}
-            <header className="navbar">
+            {!showSearchPage && !showNotiPage && <header className="navbar">
                 <div className="navbar-top">
                     <div className="nav-logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
                         <img src={SignBridgeLogo} alt="SignBridge" className="nav-logo-icon" />
@@ -374,24 +723,22 @@ export default function App() {
                     </div>
 
                     <div className="nav-actions">
-                        <button className="nav-search-btn" onClick={() => setShowSearch(true)}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                            </svg>
-                            <span>수어 검색...</span>
+                        <button className="search-form search-form-btn" onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setShowNotiPage(false); setShowSearchPage(true) }}>
+                            <span className="search-input-placeholder">수어 검색...</span>
+                            <span className="search-btn">🔍</span>
                         </button>
 
-                        <button
-                            className={`nav-noti-btn ${unreadCount > 0 ? 'nav-noti-btn-active' : ''}`}
-                            onClick={() => setShowNoti(true)}
-                            title="알림"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                            </svg>
-                            {unreadCount > 0 && <span className="nav-noti-badge">{unreadCount}</span>}
-                        </button>
+                        <div className="notif-wrap">
+                            <button className={`notif-btn ${unreadCount > 0 ? 'has-unread' : ''}`}
+                                    onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setShowSearchPage(false); setShowNotiPage(true) }} title="알림">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                                </svg>
+                                {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+                            </button>
+
+                        </div>
 
                         {loggedIn ? (
                             <div className="nav-user-group">
@@ -413,23 +760,6 @@ export default function App() {
 
                 <div className="navbar-bottom">
                     <nav className="navbar-bottom-inner">
-                        {/* ← 뒤로가기 버튼 */}
-                        {(showConv || registerScreen || showDemo || showAbout) && (
-                            <button
-                                className="nav-back-btn"
-                                onClick={() => {
-                                    if (registerScreen) { setRegisterScreen(null); return }
-                                    if (showConv)  { setShowConv(false); setTab('trans'); return }
-                                    if (showDemo)  { setShowDemo(false); setTab('home'); return }
-                                    if (showAbout) { setShowAbout(false); setTab('home'); return }
-                                }}
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                                    <path d="M15 18l-6-6 6-6"/>
-                                </svg>
-                                뒤로
-                            </button>
-                        )}
                         {MENUS.map(m => (
                             <button key={m.id}
                                     className={`nav-menu-btn ${(isNormalTab && tab === m.id) || (showAbout && m.id === 'about') ? 'active' : ''}`}
@@ -439,7 +769,7 @@ export default function App() {
                         ))}
                     </nav>
                 </div>
-            </header>
+            </header>}
 
             {/* ── 본문 ── */}
             <main className="main-content">{renderMain()}</main>
@@ -451,32 +781,25 @@ export default function App() {
             </footer>
 
             {/* ── 플로팅 사이드바 ── */}
-            <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} onAiChat={handleQuickAiChat} />
+            <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} onAiChat={handleQuickAiChat} chatUnread={chatUnreadCount} />
 
-            {/* 검색 전체화면 */}
-            {showSearch && (
-                <SearchPage
-                    onBack={() => setShowSearch(false)}
-                    onGoDict={(q) => { setQuery(q); setSearchInput(q); setShowConv(false); setRegisterScreen(null); setTab('dict'); setShowSearch(false) }}
+            {/* 검색 오버레이 */}
+            {showSearchOverlay && (
+                <SearchOverlay
+                    onClose={() => setShowSearchOverlay(false)}
+                    onGoDict={(q) => { setQuery(q); setSearchInput(q); setShowConv(false); setRegisterScreen(null); setTab('dict') }}
                 />
             )}
 
-            {/* 알림 전체화면 */}
-            {showNoti && (
-                <NotiPage
-                    notifications={notifs}
-                    setNotifications={setNotifs}
-                    onBack={() => setShowNoti(false)}
-                />
-            )}
-
-            {showChat && (
+            {showChat && createPortal(
                 <ChatRoom
                     onClose={() => { setShowChat(false); setChatInitialRoom(null) }}
                     myEmail={userEmail}
                     myName={displayName}
                     initialRoom={chatInitialRoom}
-                />
+                    profile={userProfile}
+                />,
+                document.body
             )}
 
             {/* AI 채팅 창 */}
