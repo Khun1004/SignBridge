@@ -237,6 +237,7 @@ function AiChatWindow({ onClose }) {
 }
 
 // ── 오른쪽 플로팅 사이드바 ──
+// chatUnread: 전체 읽지 않은 메시지 수 (숫자 뱃지용)
 function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0, toastMessages = [], onToastClick }) {
     const scrollTo = (dir) =>
         window.scrollTo({ top: dir === 'top' ? 0 : document.body.scrollHeight, behavior: 'smooth' })
@@ -274,7 +275,7 @@ function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0, toastMessag
                 </span>
                 <span className="fsb-label">채팅</span>
 
-                {/* ✅ 토스트 팝업 */}
+                {/* 토스트 팝업 */}
                 {toastMessages.length > 0 && (
                     <div style={{
                         position:'absolute', right:'calc(100% + 12px)', bottom:0,
@@ -551,7 +552,13 @@ export default function App() {
     // 채팅 / AI 채팅 상태
     const [showChat,        setShowChat]        = useState(false)
     const [showAiChat,      setShowAiChat]      = useState(false)
-    const [chatUnreadCount, setChatUnreadCount] = useState(0)
+
+    // ── ✅ 방별 읽지 않은 메시지 수: { [roomId]: number } ──
+    const [unreadByRoom, setUnreadByRoom] = useState({})
+
+    // 전체 읽지 않은 수 (플로팅 버튼 뱃지용)
+    const chatUnreadCount = Object.values(unreadByRoom).reduce((s, n) => s + n, 0)
+
     const [chatToastMessages,  setChatToastMessages]  = useState([])
 
     // 네비바에 표시할 짧은 이름
@@ -577,22 +584,46 @@ export default function App() {
     const userEmailRef = useRef(userEmail)
     useEffect(() => { userEmailRef.current = userEmail }, [userEmail])
 
+    // ── ✅ 현재 ChatRoom에서 열려 있는 방 ID 목록 (ref로 관리)
+    // ChatRoom이 onOpenRoomsChange로 업데이트해 줌
+    const openRoomIdsRef = useRef(new Set())
+    const handleOpenRoomsChange = (ids) => {
+        openRoomIdsRef.current = new Set(ids)
+    }
+
     useEffect(() => {
         chatService.connect('http://localhost:8080')
-        // 새 메시지 수신 시 채팅창이 닫혀 있으면 뱃지 증가
-        // ② 수정된 메시지 수신 처리
+
         const unsub = chatService.onMessage?.((msg) => {
-            if (!showChatRef.current && msg?.senderEmail !== userEmailRef.current) {
-                setChatUnreadCount(c => c + 1)
+            // 내가 보낸 메시지는 무시
+            if (msg?.senderEmail === userEmailRef.current) return
+
+            const roomId = msg?.roomId
+
+            // ── ✅ 카운트 조건:
+            //   1) 채팅창이 닫혀 있거나
+            //   2) 채팅창이 열려 있어도 해당 방이 현재 열린 채팅 창 목록에 없으면
+            const isChatOpen = showChatRef.current
+            const isRoomOpen = roomId && openRoomIdsRef.current.has(roomId)
+
+            if (roomId && (!isChatOpen || !isRoomOpen)) {
+                setUnreadByRoom(prev => ({
+                    ...prev,
+                    [roomId]: (prev[roomId] || 0) + 1,
+                }))
+            }
+
+            // 토스트 알림: 채팅창이 닫혀 있거나 해당 방이 열려 있지 않을 때
+            if (!isChatOpen || !isRoomOpen) {
                 const id = Date.now()
                 const newMsg = {
                     id,
+                    roomId,
                     name:   msg.senderName || msg.senderEmail?.split('@')[0] || '?',
                     text:   msg.text || (msg.fileName ? `📎 ${msg.fileName}` : ''),
                     avatar: (msg.senderName || '?').charAt(0).toUpperCase(),
                 }
                 setChatToastMessages(prev => [newMsg, ...prev].slice(0, 3))
-                // ✅ 5초 후 해당 메시지만 제거
                 setTimeout(() => {
                     setChatToastMessages(prev => prev.filter(m => m.id !== id))
                 }, 5000)
@@ -600,6 +631,29 @@ export default function App() {
         })
         return () => { chatService.disconnect(); unsub?.() }
     }, [])
+
+    // ── ✅ 특정 방의 읽지 않은 수 초기화 (ChatRoom에서 방 입장 시 호출) ──
+    const handleRoomRead = (roomId) => {
+        if (!roomId) return
+        setUnreadByRoom(prev => {
+            if (!prev[roomId]) return prev
+            const next = { ...prev }
+            delete next[roomId]
+            return next
+        })
+    }
+
+    // Background subscribe my rooms on login
+    useEffect(() => {
+        if (!userEmail) return
+        chatService.getRooms(userEmail)
+            .then(data => {
+                if (!Array.isArray(data)) return
+                const roomIds = data.map(r => r.roomId || r.id).filter(Boolean)
+                chatService.subscribeBackground(roomIds)
+            })
+            .catch(() => {})
+    }, [userEmail])
 
     // ── 로그인 시 내 프로필 로드 ──
     useEffect(() => {
@@ -681,11 +735,11 @@ export default function App() {
         setOrgType('')
         setUserEmail('')
         setCommunityProfiles([])
+        setUnreadByRoom({})  // ✅ 로그아웃 시 뱃지 초기화
         setTab('home')
         localStorage.removeItem('userEmail');
         localStorage.removeItem('displayName');
         localStorage.removeItem('orgType');
-        // In handleLogout — add this:
         localStorage.removeItem('sb_my_nickname')
         localStorage.removeItem('sb_my_photo')
     }
@@ -697,14 +751,13 @@ export default function App() {
             setAuthModal('login')
         } else {
             setShowChat(true)
-            setChatUnreadCount(0)
+            // ✅ 채팅창 열 때 전체 뱃지 초기화 (방 입장하면 handleRoomRead로 개별 초기화)
         }
     }
 
     const handleCommunityChat = (room) => {
         const iAmB = room.sub === userEmail
 
-        // 상대방 이름 — 이메일 대신 커뮤니티 등록 이름 사용
         const otherName   = iAmB ? room.nameA  : room.name
         const otherAvatar = iAmB ? room.avatarA : room.avatar
         const otherEmail  = iAmB
@@ -714,7 +767,7 @@ export default function App() {
         const normalized = {
             ...room,
             id:     room.roomId || room.id,
-            name:   otherName   || otherEmail,   // 이름 없으면 이메일 fallback
+            name:   otherName   || otherEmail,
             avatar: otherAvatar || (otherName ? otherName.charAt(0) : '?'),
             sub:    otherEmail,
         }
@@ -727,14 +780,12 @@ export default function App() {
     const handleQuickAiChat = () => setShowAiChat(v => !v)
 
     const renderMain = () => {
-        // 검색 전체 화면
         if (showSearchPage) return (
             <SearchPage
                 onBack={() => setShowSearchPage(false)}
                 onGoDict={(q) => { setQuery(q); setSearchInput(q); setShowConv(false); setRegisterScreen(null); setShowSearchPage(false); setTab('dict') }}
             />
         )
-        // 알림 전체 화면
         if (showNotiPage) return (
             <NotiPage
                 notifications={notifs}
@@ -802,7 +853,6 @@ export default function App() {
                                 </svg>
                                 {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
                             </button>
-
                         </div>
 
                         {loggedIn ? (
@@ -851,8 +901,8 @@ export default function App() {
                 onCall={handleQuickCall}
                 onAiChat={handleQuickAiChat}
                 chatUnread={chatUnreadCount}
-                toastMessages={chatToastMessages}       // ✅ 추가
-                onToastClick={() => {                   // ✅ 추가
+                toastMessages={chatToastMessages}
+                onToastClick={() => {
                     setChatToastMessages([])
                     handleQuickChat()
                 }}
@@ -868,11 +918,16 @@ export default function App() {
 
             {showChat && createPortal(
                 <ChatRoom
-                    onClose={() => { setShowChat(false); setChatInitialRoom(null) }}
+                    onClose={() => { setShowChat(false); setChatInitialRoom(null); openRoomIdsRef.current = new Set() }}
                     myEmail={userEmail}
                     myName={displayName}
                     initialRoom={chatInitialRoom}
                     profile={userProfile}
+                    // ── ✅ 방별 읽지 않은 수 + 방 입장 콜백 전달 ──
+                    unreadByRoom={unreadByRoom}
+                    onRoomRead={handleRoomRead}
+                    // ── ✅ 현재 열린 채팅 방 목록 동기화 ──
+                    onOpenRoomsChange={handleOpenRoomsChange}
                 />,
                 document.body
             )}

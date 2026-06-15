@@ -5,70 +5,79 @@ const DEFAULT_BASE_URL = 'http://localhost:8080'
 
 class ChatService {
   constructor() {
-    this.client       = null
-    this.connected    = false
-    this.pendingQueue = []
-    this._globalListeners = []   // ← 전역 메시지 리스너 목록
+    this.client           = null
+    this.connected        = false
+    this.pendingQueue     = []
+    this._globalListeners = []
+    this._roomSubs        = {}
   }
 
   connect(baseUrl = DEFAULT_BASE_URL) {
-    if (this.connected) return
+    if (this.client) return
 
     this.client = new Client({
       webSocketFactory: () => new SockJS(`${baseUrl}/ws-chat`),
       reconnectDelay: 3000,
-
       onConnect: () => {
         console.log('[ChatService] Connected')
         this.connected = true
         this.pendingQueue.forEach(fn => fn())
         this.pendingQueue = []
       },
-
       onDisconnect: () => {
         console.log('[ChatService] Disconnected')
         this.connected = false
+        this._roomSubs = {}
       },
-
       onStompError: (frame) => {
         console.error('[ChatService] STOMP error', frame)
       },
     })
-
     this.client.activate()
   }
 
   disconnect() {
     this.client?.deactivate()
+    this.client = null
     this.connected = false
+    this._roomSubs = {}
   }
 
-  // ── 방 구독 (기존) ──
-  subscribeToRoom(roomId, onMessage) {
-    if (!this.client) {
-      console.warn('[ChatService] Not connected yet')
-      return () => {}
-    }
+  // ── roomId당 STOMP 구독 1개만 유지 ──
+  _ensureRoomSub(roomId) {
+    if (this._roomSubs[roomId]) return
+    const entry = { sub: null, roomHandlers: new Set() }
+    this._roomSubs[roomId] = entry
 
-    const subscription = this.client.subscribe(
-        `/topic/room/${roomId}`,
-        (stompMsg) => {
-          const msg = JSON.parse(stompMsg.body)
-          // 방 구독 콜백
-          onMessage(msg)
-          // 전역 리스너에도 알림 ← 추가
+    const doSub = () => {
+      entry.sub = this.client.subscribe(`/topic/room/${roomId}`, (stompMsg) => {
+        const msg = JSON.parse(stompMsg.body)
+        entry.roomHandlers.forEach(fn => fn(msg))
+        // 새 채팅 메시지만 전역 리스너에 전달 (EDIT/DELETE/TYPING 제외)
+        if (!msg.type || msg.type === 'SEND') {
           this._globalListeners.forEach(fn => fn(msg))
         }
-    )
+      })
+    }
 
-    return () => subscription.unsubscribe()
+    if (this.connected) doSub()
+    else this.pendingQueue.push(doSub)
   }
 
-  // ── 전역 메시지 리스너 등록/해제 ──
-  // App.jsx에서 채팅창 닫혔을 때 새 메시지 감지용
+  subscribeToRoom(roomId, onMessage) {
+    this._ensureRoomSub(roomId)
+    const entry = this._roomSubs[roomId]
+    entry.roomHandlers.add(onMessage)
+    return () => entry.roomHandlers.delete(onMessage)
+  }
+
+  subscribeBackground(roomIds) {
+    if (!roomIds?.length) return
+    roomIds.forEach(roomId => this._ensureRoomSub(roomId))
+  }
+
   onMessage(callback) {
     this._globalListeners.push(callback)
-    // 해제 함수 반환
     return () => {
       this._globalListeners = this._globalListeners.filter(fn => fn !== callback)
     }
@@ -87,19 +96,20 @@ class ChatService {
     this._publish('/app/chat.delete', { id, roomId, type: 'DELETE' })
   }
 
-  _publish(destination, body) {
-    const send = () => {
-      this.client.publish({
-        destination,
-        body: JSON.stringify(body),
-      })
-    }
+  // ── 타이핑 알림 (WebSocket 브로드캐스트) ──
+  sendTyping(roomId, senderEmail, senderName) {
+    this._publish('/app/chat.typing', {
+      roomId,
+      senderEmail,
+      senderName,
+      type: 'TYPING',
+    })
+  }
 
-    if (this.connected) {
-      send()
-    } else {
-      this.pendingQueue.push(send)
-    }
+  _publish(destination, body) {
+    const send = () => this.client.publish({ destination, body: JSON.stringify(body) })
+    if (this.connected) send()
+    else this.pendingQueue.push(send)
   }
 
   // ── REST helpers ──
@@ -117,9 +127,9 @@ class ChatService {
 
   async createRoom(room, baseUrl = DEFAULT_BASE_URL) {
     const res = await fetch(`${baseUrl}/api/chat/rooms`, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(room),
+      body: JSON.stringify(room),
     })
     if (!res.ok) throw new Error('Failed to create room')
     return res.json()

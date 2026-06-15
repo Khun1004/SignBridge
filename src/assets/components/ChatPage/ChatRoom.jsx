@@ -7,8 +7,10 @@ const NICK_KEY    = 'sb_my_nickname'
 const PHOTO_KEY   = 'sb_my_photo'
 const BLOCKED_KEY = 'sb_blocked'
 const typingKey   = (id) => `sb_typing_${id}`
+const deletedAtKey = (roomId, email) => `sb_deleted_at_${roomId}_${email}`
 const pinnedKey   = (id) => `sb_pinned_${id}`
 const starredKey  = 'sb_starred_msgs'
+const DELETED_KEY = 'sb_deleted_rooms'
 const membersKey  = (id) => `sb_members_${id}`
 
 const load = (k, fb) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null') ?? fb } catch { return fb } }
@@ -87,7 +89,7 @@ function Avatar({ name, photo, size=40, radius='50%', bg='linear-gradient(135deg
             flexShrink:0, fontWeight:700, color:'#fff',
             fontSize: size * 0.4, fontFamily:'var(--font-b)',
             boxShadow: photo ? 'none' : '0 3px 10px rgba(124,58,237,0.3)',
-            minWidth: size,  /* 축소 방지 */
+            minWidth: size,
         }}>
             {photo ? <span style={{fontSize:size*0.55}}>{photo}</span> : <span>{letter}</span>}
         </div>
@@ -151,7 +153,7 @@ function MsgContextMenu({ msg, isMe, isPinned, isStarred=false, dir='up', onEdit
             {!msg.imageData&&!msg.fileName&&item(<IconCopy/>,'복사',onCopy)}
             {item(<IconPin/>,isPinned?'고정 해제':'고정',onPin)}
             {item(<span style={{fontSize:14}}>⭐</span>,isStarred?'즐겨찾기 해제':'즐겨찾기',onStar)}
-            {isMe&&item(<span style={{color:'#ef4444',display:'flex'}}><IconTrash/></span>,'삭제',onDelete,true)}
+            {item(<span style={{color:'#ef4444',display:'flex'}}><IconTrash/></span>,isMe?'삭제':'숨기기',onDelete,true)}
         </div>
     )
 }
@@ -234,14 +236,28 @@ function PinnedBar({ pinned, onJump, onUnpin }) {
     )
 }
 
-/* ── TypingIndicator ── */
+/* ── TypingIndicator — WebSocket 기반 ── */
 function TypingIndicator({ roomId, myEmail }) {
-    const [typers,setTypers]=useState([])
-    useEffect(()=>{ const check=()=>{ const data=load(typingKey(roomId),{}); const now=Date.now(); setTypers(Object.entries(data).filter(([em,ts])=>em!==myEmail&&now-ts<4000).map(([em])=>em)) }; check(); const id=setInterval(check,800); return()=>clearInterval(id) },[roomId,myEmail])
-    if(!typers.length)return null
+    const [typerName, setTyperName] = useState(null)
+    const timerRef = useRef(null)
+
+    useEffect(() => {
+        // ChatWindow의 subscribeToRoom과 별개로 타이핑 메시지만 수신
+        const unsub = chatService.subscribeToRoom(roomId, (msg) => {
+            if (msg.type !== 'TYPING') return
+            if (msg.senderEmail === myEmail) return
+            setTyperName(msg.senderName || msg.senderEmail?.split('@')[0] || '...')
+            clearTimeout(timerRef.current)
+            // 3초 후 자동 소멸
+            timerRef.current = setTimeout(() => setTyperName(null), 3000)
+        })
+        return () => { unsub(); clearTimeout(timerRef.current) }
+    }, [roomId, myEmail])
+
+    if (!typerName) return null
     return (
         <div className="cw-typing">
-            <Avatar name={typers[0]} size={28}/>
+            <Avatar name={typerName} size={28}/>
             <div className="cw-typing-dots"><span/><span/><span/></div>
         </div>
     )
@@ -401,7 +417,7 @@ function ImagePreview({ file, dataUrl, onSend, onCancel }) {
 /* ═══════════════════════════════════════════
    CHAT WINDOW — 1:1 / 그룹 채팅
 ═══════════════════════════════════════════ */
-function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGroup=false, allRooms=[], starred=[], onStarChange }) {
+function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGroup=false, allRooms=[], starred=[], onStarChange, isDeleted=false }) {
     const chatDisplayName = myNickname || myName
 
     const [messages,    setMessages]   = useState([])
@@ -417,6 +433,7 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
     const [showMembers, setShowMembers]= useState(false)
     const [imgPreview,  setImgPreview] = useState(null)
     const [forwardMsg,  setForwardMsg] = useState(null)
+    const [msgDeleteTarget, setMsgDeleteTarget] = useState(null)  // {msg, isMe}
 
     const bottomRef   = useRef(null)
     const msgRefs     = useRef({})
@@ -432,10 +449,22 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
     useEffect(()=>{
         setLoading(true)
         chatService.getMessages(room.id)
-            .then(data=>setMessages(Array.isArray(data)?data:[]))
+            .then(data=>{
+                const raw = Array.isArray(data) ? data : []
+                // deletedAt 이전 메시지 숨김
+                const deletedAt = localStorage.getItem(deletedAtKey(room.id, myEmail))
+                // 개별 숨긴 메시지 필터
+                const hiddenKey = `sb_hidden_msgs_${room.id}_${myEmail}`
+                const hidden = JSON.parse(localStorage.getItem(hiddenKey)||'[]')
+                const filtered = raw
+                    .filter(m => !deletedAt || new Date(m.sentAt) > new Date(deletedAt))
+                    .filter(m => !hidden.includes(m.id))
+                setMessages(filtered)
+            })
             .catch(()=>setMessages([]))
             .finally(()=>setLoading(false))
         const unsub=chatService.subscribeToRoom(room.id,(msg)=>{
+            if(msg.type==='TYPING') return  // TypingIndicator가 별도 처리
             if(msg.type==='EDIT') setMessages(prev=>prev.map(m=>m.id===msg.id?{...m,text:msg.text,isEdited:true}:m))
             else if(msg.type==='DELETE') setMessages(prev=>prev.filter(m=>m.id!==msg.id))
             else setMessages(prev=>[...prev,msg])
@@ -454,14 +483,31 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
         const text=input.trim(); if(!text)return
         chatService.sendMessage({roomId:room.id,senderEmail:myEmail,senderName:chatDisplayName,text,replyToId:replyTo?.id||null,replyToName:replyTo?.name||null,replyToText:replyTo?.text||null})
         setInput(''); setReplyTo(null)
-        const d=load(typingKey(room.id),{}); delete d[myEmail]; save(typingKey(room.id),d)
     }
-    const deleteMsg=(id)=>chatService.deleteMessage(id,room.id)
+    const deleteMsg=(msg, isMe)=>{
+        // 내 메시지: 자신/상대방/둘 다 선택 모달
+        // 상대방 메시지: 내 화면에서만 숨기기
+        setMsgDeleteTarget({msg, isMe})
+    }
+    const doDeleteMsg=(mode, msg)=>{
+        if(mode==='me'){
+            // 내 화면에서만 숨김 (localStorage에 메시지 id 기록)
+            const key = `sb_hidden_msgs_${room.id}_${myEmail}`
+            const hidden = JSON.parse(localStorage.getItem(key)||'[]')
+            hidden.push(msg.id)
+            localStorage.setItem(key, JSON.stringify(hidden))
+            setMessages(prev=>prev.filter(m=>m.id!==msg.id))
+        } else if(mode==='all'){
+            // 모두에게 삭제 (WebSocket)
+            chatService.deleteMessage(msg.id, room.id)
+        }
+        setMsgDeleteTarget(null)
+    }
     const startEdit=(msg)=>{ setEditingMsg({id:msg.id,text:msg.text}); setInput(msg.text); setReplyTo(null); setTimeout(()=>inputRef.current?.focus(),50) }
     const handleFileSelect=(file)=>{ if(file.type.startsWith('image/')){const r=new FileReader();r.onload=e=>setImgPreview({file,dataUrl:e.target.result});r.readAsDataURL(file)}else{sendFile(file,null)} }
     const sendFile=(file,dataUrl)=>{ chatService.sendMessage({roomId:room.id,senderEmail:myEmail,senderName:chatDisplayName,text:null,fileName:file.name,fileUrl:dataUrl||null,isImage:!!dataUrl}); setReplyTo(null); setImgPreview(null) }
     const forwardToRoom=(targetRoom,msg)=>{ chatService.sendMessage({roomId:targetRoom.id,senderEmail:myEmail,senderName:chatDisplayName,text:msg.text||null,fileName:msg.fileName||null,forwardedFrom:msg.senderName||msg.name||'알 수 없음'}); setForwardMsg(null) }
-    const broadcastTyping=()=>{ const d=load(typingKey(room.id),{}); d[myEmail]=Date.now(); save(typingKey(room.id),d); clearTimeout(typingTimer.current); typingTimer.current=setTimeout(()=>{const d2=load(typingKey(room.id),{});delete d2[myEmail];save(typingKey(room.id),d2)},3000) }
+    const broadcastTyping=()=>{ clearTimeout(typingTimer.current); chatService.sendTyping(room.id, myEmail, chatDisplayName); typingTimer.current=setTimeout(()=>{}, 3000) }
     const addReaction=(msgId,emoji)=>setMessages(prev=>prev.map(m=>{if(m.id!==msgId)return m;const r={...(m.reactions||{})};r[myEmail]===emoji?delete r[myEmail]:(r[myEmail]=emoji);return{...m,reactions:r}}))
     const aggregateReactions=(reactions)=>{const agg={};Object.values(reactions||{}).forEach(e=>{agg[e]=(agg[e]||0)+1});return Object.entries(agg).filter(([,c])=>c>0)}
     const pinMessage=(msg)=>{const p={id:msg.id,text:msg.text,fileName:msg.fileName,name:msg.senderName||msg.name};setPinned(p);save(pinnedKey(room.id),p)}
@@ -521,7 +567,7 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
                                     <button className="cw-hbar-btn nd" onClick={e=>{e.stopPropagation();setReplyTo({id:msg.id,name:senderName,text:msg.text,fileName:msg.fileName});setPopover(null)}}><IconReply/></button>
                                     <button className={`cw-hbar-btn nd ${isQuickOpen||isFullPickOpen?'cw-hbar-active':''}`} onClick={e=>{e.stopPropagation();setPopover(isQuickOpen?null:{msgId:msg.id,type:'quickReact'})}}><span style={{fontSize:15,lineHeight:1}}>{myR||'😊'}</span></button>
                                 </div>
-                                {isCtxOpen&&<div onClick={e=>e.stopPropagation()}><MsgContextMenu msg={msg} isMe={isMe} isPinned={isPinned} isStarred={starred.some(s=>s.id===msg.id)} dir={popDir} onEdit={()=>{startEdit(msg);closePopover()}} onDelete={()=>{deleteMsg(msg.id);closePopover()}} onCopy={()=>{navigator.clipboard?.writeText(msg.text||'');closePopover()}} onForward={()=>{setForwardMsg(msg);closePopover()}} onPin={()=>{isPinned?unpinMessage():pinMessage(msg);closePopover()}} onStar={()=>{const isS=starred.some(s=>s.id===msg.id);const next=isS?starred.filter(s=>s.id!==msg.id):[...starred,{...msg,starredAt:Date.now(),roomName:room?.name||''}];onStarChange?.(next);closePopover()}} onClose={closePopover}/></div>}
+                                {isCtxOpen&&<div onClick={e=>e.stopPropagation()}><MsgContextMenu msg={msg} isMe={isMe} isPinned={isPinned} isStarred={starred.some(s=>s.id===msg.id)} dir={popDir} onEdit={()=>{startEdit(msg);closePopover()}} onDelete={()=>{deleteMsg(msg,isMe);closePopover()}} onCopy={()=>{navigator.clipboard?.writeText(msg.text||'');closePopover()}} onForward={()=>{setForwardMsg(msg);closePopover()}} onPin={()=>{isPinned?unpinMessage():pinMessage(msg);closePopover()}} onStar={()=>{const isS=starred.some(s=>s.id===msg.id);const next=isS?starred.filter(s=>s.id!==msg.id):[...starred,{...msg,starredAt:Date.now(),roomName:room?.name||''}];onStarChange?.(next);closePopover()}} onClose={closePopover}/></div>}
                                 {isQuickOpen&&<div onClick={e=>e.stopPropagation()}><QuickReactionBar msgId={msg.id} myReaction={myR} isMe={isMe} dir={popDir} onReact={(id,emoji)=>{addReaction(id,emoji);closePopover()}} onOpenFull={()=>setPopover({msgId:msg.id,type:'fullPicker'})} onClose={closePopover}/></div>}
                                 {isFullPickOpen&&<div onClick={e=>e.stopPropagation()}><FullEmojiPicker isMe={isMe} dir={popDir} onSelect={emoji=>{addReaction(msg.id,emoji);closePopover()}} onClose={closePopover}/></div>}
                             </div>
@@ -545,7 +591,6 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
     return (
         <>
             <div className="cw-window" style={{left:pos.x,top:pos.y}}>
-                {/* ── 헤더 ── */}
                 <div className="cw-header" onMouseDown={onMouseDown}>
                     <div className="cw-header-left">
                         <button className="cw-hback nd" onClick={onClose}><IconChevronLeft/></button>
@@ -571,9 +616,16 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
                 {showMembers&&<MemberPanel roomId={room.id} myEmail={myEmail} myName={myName} onClose={()=>setShowMembers(false)}/>}
                 <PinnedBar pinned={pinned} onJump={()=>jumpToMsg(pinned.id)} onUnpin={unpinMessage}/>
 
-                {/* ── 메시지 영역 ── */}
                 <div className="cw-messages" onClick={closePopover}>
-                    {loading?(
+                    {isDeleted?(
+                        <div className="cw-empty" style={{gap:16}}>
+                            <div style={{fontSize:48}}>🗑️</div>
+                            <div className="cw-empty-name" style={{color:'#888'}}>삭제된 대화</div>
+                            <div className="cw-empty-hint" style={{color:'#aaa',fontSize:13,textAlign:'center',lineHeight:1.7}}>
+                                이 채팅방을 삭제했습니다.<br/>채팅 내용을 다시 확인할 수 없습니다.
+                            </div>
+                        </div>
+                    ):loading?(
                         <div className="cw-empty"><div className="cw-empty-hint">불러오는 중...</div></div>
                     ):!rows.length?(
                         <div className="cw-empty">
@@ -586,7 +638,6 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
                     <div ref={bottomRef}/>
                 </div>
 
-                {/* ── 수정 / 답장 바 ── */}
                 {editingMsg&&(
                     <div className="cw-edit-bar nd">
                         <div className="cw-edit-bar-content"><IconPencil/><div className="cw-edit-bar-info"><span className="cw-edit-bar-label">메시지 수정 중</span><span className="cw-edit-bar-text">{editingMsg.text}</span></div></div>
@@ -600,25 +651,81 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
                     </div>
                 )}
 
-                {/* ── 입력창 ── */}
-                <div className="cw-input-row nd">
-                    <button className="cw-attach-btn nd" onClick={()=>fileRef.current?.click()}><IconClip/></button>
-                    <input ref={fileRef} type="file" accept="image/*,*/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleFileSelect(f);e.target.value=''}}/>
-                    <div className="cw-input-wrap">
+                {!isDeleted && (
+                    <div className="cw-input-row nd">
+                        <button className="cw-attach-btn nd" onClick={()=>fileRef.current?.click()}><IconClip/></button>
+                        <input ref={fileRef} type="file" accept="image/*,*/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleFileSelect(f);e.target.value=''}}/>
+                        <div className="cw-input-wrap">
                         <textarea ref={inputRef} className="cw-input"
                                   placeholder={editingMsg?'수정할 내용 입력…':'메시지를 입력하세요…'}
                                   value={input}
                                   onChange={e=>{setInput(e.target.value);broadcastTyping()}}
                                   onKeyDown={onKey} rows={1}/>
-                        <button className="cw-input-emoji nd"><IconEmoji/></button>
+                            <button className="cw-input-emoji nd"><IconEmoji/></button>
+                        </div>
+                        <button className="cw-send nd" onClick={send} disabled={!input.trim()}>
+                            {input.trim()?<IconSend/>:<IconMic/>}
+                        </button>
                     </div>
-                    <button className="cw-send nd" onClick={send} disabled={!input.trim()}>
-                        {input.trim()?<IconSend/>:<IconMic/>}
-                    </button>
-                </div>
+                )}
             </div>
 
             {imgPreview&&<ImagePreview file={imgPreview.file} dataUrl={imgPreview.dataUrl} onSend={()=>sendFile(imgPreview.file,imgPreview.dataUrl)} onCancel={()=>setImgPreview(null)}/>}
+
+            {/* ✅ 메시지 삭제 옵션 모달 */}
+            {msgDeleteTarget&&(
+                <div className="ci-modal-overlay nd" onClick={()=>setMsgDeleteTarget(null)}>
+                    <div className="ci-modal nd" style={{maxWidth:300}} onClick={e=>e.stopPropagation()}>
+                        <div className="ci-modal-hd" style={{fontSize:15}}>
+                            <span>🗑 메시지 삭제</span>
+                            <button className="ci-modal-close nd" onClick={()=>setMsgDeleteTarget(null)}>✕</button>
+                        </div>
+                        <div className="ci-modal-body" style={{gap:8,padding:'16px 18px'}}>
+                            {/* 내 메시지: 자신에게만 / 모두에게 */}
+                            {msgDeleteTarget.isMe ? (
+                                <>
+                                    <button
+                                        style={{width:'100%',padding:'12px',borderRadius:10,border:'1.5px solid #e0e0f0',background:'#f8f8ff',color:'#333',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}
+                                        onClick={()=>doDeleteMsg('me', msgDeleteTarget.msg)}>
+                                        🙋 나에게만 삭제
+                                        <div style={{fontSize:11,color:'#aaa',fontWeight:500,marginTop:2}}>상대방은 그대로 볼 수 있습니다</div>
+                                    </button>
+                                    {(()=>{
+                                        const sentAt = msgDeleteTarget.msg.sentAt || msgDeleteTarget.msg.at
+                                        const canDeleteAll = sentAt && (Date.now() - new Date(sentAt).getTime()) < 5 * 60 * 1000
+                                        return canDeleteAll ? (
+                                            <button
+                                                style={{width:'100%',padding:'12px',borderRadius:10,border:'1.5px solid #fca5a5',background:'#fff5f5',color:'#ef4444',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}
+                                                onClick={()=>doDeleteMsg('all', msgDeleteTarget.msg)}>
+                                                👥 모두에게 삭제
+                                                <div style={{fontSize:11,color:'#f87171',fontWeight:500,marginTop:2}}>상대방 화면에서도 사라집니다</div>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                disabled
+                                                style={{width:'100%',padding:'12px',borderRadius:10,border:'1.5px solid #e0e0f0',background:'#f4f4fb',color:'#bbb',fontSize:14,fontWeight:700,cursor:'not-allowed',fontFamily:'inherit',textAlign:'left'}}>
+                                                👥 모두에게 삭제 불가
+                                                <div style={{fontSize:11,color:'#ccc',fontWeight:500,marginTop:2}}>전송 후 5분이 지나 삭제할 수 없습니다</div>
+                                            </button>
+                                        )
+                                    })()}
+                                </>
+                            ) : (
+                                /* 상대방 메시지: 나에게만 숨기기 */
+                                <button
+                                    style={{width:'100%',padding:'12px',borderRadius:10,border:'1.5px solid #e0e0f0',background:'#f8f8ff',color:'#333',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}
+                                    onClick={()=>doDeleteMsg('me', msgDeleteTarget.msg)}>
+                                    🙋 내 화면에서 숨기기
+                                    <div style={{fontSize:11,color:'#aaa',fontWeight:500,marginTop:2}}>상대방 메시지는 삭제할 수 없습니다</div>
+                                </button>
+                            )}
+                            <button
+                                style={{width:'100%',padding:'10px',borderRadius:10,border:'1.5px solid #e0e0f0',background:'#f4f4fb',color:'#888',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}
+                                onClick={()=>setMsgDeleteTarget(null)}>취소</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {forwardMsg&&<ForwardModal msg={forwardMsg} currentRoomId={room.id} rooms={allRooms} onForward={forwardToRoom} onClose={()=>setForwardMsg(null)}/>}
         </>
     )
@@ -627,9 +734,10 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
 /* ═══════════════════════════════════════════
    INBOX — 메인 화면
 ═══════════════════════════════════════════ */
-export default function ChatRoom({ onClose, myEmail='', myName='', profile=null, communityProfile=null, initialRoom=null }) {
+export default function ChatRoom({ onClose, myEmail='', myName='', profile=null, communityProfile=null, initialRoom=null, unreadByRoom = {}, onRoomRead, onOpenRoomsChange }) {
     const [rooms,        setRooms]       = useState([])
     const [starred,      setStarred]     = useState(() => load(starredKey, []))
+    const [deletedRooms, setDeletedRooms] = useState(() => load(DELETED_KEY, []))
     const [openRooms,    setOpenRooms]   = useState([])
     const [tab,          setTab]         = useState('chats')
     const [search,       setSearch]      = useState('')
@@ -641,34 +749,106 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
     const [blocked,      setBlocked]     = useState(()=>load(BLOCKED_KEY,[]))
     const [joinedGroups, setJoinedGroups]= useState(()=>load('sb_joined_groups',[]))
     const [previewRoom,  setPreviewRoom] = useState(null)
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null)   // ✅ 삭제 확인 모달용
 
     const { pos, onMouseDown } = useDrag({
         x: Math.max(20, window.innerWidth  - 500),
         y: Math.max(20, window.innerHeight - 780),
     })
 
-    useEffect(()=>{
-        if(!myEmail)return
+    // ── ✅ 열린 방 목록이 바뀔 때마다 App에 알림 ──
+    useEffect(() => {
+        onOpenRoomsChange?.(openRooms.map(r => r.id))
+    }, [openRooms])
+
+    // ── ✅ 방 선택 시 해당 방 읽음 처리 ──
+    const handleSelectRoom = (room) => {
+        openChat(room)
+        onRoomRead?.(room.id)
+    }
+
+    // ── ✅ 방 목록 로드 함수 (재사용 가능) ──
+    const loadRooms = () => {
+        if(!myEmail) return
         fetch(`/api/chat/rooms?email=${encodeURIComponent(myEmail)}`)
             .then(r=>r.json())
-            .then(data=>setRooms(Array.isArray(data)?data.map(r=>{
-                // 1:1 채팅방에서 상대방 이름으로 표시 (내 이름이 방 이름이면 participants에서 상대방 찾기)
-                const id = r.roomId || r.id
-                let name = r.name
-                if (!r.isGroup && r.participants) {
-                    const others = r.participants.split(',').map(e=>e.trim()).filter(e=>e!==myEmail)
-                    if (r.name === myEmail || r.name === '') {
-                        name = others[0] || r.name
-                    }
-                }
-                return {...r, id, name}
-            }):[]))
+            .then(data=>{
+                const deleted = load(DELETED_KEY, [])
+                setRooms(Array.isArray(data)?data
+                    .filter(r=>!deleted.includes(r.roomId||r.id))
+                    .map(r=>{
+                        const id = r.roomId || r.id
+                        let name = r.name
+                        if (!r.isGroup && r.participants) {
+                            const others = r.participants.split(',').map(e=>e.trim()).filter(e=>e!==myEmail)
+                            if (r.name === myEmail || r.name === '') {
+                                name = others[0] || r.name
+                            }
+                        }
+                        return {...r, id, name}
+                    }):[])
+            })
             .catch(err=>console.error('Failed to load rooms:',err))
+    }
+
+    // 초기 로드
+    useEffect(()=>{ loadRooms() },[myEmail])
+
+    // ── ✅ 전역 메시지 수신 시 내 rooms에 없는 방이면 목록 새로고침 ──
+    // Khun이 처음 메시지를 보내면 San 채팅 목록에 자동으로 방이 추가됨
+    useEffect(()=>{
+        if(!myEmail) return
+        const unsub = chatService.onMessage?.((msg)=>{
+            if(!msg?.roomId) return
+            if(msg.type && msg.type !== 'SEND') return
+            if(msg.senderEmail === myEmail) return  // 내가 보낸 메시지 무시
+
+            const deleted = load(DELETED_KEY, [])
+
+            if(deleted.includes(msg.roomId)){
+                // ✅ 삭제된 방에서 새 메시지 오면 → 목록에 다시 표시
+                setDeletedRooms(prev=>{
+                    const next = prev.filter(id=>id!==msg.roomId)
+                    save(DELETED_KEY, next)
+                    return next
+                })
+                // 방이 rooms에 없으면 서버에서 다시 로드
+                setRooms(prev=>{
+                    const exists = prev.some(r=>r.id===msg.roomId)
+                    if(!exists) loadRooms()
+                    else return prev.map(r=>r.id===msg.roomId
+                        ? {...r, lastMsg: msg.text||(msg.fileName?`📎 ${msg.fileName}`:''), lastAt: new Date().toISOString()}
+                        : r)
+                    return prev
+                })
+                return
+            }
+
+            setRooms(prev=>{
+                const exists = prev.some(r=>r.id===msg.roomId)
+                if(exists){
+                    return prev.map(r=>r.id===msg.roomId
+                        ? {...r, lastMsg: msg.text||(msg.fileName?`📎 ${msg.fileName}`:''), lastAt: new Date().toISOString()}
+                        : r)
+                }
+                loadRooms()
+                return prev
+            })
+        })
+        return ()=>unsub?.()
     },[myEmail])
 
     useEffect(()=>{
         if(!initialRoom)return
         const normalized={...initialRoom,id:initialRoom.roomId||initialRoom.id}
+        // ✅ 커뮤니티 채팅하기로 들어오면:
+        // - 방 목록에 다시 추가 (deletedRooms에서 제거)
+        // - deletedAt은 유지 → 이전 메시지는 안 보임, 새 메시지부터 시작
+        setDeletedRooms(prev=>{
+            const next = prev.filter(id => id !== normalized.id)
+            save(DELETED_KEY, next)
+            return next
+        })
         setOpenRooms([normalized])
         setTab('chats')
         setRooms(prev=>prev.find(r=>r.id===normalized.id)?prev:[normalized,...prev])
@@ -676,18 +856,33 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
 
     const handleProfileSave=({nickname:nick,photo:ph})=>{ setNickname(nick);setPhoto(ph);localStorage.setItem(NICK_KEY,nick);localStorage.setItem(PHOTO_KEY,ph);setShowPhotoModal(false) }
     const openChat=(room,isGroup=false)=>setOpenRooms(prev=>prev.find(r=>r.id===room.id)?prev:[...prev,{...room,isGroup}])
-    const deleteRoom=(id)=>{setRooms(prev=>prev.filter(r=>r.id!==id));setOpenRooms(prev=>prev.filter(r=>r.id!==id))}
+    const deleteRoom=(id)=>{
+        setDeleteConfirmId(id)   // ✅ 바로 삭제 대신 확인 모달 표시
+    }
+    const confirmDeleteRoom=(id)=>{
+        // 삭제 시각 저장 — 이 시각 이전 메시지는 내 화면에서 숨김
+        const deletedAt = new Date().toISOString()
+        localStorage.setItem(deletedAtKey(id, myEmail), deletedAt)
+        // rooms에서 제거하지 않고 deletedRooms에만 추가 → filteredRooms에서 숨겨짐
+        // (방을 완전히 제거하면 상대방 새 메시지 수신 시 목록 복원이 어려움)
+        setDeletedRooms(prev=>{ const next=[...new Set([...prev,id])]; save(DELETED_KEY,next); return next })
+        setOpenRooms(prev=>prev.filter(r=>r.id!==id))
+        setDeleteConfirmId(null)
+    }
     const muteRoom=(id)=>setRooms(prev=>prev.map(r=>r.id===id?{...r,muted:!r.muted}:r))
     const markRead=(id)=>setRooms(prev=>prev.map(r=>r.id===id?{...r,unread:0}:r))
-    const blockRoom=(id)=>{setBlocked(prev=>{const u=[...prev,id];save(BLOCKED_KEY,u);return u});deleteRoom(id)}
+    const blockRoom=(id)=>{setBlocked(prev=>{const u=[...prev,id];save(BLOCKED_KEY,u);return u});confirmDeleteRoom(id)}
     const joinGroup=(gid)=>{setJoinedGroups(prev=>{const u=[...prev,gid];save('sb_joined_groups',u);return u});setPreviewRoom(null)}
     const leaveGroup=(gid)=>{setJoinedGroups(prev=>{const u=prev.filter(id=>id!==gid);save('sb_joined_groups',u);return u});setOpenRooms(prev=>prev.filter(r=>r.id!==gid))}
 
-    const unreadTotal   = rooms.reduce((s,r)=>s+(r.unread||0),0)
+    const unreadTotal   = rooms.filter(r=>!deletedRooms.includes(r.id)&&!blocked.includes(r.id)).reduce((s,r)=>s+(r.unread||0)+(unreadByRoom[r.id]||0),0)
     const filteredRooms = rooms.filter(r=>{
         if(blocked.includes(r.id))return false
+        if(deletedRooms.includes(r.id))return false   // ✅ 삭제된 방은 목록에서 숨김
         const matchS=r.name?.includes(search)||(r.lastMsg||'').includes(search)
-        const matchF=chatFilter==='all'||(chatFilter==='unread'&&r.unread>0)
+        const appUnread=(unreadByRoom[r.id]||0)
+        const totalUnread=(r.unread||0)+appUnread
+        const matchF=chatFilter==='all'||(chatFilter==='unread'&&totalUnread>0)
         return matchS&&matchF
     })
 
@@ -724,7 +919,6 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                             </button>
                         ))}
                     </nav>
-
                 </div>
 
                 {/* ── Main ── */}
@@ -800,13 +994,11 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                                 <span className="ci-pane-title">Chats</span>
                                 <button className="ci-pane-close nd" onClick={onClose}>✕</button>
                             </div>
-                            {/* 검색창 */}
                             <div className="ci-search-bar nd">
                                 <span className="ci-search-icon"><IconSearch/></span>
                                 <input className="ci-search-input" placeholder="검색..." value={search} onChange={e=>setSearch(e.target.value)}/>
                                 {search&&<button className="ci-search-clear nd" onClick={()=>setSearch('')}><IconX/></button>}
                             </div>
-                            {/* 필터 */}
                             <div className="ci-filter-row nd">
                                 <button className={`ci-filter-btn nd ${chatFilter==='all'?'active':''}`} onClick={()=>setChatFilter('all')}>전체</button>
                                 <button className={`ci-filter-btn nd ${chatFilter==='unread'?'active':''}`} onClick={()=>setChatFilter('unread')}>
@@ -820,29 +1012,47 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                                         <div className="ci-empty-text">{chatFilter==='unread'?'읽지 않은 대화가 없어요':'아직 대화가 없어요'}</div>
                                         <div className="ci-empty-sub">커뮤니티에서 대화를 시작해보세요</div>
                                     </div>
-                                ):filteredRooms.map(room=>(
-                                    <div key={room.id} className="ci-room-wrap">
-                                        <div className={`ci-room-row ${room.unread>0?'ci-room-unread':''}`}
-                                             onClick={()=>{if(menuOpenId===room.id){setMenuOpenId(null);return}openChat(room)}}>
-                                            <div className="ci-room-av-wrap">
-                                                <Avatar name={room.avatar||room.name} photo={room.avatar?.length<=2?room.avatar:undefined} size={50}/>
-                                                {room.muted&&<span className="ci-room-mute-badge">🔕</span>}
-                                            </div>
-                                            <div className="ci-room-info">
-                                                <div className="ci-room-top">
-                                                    <span className="ci-room-name">{room.name}</span>
-                                                    <span className="ci-room-time">{fmtRecent(room.lastAt)}</span>
+                                ):filteredRooms.map(room=>{
+                                    // ── ✅ App.jsx에서 받은 unreadByRoom으로 방별 뱃지 수 계산 ──
+                                    const appUnread = unreadByRoom[room.id] || 0
+                                    const totalUnread = (room.unread || 0) + appUnread
+
+                                    return (
+                                        <div key={room.id} className="ci-room-wrap">
+                                            <div className={`ci-room-row ${totalUnread > 0 ? 'ci-room-unread' : ''}`}
+                                                 onClick={()=>{
+                                                     if(menuOpenId===room.id){setMenuOpenId(null);return}
+                                                     handleSelectRoom(room)  // ✅ 방 입장 시 읽음 처리
+                                                 }}>
+                                                <div className="ci-room-av-wrap">
+                                                    <Avatar name={room.avatar||room.name} photo={room.avatar?.length<=2?room.avatar:undefined} size={50}/>
+                                                    {room.muted&&<span className="ci-room-mute-badge">🔕</span>}
                                                 </div>
-                                                <div className="ci-room-bottom">
-                                                    <span className="ci-room-last">{room.lastMsg||'대화를 시작하세요'}</span>
-                                                    {room.unread>0&&<span className="ci-unread-badge">{room.unread}</span>}
+                                                <div className="ci-room-info">
+                                                    <div className="ci-room-top">
+                                                        <span className="ci-room-name">{room.name}</span>
+                                                        <span className="ci-room-time">{fmtRecent(room.lastAt)}</span>
+                                                    </div>
+                                                    <div className="ci-room-bottom">
+                                                        <span className="ci-room-last" style={deletedRooms.includes(room.id) ? {color:'#bbb',fontStyle:'italic'} : {}}>
+                                                            {deletedRooms.includes(room.id)
+                                                                ? '대화 내용이 없습니다'
+                                                                : (room.lastMsg || '대화를 시작하세요')}
+                                                        </span>
+                                                        {/* ── ✅ 읽지 않은 수 뱃지 ── */}
+                                                        {totalUnread > 0 && (
+                                                            <span className="ci-unread-badge">
+                                                                {totalUnread > 99 ? '99+' : totalUnread}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                <button className="ci-room-dots nd" onClick={e=>{e.stopPropagation();setMenuOpenId(menuOpenId===room.id?null:room.id)}}><IconRoomDots/></button>
                                             </div>
-                                            <button className="ci-room-dots nd" onClick={e=>{e.stopPropagation();setMenuOpenId(menuOpenId===room.id?null:room.id)}}><IconRoomDots/></button>
+                                            {menuOpenId===room.id&&<RoomMenu room={room} onMarkRead={()=>{markRead(room.id);onRoomRead?.(room.id)}} onMute={()=>muteRoom(room.id)} onDelete={()=>deleteRoom(room.id)} onBlock={()=>blockRoom(room.id)} onClose={()=>setMenuOpenId(null)}/>}
                                         </div>
-                                        {menuOpenId===room.id&&<RoomMenu room={room} onMarkRead={()=>markRead(room.id)} onMute={()=>muteRoom(room.id)} onDelete={()=>deleteRoom(room.id)} onBlock={()=>blockRoom(room.id)} onClose={()=>setMenuOpenId(null)}/>}
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         </div>
                     )}
@@ -870,7 +1080,7 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                         </div>
                     )}
 
-                    {/* ── 즐겨찾기 탭 ── */}
+                    {/* 즐겨찾기 탭 */}
                     {tab==='starred'&&(
                         <div className="ci-pane">
                             <div className="ci-pane-hd nd" onMouseDown={onMouseDown}>
@@ -908,46 +1118,18 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                                             transition:'all 0.15s',
                                         }}
                                              onMouseEnter={e=>e.currentTarget.style.borderColor='#c7d2fe'}
-                                             onMouseLeave={e=>e.currentTarget.style.borderColor='#e8e8ec'}
-                                             onClick={()=>{
-                                                 if(msg.roomId) {
-                                                     const room = rooms.find(r=>r.roomId===msg.roomId)
-                                                     if(room) { setOpenRoom(room); setTab('chats') }
-                                                 }
-                                             }}>
-                                            {/* 출처 */}
+                                             onMouseLeave={e=>e.currentTarget.style.borderColor='#e8e8ec'}>
                                             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                                                 <div style={{display:'flex',alignItems:'center',gap:6}}>
-                                                    <span style={{
-                                                        fontSize:10,fontWeight:700,
-                                                        background:'#eef2ff',color:'#6366f1',
-                                                        borderRadius:20,padding:'2px 8px'
-                                                    }}>
-                                                        {msg.roomName || '채팅'}
-                                                    </span>
-                                                    <span style={{fontSize:11,color:'var(--text-3)'}}>
-                                                        {msg.senderName || '상대방'}
-                                                    </span>
+                                                    <span style={{fontSize:10,fontWeight:700,background:'#eef2ff',color:'#6366f1',borderRadius:20,padding:'2px 8px'}}>{msg.roomName || '채팅'}</span>
+                                                    <span style={{fontSize:11,color:'var(--text-3)'}}>{msg.senderName || '상대방'}</span>
                                                 </div>
                                                 <div style={{display:'flex',alignItems:'center',gap:8}}>
                                                     <span style={{fontSize:10,color:'var(--text-3)'}}>{timeStr}</span>
-                                                    <button
-                                                        style={{background:'none',border:'none',cursor:'pointer',fontSize:14,opacity:0.5,padding:'0 2px'}}
-                                                        onClick={e=>{
-                                                            e.stopPropagation()
-                                                            const next=starred.filter(s=>s.id!==msg.id)
-                                                            setStarred(next); save(starredKey,next)
-                                                        }}
-                                                        title="즐겨찾기 해제"
-                                                    >✕</button>
+                                                    <button style={{background:'none',border:'none',cursor:'pointer',fontSize:14,opacity:0.5,padding:'0 2px'}} onClick={e=>{e.stopPropagation();const next=starred.filter(s=>s.id!==msg.id);setStarred(next);save(starredKey,next)}} title="즐겨찾기 해제">✕</button>
                                                 </div>
                                             </div>
-                                            {/* 내용 */}
-                                            <div style={{
-                                                fontSize:13, color:'var(--text-1)', lineHeight:1.55,
-                                                display:'-webkit-box', WebkitLineClamp:3,
-                                                WebkitBoxOrient:'vertical', overflow:'hidden',
-                                            }}>
+                                            <div style={{fontSize:13,color:'var(--text-1)',lineHeight:1.55,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
                                                 {isLink && <span style={{marginRight:4}}>🔗</span>}
                                                 {preview}
                                             </div>
@@ -956,12 +1138,7 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                                 })}
                                 {starred.length > 0 && (
                                     <div style={{textAlign:'center',padding:'8px 0 16px'}}>
-                                        <button
-                                            style={{background:'none',border:'none',fontSize:12,color:'#ef4444',cursor:'pointer',fontWeight:600}}
-                                            onClick={()=>{ if(window.confirm('즐겨찾기를 모두 삭제할까요?')){ setStarred([]); save(starredKey,[]) } }}
-                                        >
-                                            전체 삭제
-                                        </button>
+                                        <button style={{background:'none',border:'none',fontSize:12,color:'#ef4444',cursor:'pointer',fontWeight:600}} onClick={()=>{ if(window.confirm('즐겨찾기를 모두 삭제할까요?')){ setStarred([]); save(starredKey,[]) } }}>전체 삭제</button>
                                     </div>
                                 )}
                             </div>
@@ -972,11 +1149,43 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
 
             {showPhotoModal&&<ProfileEditModal nickname={nickname} photo={photo} myName={myName} onSave={handleProfileSave} onClose={()=>setShowPhotoModal(false)}/>}
             {previewRoom&&<GroupPreviewModal room={previewRoom} onJoin={()=>{joinGroup(previewRoom.id);openChat(previewRoom,true)}} onClose={()=>setPreviewRoom(null)}/>}
+
+            {/* ✅ 삭제 확인 모달 */}
+            {deleteConfirmId&&(
+                <div className="ci-modal-overlay nd" onClick={()=>setDeleteConfirmId(null)}>
+                    <div className="ci-modal nd" style={{maxWidth:320}} onClick={e=>e.stopPropagation()}>
+                        <div className="ci-modal-hd" style={{fontSize:15}}>
+                            <span>🗑 대화 삭제</span>
+                            <button className="ci-modal-close nd" onClick={()=>setDeleteConfirmId(null)}>✕</button>
+                        </div>
+                        <div className="ci-modal-body" style={{gap:10}}>
+                            <div style={{fontSize:32,textAlign:'center'}}>🗑️</div>
+                            <div style={{fontWeight:700,fontSize:14,color:'#1a1a2e',textAlign:'center'}}>
+                                정말로 삭제하겠습니까?
+                            </div>
+                            <div style={{fontSize:13,color:'#888',textAlign:'center',lineHeight:1.6}}>
+                                내 채팅 목록에서만 사라집니다.<br/>
+                                상대방의 대화 내용은 유지됩니다.<br/>
+                                다시 채팅하려면 커뮤니티에서<br/>채팅하기를 눌러주세요.
+                            </div>
+                            <div style={{display:'flex',gap:8,width:'100%',marginTop:4}}>
+                                <button
+                                    style={{flex:1,padding:'11px',borderRadius:10,border:'1.5px solid #e0e0f0',background:'#f4f4fb',color:'#555',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}
+                                    onClick={()=>setDeleteConfirmId(null)}>취소</button>
+                                <button
+                                    style={{flex:1,padding:'11px',borderRadius:10,border:'none',background:'linear-gradient(135deg,#ef4444,#dc2626)',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',boxShadow:'0 3px 10px rgba(239,68,68,0.3)'}}
+                                    onClick={()=>confirmDeleteRoom(deleteConfirmId)}>삭제하기</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             {openRooms.map(room=>(
                 <ChatWindow key={room.id} room={room} isGroup={!!room.isGroup}
                             myEmail={myEmail} myName={myName} myNickname={nickname} myPhoto={photo}
                             allRooms={rooms}
                             starred={starred}
+                            isDeleted={deletedRooms.includes(room.id)}
                             onStarChange={(next)=>{ setStarred(next); save(starredKey, next) }}
                             onClose={()=>setOpenRooms(prev=>prev.filter(r=>r.id!==room.id))}/>
             ))}
