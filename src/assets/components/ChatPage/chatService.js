@@ -8,6 +8,7 @@ class ChatService {
     this.client       = null
     this.connected    = false
     this.pendingQueue = []
+    this._globalListeners = []   // ← 전역 메시지 리스너 목록
   }
 
   connect(baseUrl = DEFAULT_BASE_URL) {
@@ -16,10 +17,10 @@ class ChatService {
     this.client = new Client({
       webSocketFactory: () => new SockJS(`${baseUrl}/ws-chat`),
       reconnectDelay: 3000,
+
       onConnect: () => {
         console.log('[ChatService] Connected')
         this.connected = true
-        // Flush queued subscriptions and publishes
         this.pendingQueue.forEach(fn => fn())
         this.pendingQueue = []
       },
@@ -40,6 +41,7 @@ class ChatService {
     this.connected = false
   }
 
+  // ── 방 구독 (기존) ──
   subscribeToRoom(roomId, onMessage) {
     return this.subscribe(`/topic/room/${roomId}`, onMessage)
   }
@@ -59,28 +61,33 @@ class ChatService {
       }
     }
 
-    // Not connected yet — queue it
-    let sub = null
-    let unsubCalled = false
-    const doSubscribe = () => {
-      if (unsubCalled || !this.client) return
-      try {
-        sub = this.client.subscribe(topic, (stompMsg) => {
-          try { onMessage(JSON.parse(stompMsg.body)) } catch(e) {}
-        })
-      } catch(e) {
-        console.error('[ChatService] Queued subscribe failed', e)
-      }
-    }
-    this.pendingQueue.push(doSubscribe)
+    const subscription = this.client.subscribe(
+        `/topic/room/${roomId}`,
+        (stompMsg) => {
+          const msg = JSON.parse(stompMsg.body)
+          // 방 구독 콜백
+          onMessage(msg)
+          // 전역 리스너에도 알림 ← 추가
+          this._globalListeners.forEach(fn => fn(msg))
+        }
+    )
+
+    return () => subscription.unsubscribe()
+  }
+
+  // ── 전역 메시지 리스너 등록/해제 ──
+  // App.jsx에서 채팅창 닫혔을 때 새 메시지 감지용
+  onMessage(callback) {
+    this._globalListeners.push(callback)
+    // 해제 함수 반환
     return () => {
-      unsubCalled = true
-      try { sub?.unsubscribe() } catch(e) {}
+      this._globalListeners = this._globalListeners.filter(fn => fn !== callback)
     }
   }
 
-  sendMessage({ roomId, senderEmail, senderName, text, type = 'TEXT' }) {
-    this._publish('/app/chat.send', { roomId, senderEmail, senderName, text, type })
+  // ── 메시지 전송 ──
+  sendMessage(payload) {
+    this._publish('/app/chat.send', payload)
   }
 
   editMessage(id, roomId, newText) {
@@ -112,6 +119,7 @@ class ChatService {
     }
   }
 
+  // ── REST helpers ──
   async getRooms(email, baseUrl = DEFAULT_BASE_URL) {
     const res = await fetch(`${baseUrl}/api/chat/rooms?email=${encodeURIComponent(email)}`)
     if (!res.ok) throw new Error('Failed to load rooms')

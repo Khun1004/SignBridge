@@ -21,14 +21,7 @@ export default function Registration({
                                      }) {
     const [step, setStep] = useState(1)
 
-    // chatId is ALWAYS locked when:
-    // 1. Editing (isEdit=true) — can never change after first registration
-    // 2. existingChatId is set (already registered before)
-    const lockedChatId = isEdit
-        ? (initialData?.chatId || existingChatId || '')
-        : existingChatId
-
-    const chatIdLocked = !!lockedChatId
+    const lockedChatId = isEdit ? (initialData?.chatId || '') : existingChatId
 
     const [form, setForm] = useState(() => {
         if (initialData) {
@@ -63,11 +56,12 @@ export default function Registration({
     })
 
     const [errors,       setErrors]       = useState({})
-    const [chatIdStatus, setChatIdStatus] = useState(chatIdLocked ? 'locked' : null)
+    const [chatIdStatus, setChatIdStatus] = useState(lockedChatId ? 'locked' : null)
     const [preview,      setPreview]      = useState([])
     const fileRef = useRef(null)
 
     const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
+    const chatIdLocked = !!lockedChatId
 
     const validateChatIdFormat = (id) => /^[\uAC00-\uD7A3a-zA-Z0-9\-_.]{4,20}$/.test(id)
 
@@ -139,6 +133,7 @@ export default function Registration({
     }
     const validate3 = () => {
         const e = {}
+        if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
         if (!chatIdLocked) {
             if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
             else if (!validateChatIdFormat(form.chatId)) e.chatId = '올바른 형식이 아닙니다.'
@@ -215,7 +210,16 @@ export default function Registration({
                             <select className={`reg-input${errors.role?' error':''}`}
                                     value={form.role} onChange={e => update('role', e.target.value)}>
                                 <option value="">선택하세요</option>
-                                {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                {ROLE_OPTIONS.map(r => (
+                                    // 수정 모드가 아닐 때 이미 등록된 역할 비활성화
+                                    <option
+                                        key={r}
+                                        value={r}
+                                        disabled={!isEdit && disabledRoles.includes(r)}
+                                    >
+                                        {r}{!isEdit && disabledRoles.includes(r) ? ' (이미 등록됨)' : ''}
+                                    </option>
+                                ))}
                             </select>
                             {errors.role && <span className="reg-err">{errors.role}</span>}
                         </div>

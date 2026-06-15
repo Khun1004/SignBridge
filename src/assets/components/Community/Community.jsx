@@ -8,23 +8,22 @@ const ROLE_OPTIONS   = ['수어 선생님','수어 통역사','수어 학습자'
 const REGION_OPTIONS = ['서울','부산','대구','인천','광주','대전','울산','경기','기타']
 
 export default function Community({
-    userEmail = '',
-    displayName = '',
-    onLoginRequired,
-    myProfile = null,
-    onProfileSave,
-    onProfileDelete,
-    onChat,
-}) {
-    const [view,          setView]         = useState('list')
-    const [members,       setMembers]      = useState([])
-    const [listLoading,   setListLoading]  = useState(false)
-    const [selected,      setSelected]     = useState(null)  // currently viewing post
-    const [editingPost,   setEditingPost]  = useState(null)  // post being edited
-    const [filterRole,    setFilterRole]   = useState('전체')
-    const [filterRegion,  setFilterRegion] = useState('전체')
-    const [deleteConfirm, setDeleteConfirm]= useState(false)
-    const [deleteLoading, setDeleteLoading]= useState(false)
+                                      userEmail = '',
+                                      displayName = '',
+                                      onLoginRequired,
+                                      myProfiles = [],
+                                      onProfilesChange,
+                                      onChat,
+                                  }) {
+    const [view,           setView]           = useState('list')
+    const [members,        setMembers]        = useState([])
+    const [listLoading,    setListLoading]    = useState(false)
+    const [selected,       setSelected]       = useState(null)
+    const [editingProfile, setEditingProfile] = useState(null)
+    const [filterRole,     setFilterRole]     = useState('전체')
+    const [filterRegion,   setFilterRegion]   = useState('전체')
+    const [deleteConfirm,  setDeleteConfirm]  = useState(null)
+    const [deleteLoading,  setDeleteLoading]  = useState(false)
 
     const loadMembers = async (role = '', region = '') => {
         setListLoading(true)
@@ -45,17 +44,17 @@ export default function Community({
 
     // ── Register — always creates NEW post ───────────────
     const handleRegisterClick = () => {
-        if (!userEmail) {
-            alert('등록하려면 먼저 로그인 해야 합니다.')
-            onLoginRequired?.()
-            return
-        }
-        setEditingPost(null)  // new post, no pre-fill
+        if (!userEmail) { alert('등록하려면 먼저 로그인 해야 합니다.'); onLoginRequired?.(); return }
+        setEditingProfile(null)
         setView('register')
     }
 
-    // Get this user's existing chatId from the member list
-    const myExistingChatId = members.find(m => m.userEmail === userEmail)?.chatId || ''
+    const registeredRoles = myProfiles.map(p => p.role)
+
+    const handleEditClick = (profile) => {
+        setEditingProfile(profile)
+        setView('edit')
+    }
 
     // ── Edit specific post ────────────────────────────────
     const handleEditPost = (post) => {
@@ -107,7 +106,8 @@ export default function Community({
 
             await loadMembers(filterRole, filterRegion)
         } catch (e) {
-            alert('등록에 실패했습니다. 다시 시도해 주세요.')
+            console.error('[Community] 등록 실패:', e)
+            alert('등록에 실패했습니다: ' + e.message)
         }
         setEditingProfile(null)
         setView('list')
@@ -116,20 +116,18 @@ export default function Community({
 
     // ── Delete specific post ──────────────────────────────
     const handleDeleteConfirm = async () => {
-        if (!selected?.id) return
+        if (!deleteConfirm) return
         setDeleteLoading(true)
         try {
-            const res = await fetch(
-                `/api/community/members/${selected.id}?email=${encodeURIComponent(userEmail)}`,
-                { method: 'DELETE' }
-            )
-            if (!res.ok) throw new Error('삭제 실패')
-            // If deleted post was the "myProfile", notify App.jsx
-            if (myProfile?.id === selected.id) onProfileDelete?.()
+            // deleteById: id와 email로 삭제
+            await fetch(`/api/community/members/${deleteConfirm}?email=${encodeURIComponent(userEmail)}`, {
+                method: 'DELETE'
+            }).then(r => {
+                if (!r.ok) throw new Error('삭제 실패')
+            })
+            onProfilesChange?.(myProfiles.filter(p => p.id !== deleteConfirm))
             await loadMembers(filterRole, filterRegion)
-            setDeleteConfirm(false)
-            setView('list')
-            setSelected(null)
+            setDeleteConfirm(null)
         } catch (e) {
             alert('삭제에 실패했습니다. 다시 시도해 주세요.')
         } finally {
@@ -140,30 +138,26 @@ export default function Community({
     const handleCardClick = (member) => { setSelected(member); setView('detail') }
     const handleStartChat = (room)   => { onChat?.(room); setView('list'); setSelected(null) }
 
-    // ── Views ─────────────────────────────────────────────
-    if (view === 'register') {
-        return (
-            <Registration
-                defaultName={displayName}
-                existingChatId={myExistingChatId}
-                onBack={() => setView('list')}
-                onSubmit={handleRegisterSubmit}
-            />
-        )
-    }
+    if (view === 'register') return (
+        <Registration
+            defaultName={displayName}
+            existingChatId={''}
+            disabledRoles={registeredRoles}
+            onBack={() => setView('list')}
+            onSubmit={handleRegisterSubmit}
+        />
+    )
 
-    if (view === 'edit' && editingPost) {
-        return (
-            <Registration
-                defaultName={displayName}
-                initialData={editingPost}
-                existingChatId={editingPost?.chatId || ''}
-                isEdit
-                onBack={() => { setView('detail'); }}
-                onSubmit={handleRegisterSubmit}
-            />
-        )
-    }
+    if (view === 'edit' && editingProfile) return (
+        <Registration
+            defaultName={displayName}
+            initialData={editingProfile}
+            existingChatId={editingProfile?.chatId || ''}
+            isEdit
+            onBack={() => { setEditingProfile(null); setView('list') }}
+            onSubmit={handleRegisterSubmit}
+        />
+    )
 
     if (view === 'detail' && selected) {
         const isMyPost = selected.userEmail === userEmail
@@ -210,19 +204,70 @@ export default function Community({
                 <button className="cm-register-btn" onClick={handleRegisterClick}>+ 등록하기</button>
             </div>
 
+            {/* ── 내 프로필 배너 ── */}
+            {myProfiles.length > 0 && (
+                <div className="cm-my-profiles">
+                    <div className="cm-my-profiles-label">내 커뮤니티 프로필 ({myProfiles.length}개)</div>
+                    {myProfiles.map((profile, idx) => (
+                        <div key={profile.id ?? `profile-${idx}`} className="cm-my-banner">
+                            <div className="cm-my-banner-top">
+                                <div className="cm-my-banner-avatar">
+                                    {profile.avatar || profile.name?.charAt(0) || '?'}
+                                </div>
+                                <div className="cm-my-banner-info">
+                                    <div className="cm-my-banner-name">
+                                        {profile.name || displayName}
+                                        {profile.chatId && (
+                                            <span className="cm-my-banner-chatid">@{profile.chatId}</span>
+                                        )}
+                                    </div>
+                                    <div className="cm-my-banner-meta">
+                                        {profile.role   && <span className="cm-role-badge">{profile.role}</span>}
+                                        {profile.region && <span className="cm-region-badge">📍 {profile.region}</span>}
+                                    </div>
+                                </div>
+                                <div className="cm-my-banner-actions">
+                                    <button className="cm-edit-btn"   onClick={() => handleEditClick(profile)}>✏️ 수정</button>
+                                    <button className="cm-delete-btn" onClick={() => setDeleteConfirm(profile.id)}>🗑 삭제</button>
+                                </div>
+                            </div>
+                            {profile.intro && <div className="cm-my-banner-intro">{profile.intro}</div>}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* ── 삭제 확인 모달 ── */}
+            {deleteConfirm && (
+                <div className="cm-modal-overlay" onClick={() => setDeleteConfirm(null)}>
+                    <div className="cm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="cm-modal-icon">🗑</div>
+                        <div className="cm-modal-title">프로필을 삭제할까요?</div>
+                        <div className="cm-modal-desc">삭제하면 커뮤니티 목록에서 사라지며 복구할 수 없습니다.</div>
+                        <div className="cm-modal-btns">
+                            <button className="cm-modal-cancel" onClick={() => setDeleteConfirm(null)}>취소</button>
+                            <button className="cm-modal-confirm" onClick={handleDeleteConfirm} disabled={deleteLoading}>
+                                {deleteLoading ? '삭제 중...' : '삭제하기'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── 필터 ── */}
             <div className="cm-filters">
                 <div className="cm-filter-group">
                     <span className="cm-filter-label">역할</span>
                     {['전체', ...ROLE_OPTIONS].map(r => (
                         <button key={r} className={`cm-filter-btn ${filterRole===r?'active':''}`}
-                            onClick={() => setFilterRole(r)}>{r}</button>
+                                onClick={() => setFilterRole(r)}>{r}</button>
                     ))}
                 </div>
                 <div className="cm-filter-group">
                     <span className="cm-filter-label">지역</span>
                     {['전체', ...REGION_OPTIONS].map(r => (
                         <button key={r} className={`cm-filter-btn ${filterRegion===r?'active':''}`}
-                            onClick={() => setFilterRegion(r)}>{r}</button>
+                                onClick={() => setFilterRegion(r)}>{r}</button>
                     ))}
                 </div>
             </div>
@@ -232,13 +277,16 @@ export default function Community({
                     <div className="cm-empty">불러오는 중...</div>
                 ) : members.length === 0 ? (
                     <div className="cm-empty">조건에 맞는 멤버가 없습니다.</div>
-                ) : members.map(member => (
-                    <div className="cm-card" key={member.id} onClick={() => handleCardClick(member)}>
-                        <div className="cm-card-avatar">{member.avatar}</div>
+                ) : members.map((member, idx) => (
+                    <div className="cm-card" key={member.id ?? `member-${idx}`}
+                         onClick={() => handleCardClick(member)}>
+                        <div className="cm-card-avatar">
+                            {member.avatar || member.name?.charAt(0) || '?'}
+                        </div>
                         <div className="cm-card-info">
                             <div className="cm-card-name">
                                 {member.name}
-                                {member.chatId && <span className="cm-card-chatid"> @{member.chatId}</span>}
+                                {member.chatId && <span className="cm-card-chatid">@{member.chatId}</span>}
                             </div>
                             <div className="cm-card-meta">
                                 {member.role   && <span className="cm-role-badge">{member.role}</span>}

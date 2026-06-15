@@ -40,10 +40,11 @@ export default function CommunityPersonalDetail({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    emailA: myEmail,
-                    nameA:  myName,       // my account name
-                    emailB: member.userEmail,
-                    nameB:  member.name,  // their community post name (best available)
+                    emailA:  myEmail,
+                    nameA:   myName,
+                    emailB:  member.userEmail,
+                    nameB:   member.name,
+                    avatarB: member.avatar || '', // ← 커뮤니티 프로필 아바타 이모지 전달
                 }),
             })
             if (!res.ok) throw new Error('서버 오류')
@@ -80,7 +81,6 @@ export default function CommunityPersonalDetail({
                 </div>
             </div>
 
-            {/* Chat button — only for other people's profiles */}
             {canChat && (
                 <div className="cpd-action-row">
                     <button className="cpd-chat-btn" onClick={handleStartChat} disabled={loading}>
@@ -135,7 +135,6 @@ export default function CommunityPersonalDetail({
                 </div>
             )}
 
-            {/* 연락 방법 */}
             {hasExternalContact && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">📞 연락 방법</div>
@@ -143,7 +142,7 @@ export default function CommunityPersonalDetail({
                         <span>{CONTACT_LABEL[contactType] || '연락처'}</span>
                         <span className="cpd-contact-val">{contactValue}</span>
                     </div>
-                    {!canChat && !isMyProfile && (
+                    {!canChat && (
                         <button className="cpd-contact-btn" onClick={handleContact}>
                             {contactType === 'phone' ? '📞 전화하기' : '📧 이메일 보내기'}
                         </button>
