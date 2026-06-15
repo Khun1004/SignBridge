@@ -237,7 +237,7 @@ function AiChatWindow({ onClose }) {
 }
 
 // ── 오른쪽 플로팅 사이드바 ──
-function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0 }) {
+function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0, toastMessages = [], onToastClick }) {
     const scrollTo = (dir) =>
         window.scrollTo({ top: dir === 'top' ? 0 : document.body.scrollHeight, behavior: 'smooth' })
 
@@ -273,6 +273,49 @@ function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0 }) {
                     </svg>
                 </span>
                 <span className="fsb-label">채팅</span>
+
+                {/* ✅ 토스트 팝업 */}
+                {toastMessages.length > 0 && (
+                    <div style={{
+                        position:'absolute', right:'calc(100% + 12px)', bottom:0,
+                        display:'flex', flexDirection:'column-reverse', gap:8,
+                        width:260, zIndex:9999,
+                    }}>
+                        {toastMessages.map(m => (
+                            <div key={m.id} onClick={onToastClick} style={{
+                                background:'#fff',
+                                borderRadius:14,
+                                padding:'10px 14px',
+                                boxShadow:'0 4px 20px rgba(0,0,0,0.13)',
+                                border:'1.5px solid #e0e7ff',
+                                cursor:'pointer',
+                                display:'flex', alignItems:'center', gap:10,
+                                animation:'slideIn 0.2s ease',
+                            }}>
+                                <div style={{
+                                    width:36, height:36, borderRadius:'50%',
+                                    background:'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                    color:'#fff', fontWeight:800, fontSize:15,
+                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                    flexShrink:0,
+                                }}>
+                                    {m.avatar}
+                                </div>
+                                <div style={{overflow:'hidden'}}>
+                                    <div style={{fontWeight:700, fontSize:13, color:'#1e1b4b', marginBottom:2}}>
+                                        {m.name}
+                                    </div>
+                                    <div style={{
+                                        fontSize:12, color:'#6b7280',
+                                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                                    }}>
+                                        {m.text}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </button>
 
             <button className="fsb-btn fsb-call" onClick={onCall} title="전화">
@@ -509,6 +552,7 @@ export default function App() {
     const [showChat,        setShowChat]        = useState(false)
     const [showAiChat,      setShowAiChat]      = useState(false)
     const [chatUnreadCount, setChatUnreadCount] = useState(0)
+    const [chatToastMessages,  setChatToastMessages]  = useState([])
 
     // 네비바에 표시할 짧은 이름
     const navLabel = displayName.length > 6 ? displayName.slice(0, 6) + '…' : displayName
@@ -536,9 +580,22 @@ export default function App() {
     useEffect(() => {
         chatService.connect('http://localhost:8080')
         // 새 메시지 수신 시 채팅창이 닫혀 있으면 뱃지 증가
+        // ② 수정된 메시지 수신 처리
         const unsub = chatService.onMessage?.((msg) => {
             if (!showChatRef.current && msg?.senderEmail !== userEmailRef.current) {
                 setChatUnreadCount(c => c + 1)
+                const id = Date.now()
+                const newMsg = {
+                    id,
+                    name:   msg.senderName || msg.senderEmail?.split('@')[0] || '?',
+                    text:   msg.text || (msg.fileName ? `📎 ${msg.fileName}` : ''),
+                    avatar: (msg.senderName || '?').charAt(0).toUpperCase(),
+                }
+                setChatToastMessages(prev => [newMsg, ...prev].slice(0, 3))
+                // ✅ 5초 후 해당 메시지만 제거
+                setTimeout(() => {
+                    setChatToastMessages(prev => prev.filter(m => m.id !== id))
+                }, 5000)
             }
         })
         return () => { chatService.disconnect(); unsub?.() }
@@ -645,7 +702,24 @@ export default function App() {
     }
 
     const handleCommunityChat = (room) => {
-        setChatInitialRoom(room)
+        const iAmB = room.sub === userEmail
+
+        // 상대방 이름 — 이메일 대신 커뮤니티 등록 이름 사용
+        const otherName   = iAmB ? room.nameA  : room.name
+        const otherAvatar = iAmB ? room.avatarA : room.avatar
+        const otherEmail  = iAmB
+            ? room.participants?.split(',').map(e => e.trim()).find(e => e !== userEmail)
+            : room.sub
+
+        const normalized = {
+            ...room,
+            id:     room.roomId || room.id,
+            name:   otherName   || otherEmail,   // 이름 없으면 이메일 fallback
+            avatar: otherAvatar || (otherName ? otherName.charAt(0) : '?'),
+            sub:    otherEmail,
+        }
+
+        setChatInitialRoom(normalized)
         setShowChat(true)
     }
 
@@ -772,7 +846,17 @@ export default function App() {
             </footer>
 
             {/* ── 플로팅 사이드바 ── */}
-            <FloatingSidebar onChat={handleQuickChat} onCall={handleQuickCall} onAiChat={handleQuickAiChat} chatUnread={chatUnreadCount} />
+            <FloatingSidebar
+                onChat={handleQuickChat}
+                onCall={handleQuickCall}
+                onAiChat={handleQuickAiChat}
+                chatUnread={chatUnreadCount}
+                toastMessages={chatToastMessages}       // ✅ 추가
+                onToastClick={() => {                   // ✅ 추가
+                    setChatToastMessages([])
+                    handleQuickChat()
+                }}
+            />
 
             {/* 검색 오버레이 */}
             {showSearchOverlay && (

@@ -813,6 +813,12 @@ button { cursor: pointer; font-family: inherit; border: none; outline: none; bac
 }
 .ai-chat-send:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
 .ai-chat-send:disabled { opacity: 0.35; cursor: not-allowed; }
+
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
 /* ════════════════════════════════════════════════════════
    배경 black 버그 수정 — ChatRoom.css :root --bg 충돌 방지
    App.css 맨 아래에 추가

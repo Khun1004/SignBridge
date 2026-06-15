@@ -1,3 +1,4 @@
+// CommunityPersonalDetail.jsx
 import { useState } from 'react'
 import './CommunityPersonalDetail.css'
 
@@ -25,8 +26,12 @@ export default function CommunityPersonalDetail({ members = [], onBack, myEmail 
     }
 
     const handleStartChat = async () => {
+        if (!myEmail || !member.userEmail) {
+            alert('사용자 정보가 없습니다. 다시 로그인해 주세요.')
+            return
+        }
         try {
-            const res = await fetch('/api/chat/rooms/direct', {
+            const res = await fetch('/api/chat/rooms/direct', {  // ✅ 프록시 경유, /rooms/direct 전용 엔드포인트
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -34,13 +39,19 @@ export default function CommunityPersonalDetail({ members = [], onBack, myEmail 
                     nameA:   myName,
                     emailB:  member.userEmail,
                     nameB:   member.name,
-                    avatarB: member.avatar || '',
+                    avatarB: (member.avatar?.length > 2) ? member.avatar : '',
                 }),
             })
-            if (!res.ok) throw new Error('서버 오류')
+            if (!res.ok) {
+                const errText = await res.text()
+                console.error('[채팅시작] 서버 오류:', res.status, errText)
+                alert('채팅방을 만들 수 없습니다.')
+                return
+            }
             const room = await res.json()
             onChat?.(room)
         } catch (e) {
+            console.error('[채팅시작]', e)
             alert('채팅방을 만들 수 없습니다. 다시 시도해 주세요.')
         }
     }

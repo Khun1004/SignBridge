@@ -550,7 +550,7 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
                     <div className="cw-header-left">
                         <button className="cw-hback nd" onClick={onClose}><IconChevronLeft/></button>
                         <div className="cw-av-wrap">
-                            <Avatar name={room.name} photo={room.avatar?.length<=2?room.avatar:undefined} size={42} radius="50%"/>
+                            <Avatar name={room.name} photo={room.avatar || room.name?.charAt(0).toUpperCase()} size={42} radius="50%"/>
                             <span className="cw-av-status"/>
                         </div>
                         <div>
@@ -577,7 +577,7 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
                         <div className="cw-empty"><div className="cw-empty-hint">불러오는 중...</div></div>
                     ):!rows.length?(
                         <div className="cw-empty">
-                            <Avatar name={room.name} photo={room.avatar?.length<=2?room.avatar:undefined} size={72}/>
+                            <Avatar name={room.name} photo={room.avatar || room.name?.charAt(0).toUpperCase()} size={72}/>
                             <div className="cw-empty-name">{room.name}</div>
                             <div className="cw-empty-hint">첫 메시지를 보내보세요 👋</div>
                         </div>
@@ -651,7 +651,18 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
         if(!myEmail)return
         fetch(`/api/chat/rooms?email=${encodeURIComponent(myEmail)}`)
             .then(r=>r.json())
-            .then(data=>setRooms(Array.isArray(data)?data.map(r=>({...r,id:r.roomId||r.id})):[]))
+            .then(data=>setRooms(Array.isArray(data)?data.map(r=>{
+                // 1:1 채팅방에서 상대방 이름으로 표시 (내 이름이 방 이름이면 participants에서 상대방 찾기)
+                const id = r.roomId || r.id
+                let name = r.name
+                if (!r.isGroup && r.participants) {
+                    const others = r.participants.split(',').map(e=>e.trim()).filter(e=>e!==myEmail)
+                    if (r.name === myEmail || r.name === '') {
+                        name = others[0] || r.name
+                    }
+                }
+                return {...r, id, name}
+            }):[]))
             .catch(err=>console.error('Failed to load rooms:',err))
     },[myEmail])
 
