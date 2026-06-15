@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import './CommunityPersonalDetail.css'
 
 const CONTACT_LABEL = {
@@ -7,8 +8,19 @@ const CONTACT_LABEL = {
     email:      '📧 이메일',
 }
 
-export default function CommunityPersonalDetail({ member, onBack, myEmail = '', myName = '', onChat }) {
+export default function CommunityPersonalDetail({
+    member,
+    onBack,
+    myEmail = '',
+    myName = '',
+    onChat,
+    isMyProfile = false,  // true when viewing your own profile
+    onEdit,               // called when Edit button clicked
+    onDelete,             // called when Delete button clicked
+}) {
     if (!member) return null
+
+    const [loading, setLoading] = useState(false)
 
     const contactType  = member.contactType  || member.contact?.type
     const contactValue = member.contactValue || member.contact?.value
@@ -20,23 +32,27 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
     }
 
     const handleStartChat = async () => {
+        if (loading) return
+        setLoading(true)
         try {
+            // Fetch other person's account name from users API for accurate chat name
             const res = await fetch('/api/chat/rooms/direct', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    emailA:  myEmail,
-                    nameA:   myName,
-                    emailB:  member.userEmail,
-                    nameB:   member.name,
-                    avatarB: member.avatar || '', // ← 커뮤니티 프로필 아바타 이모지 전달
+                    emailA: myEmail,
+                    nameA:  myName,       // my account name
+                    emailB: member.userEmail,
+                    nameB:  member.name,  // their community post name (best available)
                 }),
             })
             if (!res.ok) throw new Error('서버 오류')
             const room = await res.json()
-            onChat?.(room)
+            onChat?.({ ...room, id: room.roomId || room.id })
         } catch (e) {
             alert('채팅방을 만들 수 없습니다. 다시 시도해 주세요.')
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -64,10 +80,11 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 </div>
             </div>
 
+            {/* Chat button — only for other people's profiles */}
             {canChat && (
                 <div className="cpd-action-row">
-                    <button className="cpd-chat-btn" onClick={handleStartChat}>
-                        💬 채팅하기
+                    <button className="cpd-chat-btn" onClick={handleStartChat} disabled={loading}>
+                        {loading ? '⏳ 연결 중...' : '💬 채팅하기'}
                     </button>
                     {hasExternalContact && (
                         <button className="cpd-contact-btn-inline" onClick={handleContact}>
@@ -76,10 +93,9 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                     )}
                 </div>
             )}
+
             {!myEmail && (
-                <div className="cpd-login-hint">
-                    채팅을 시작하려면 로그인이 필요합니다.
-                </div>
+                <div className="cpd-login-hint">채팅을 시작하려면 로그인이 필요합니다.</div>
             )}
 
             <div className="cpd-section">
@@ -98,7 +114,7 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 <div className="cpd-section">
                     <div className="cpd-section-title">🎯 전문 분야</div>
                     <div className="cpd-speciality-chips">
-                        {member.speciality.split(',').map((s,i)=>(
+                        {member.speciality.split(',').map((s, i) => (
                             <span key={i} className="cpd-chip">{s.trim()}</span>
                         ))}
                     </div>
@@ -109,9 +125,9 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 <div className="cpd-section">
                     <div className="cpd-section-title">📄 자격증 / 증명서</div>
                     <div className="cpd-cert-list">
-                        {member.certFiles.map((f,i)=>(
+                        {member.certFiles.map((f, i) => (
                             <div key={i} className="cpd-cert-item">
-                                <span>{f.name?.includes('.pdf')?'📑':'🖼️'}</span>
+                                <span>{f.name?.includes('.pdf') ? '📑' : '🖼️'}</span>
                                 <span className="cpd-cert-name">{f.name}</span>
                             </div>
                         ))}
@@ -119,6 +135,7 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 </div>
             )}
 
+            {/* 연락 방법 */}
             {hasExternalContact && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">📞 연락 방법</div>
@@ -126,11 +143,25 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                         <span>{CONTACT_LABEL[contactType] || '연락처'}</span>
                         <span className="cpd-contact-val">{contactValue}</span>
                     </div>
-                    {!canChat && (
+                    {!canChat && !isMyProfile && (
                         <button className="cpd-contact-btn" onClick={handleContact}>
                             {contactType === 'phone' ? '📞 전화하기' : '📧 이메일 보내기'}
                         </button>
                     )}
+                </div>
+            )}
+
+            {/* Edit / Delete — at the bottom, only for own profile */}
+            {isMyProfile && (
+                <div style={{display:'flex', gap:12, marginTop:32, paddingBottom:40}}>
+                    <button onClick={onEdit} style={{
+                        flex:1, padding:'14px 0', background:'#6366f1', color:'#fff',
+                        border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer'
+                    }}>✏️ 수정하기</button>
+                    <button onClick={onDelete} style={{
+                        flex:1, padding:'14px 0', background:'#ef4444', color:'#fff',
+                        border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer'
+                    }}>🗑 삭제하기</button>
                 </div>
             )}
         </div>

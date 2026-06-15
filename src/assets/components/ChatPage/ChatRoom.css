@@ -923,9 +923,60 @@
   box-shadow: 0 3px 10px rgba(124,58,237,0.3) !important;
 }
 
-/* ── ci-room-row 안의 아바타도 보라 고정 ── */
-.ci-room-row .sb-av,
-.ci-room-av-wrap .sb-av {
-  background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%) !important;
-  box-shadow: 0 3px 10px rgba(124,58,237,0.3) !important;
+/* Community card chatId display */
+.cm-card-chatid { font-size:11px; color:var(--sb-purple); font-weight:600; margin-left:4px; }
+
+/* CommunityPersonalDetail chatId badge */
+.cpd-chatid-badge { font-size:12px; font-weight:700; background:rgba(108,99,255,0.1); color:var(--sb-purple); border-radius:20px; padding:3px 10px; border:1px solid rgba(108,99,255,0.2); }
+.cpd-login-hint { text-align:center; font-size:13px; color:var(--sb-text-3); padding:12px; background:var(--sb-surface-2); border-radius:var(--sb-r-sm); margin-bottom:12px; }
+.ci-notif-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #1e1b4b;
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  cursor: pointer;
+  z-index: 9999;
+  animation: ci-toast-in 0.2s ease;
+  max-width: 320px;
 }
+@keyframes ci-toast-in {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.ci-notif-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #1e1b4b;
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  cursor: pointer;
+  z-index: 9999;
+  max-width: 320px;
+  animation: ci-toast-in 0.2s ease;
+}
+@keyframes ci-toast-in {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.ci-notif-icon { font-size: 16px; flex-shrink: 0; }
+.ci-notif-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-notif-close { background: none; border: none; color: #a5b4fc; cursor: pointer; font-size: 14px; flex-shrink: 0; padding: 0; }
+.ci-notif-close:hover { color: #fff; }
+

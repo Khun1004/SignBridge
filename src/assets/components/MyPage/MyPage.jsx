@@ -7,9 +7,6 @@ import {
     myPageApi, immigrationApi, policeApi, personalApi, conversationApi, communityApi
 } from '../../../assets/components/api/api.jsx'
 
-/* ══════════════════════════════════════════
-   상수
-══════════════════════════════════════════ */
 const ORG_META = {
     immigration: { icon: '🛂', label: '출입국외국인사무소', color: '#7c3aed' },
     airport:     { icon: '✈️', label: '공항',              color: '#0891b2' },
@@ -32,9 +29,6 @@ function ArrowIcon() {
     )
 }
 
-/* ══════════════════════════════════════════
-   삭제 확인 모달
-══════════════════════════════════════════ */
 function DeleteConfirm({ msg, onConfirm, onCancel }) {
     return (
         <div className="mp-del-overlay" onClick={onCancel}>
@@ -50,13 +44,7 @@ function DeleteConfirm({ msg, onConfirm, onCancel }) {
     )
 }
 
-/* ══════════════════════════════════════════
-   개인용 MyPage
-══════════════════════════════════════════ */
-function PersonalMyPage({
-                            displayName, profile, userEmail, onProfileUpdate,
-                            communityProfiles = [], onCommunityProfilesChange,
-                        }) {
+function PersonalMyPage({ displayName, profile, userEmail, communityProfile, onCommunityProfileSave, onProfileUpdate }) {
     const [activeTab,   setActiveTab]   = useState('등록기록')
     const [cases,       setCases]       = useState([])
     const [loading,     setLoading]     = useState(true)
@@ -64,26 +52,42 @@ function PersonalMyPage({
     const [modalVid,    setModalVid]    = useState(null)
     const [delLoading,  setDelLoading]  = useState(false)
 
+    const [editMode,    setEditMode]    = useState(false)
+    const [editName,    setEditName]    = useState('')
+    const [editGrade,   setEditGrade]   = useState('')
+    const [editSign,    setEditSign]    = useState('')
+    const [editSaving,  setEditSaving]  = useState(false)
+    const [editError,   setEditError]   = useState('')
     const [editAddress,       setEditAddress]       = useState('')
     const [editAddressDetail, setEditAddressDetail] = useState('')
     const [editZonecode,      setEditZonecode]      = useState('')
 
-    const [editMode,   setEditMode]   = useState(false)
-    const [editName,   setEditName]   = useState('')
-    const [editGrade,  setEditGrade]  = useState('')
-    const [editSign,   setEditSign]   = useState('')
-    const [editSaving, setEditSaving] = useState(false)
-    const [editError,  setEditError]  = useState('')
+    // Community — list of ALL user's posts
+    const [myPosts,     setMyPosts]     = useState([])
+    const [myProfile,   setMyProfile]   = useState(communityProfile)
+    const [showCmEdit,  setShowCmEdit]  = useState(false)
+    const [editingPost, setEditingPost] = useState(null)
 
-    // ── 커뮤니티 프로필 state (prop으로 초기화) ──
-    const [myProfiles,    setMyProfiles]    = useState(communityProfiles || [])
-    const [showCmEdit,    setShowCmEdit]    = useState(false)
-    const [editingProfile, setEditingProfile] = useState(null)
-
-    // communityProfiles prop 변경 시 내부 state 동기화
+    // Load all community posts for this user
     useEffect(() => {
-        if (communityProfiles?.length > 0) setMyProfiles(communityProfiles)
-    }, [communityProfiles])
+        if (!userEmail) return
+        fetch(`/api/community/members/me?email=${encodeURIComponent(userEmail)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setMyPosts(data)
+                    const first = data[0]
+                    const p = {
+                        ...first,
+                        contact: { type: first.contactType, value: first.contactValue },
+                        avatar: first.name?.charAt(0) || '?',
+                    }
+                    setMyProfile(p)
+                    onCommunityProfileSave?.(p)
+                }
+            })
+            .catch(() => {})
+    }, [userEmail])
 
     const TABS = ['등록기록', '커뮤니티', '프로필']
 
@@ -113,6 +117,31 @@ function PersonalMyPage({
         setEditMode(true)
     }
 
+    const openAddressSearch = () => {
+        if (!window.daum || !window.daum.Postcode) {
+            const script = document.createElement('script')
+            script.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+            script.onload = () => {
+                new window.daum.Postcode({
+                    oncomplete: (data) => {
+                        setEditAddress(data.roadAddress || data.jibunAddress)
+                        setEditZonecode(data.zonecode)
+                        setEditAddressDetail('')
+                    }
+                }).open()
+            }
+            document.head.appendChild(script)
+        } else {
+            new window.daum.Postcode({
+                oncomplete: (data) => {
+                    setEditAddress(data.roadAddress || data.jibunAddress)
+                    setEditZonecode(data.zonecode)
+                    setEditAddressDetail('')
+                }
+            }).open()
+        }
+    }
+
     const handleSaveProfile = async () => {
         if (!editName.trim()) { setEditError('이름을 입력해 주세요.'); return }
         setEditSaving(true); setEditError('')
@@ -125,7 +154,7 @@ function PersonalMyPage({
                 addressDetail:   editAddressDetail.trim(),
                 zonecode:        editZonecode.trim(),
             })
-            onProfileUpdate?.({
+            const updated = {
                 ...profile,
                 name:            editName.trim(),
                 disabilityGrade: editGrade.trim(),
@@ -133,7 +162,8 @@ function PersonalMyPage({
                 address:         editAddress.trim(),
                 addressDetail:   editAddressDetail.trim(),
                 zonecode:        editZonecode.trim(),
-            })
+            }
+            onProfileUpdate?.(updated)
             setEditMode(false)
         } catch (e) {
             setEditError(`저장 실패: ${e.message}`)
@@ -161,50 +191,32 @@ function PersonalMyPage({
         }
     }
 
+    const handleDeletePost = async (post) => {
+        if (!window.confirm('이 게시물을 삭제할까요?')) return
+        try {
+            const res = await fetch(
+                `/api/community/members/${post.id}?email=${encodeURIComponent(userEmail)}`,
+                { method: 'DELETE' }
+            )
+            if (!res.ok) throw new Error('삭제 실패')
+            const remaining = myPosts.filter(p => p.id !== post.id)
+            setMyPosts(remaining)
+            if (remaining.length === 0) {
+                setMyProfile(null)
+                onCommunityProfileSave?.(null)
+            }
+        } catch(e) {
+            alert('삭제에 실패했습니다.')
+        }
+    }
+
     const name   = profile?.name    || displayName || '사용자'
     const email  = profile?.email   || userEmail   || '-'
     const joined = profile?.joinedAt
         ? new Date(profile.joinedAt).toLocaleDateString('ko-KR') : '-'
 
-    // 커뮤니티 수정 제출
-    const handleCmEditSubmit = async (form) => {
-        try {
-            const body = {
-                ...(editingProfile?.id ? { id: editingProfile.id } : {}),
-                name:          displayName,
-                userEmail,
-                role:          form.role,
-                region:        form.region,
-                intro:         form.intro,
-                experience:    form.experience,
-                speciality:    form.speciality,
-                contactType:   form.contactType,
-                contactValue:  form.contactValue,
-                publicProfile: form.publicProfile,
-                certFileNames: (form.certFiles || []).map(f => f.name || f),
-            }
-            const data = await communityApi.save(body)
-            const saved = {
-                ...data,
-                contact: { type: data.contactType, value: data.contactValue },
-                avatar:  data.name?.charAt(0) || '?',
-            }
-            const updated = editingProfile?.id
-                ? myProfiles.map(p => p.id === editingProfile.id ? saved : p)
-                : [...myProfiles, saved]
-            setMyProfiles(updated)
-            onCommunityProfilesChange?.(updated)
-        } catch (e) {
-            alert('수정에 실패했습니다.')
-        }
-        setShowCmEdit(false)
-        setEditingProfile(null)
-    }
-
     return (
         <div className="mp-personal">
-
-            {/* ── 프로필 히어로 ── */}
             <div className="mp-profile-hero">
                 <div className="mp-avatar">{name.charAt(0)}</div>
                 <div className="mp-hero-info">
@@ -226,7 +238,6 @@ function PersonalMyPage({
                 </div>
             </div>
 
-            {/* ── 탭 ── */}
             <div className="my-tabs">
                 {TABS.map(t => (
                     <button key={t}
@@ -237,7 +248,7 @@ function PersonalMyPage({
 
             {loading && <div className="records-empty">⏳ 불러오는 중...</div>}
 
-            {/* ══ 등록기록 탭 ══ */}
+            {/* 등록기록 탭 */}
             {!loading && activeTab === '등록기록' && (
                 <div className="tab-content">
                     {cases.length === 0 ? (
@@ -247,17 +258,19 @@ function PersonalMyPage({
                                 대화 기록 화면 → 등록하기 → 개인용을 선택하면 여기에 저장됩니다.
                             </span>
                         </div>
-                    ) : cases.map((c, i) => (
-                        <div key={c.id ?? i} className="record-card">
-                            <div className="record-top">
-                                <div className="record-id">CASE-{String(c.id ?? i+1).padStart(3,'0')}</div>
-                                <div style={{display:'flex',alignItems:'center',gap:8}}>
-                                    <div className="record-status status-ok">✅ 등록됨</div>
-                                    <button className="mp-del-btn"
+                    ) : (
+                        cases.map((c, i) => (
+                            <div key={c.id ?? i} className="record-card">
+                                <div className="record-top">
+                                    <div className="record-id">CASE-{String(c.id ?? i+1).padStart(3,'0')}</div>
+                                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                        <div className="record-status status-ok">✅ 등록됨</div>
+                                        <button className="mp-del-btn"
                                             onClick={() => setDelTarget({ type:'case', id: c.id,
                                                 msg:`CASE-${String(c.id).padStart(3,'0')} 기록을 삭제하시겠습니까?` })}>
-                                        🗑️
-                                    </button>
+                                            🗑️
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div className="record-info">
@@ -270,20 +283,66 @@ function PersonalMyPage({
                                 <div className="record-preview">
                                     <span className="sign-chip personal-chip">{c.memo}</span>
                                 </div>
-                            )}
-                            {c.messages?.length > 0 && (
-                                <div className="mp-chat-list" style={{marginTop:8}}>
-                                    {c.messages.map((msg, mi) => (
-                                        <div key={mi} className={`mp-chat-msg mp-chat-${msg.msgType}`}>
-                                            <div className="mp-chat-avatar">
-                                                {msg.msgType === 'sign' ? '🧏' : '🙋'}
-                                            </div>
-                                            <div className="mp-chat-bubble-wrap">
-                                                <div className="mp-chat-who">
-                                                    {msg.msgType === 'sign' ? '청각장애인' : '담당자'}
+                                {c.memo && (
+                                    <div className="record-preview">
+                                        <span className="sign-chip personal-chip">{c.memo}</span>
+                                    </div>
+                                )}
+                                {c.messages?.length > 0 && (
+                                    <div className="mp-chat-list" style={{marginTop:8}}>
+                                        {c.messages.map((msg, mi) => (
+                                            <div key={mi} className={`mp-chat-msg mp-chat-${msg.msgType}`}>
+                                                <div className="mp-chat-avatar">
+                                                    {msg.msgType === 'sign' ? '🧏' : '🙋'}
                                                 </div>
-                                                <div className="mp-chat-bubble">{msg.content || '-'}</div>
-                                                <div className="mp-chat-time">{msg.sentAt || ''}</div>
+                                                <div className="mp-chat-bubble-wrap">
+                                                    <div className="mp-chat-who">
+                                                        {msg.msgType === 'sign' ? '청각장애인' : '담당자'}
+                                                    </div>
+                                                    <div className="mp-chat-bubble">{msg.content || '-'}</div>
+                                                    <div className="mp-chat-time">{msg.sentAt || ''}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {(() => {
+                                    const allVids = c.videoIds?.length > 0
+                                        ? c.videoIds : c.videoId ? [c.videoId] : []
+                                    if (allVids.length === 0) return null
+                                    return (
+                                        <div className="mp-video-section">
+                                            <div className="mp-video-section-hd">
+                                                🎬 녹화 영상
+                                                <span className="mp-video-section-count">{allVids.length}개</span>
+                                            </div>
+                                            <div className="mp-video-grid">
+                                                {allVids.map((vid, vi) => {
+                                                    const url = conversationApi.getVideoUrl(vid)
+                                                    return (
+                                                        <div key={vid} className="mp-video-card">
+                                                            <div className="mp-video-thumb"
+                                                                 onClick={() => setModalVid({ url, idx: vi })}>
+                                                                <video src={url} className="mp-video-thumb-player"
+                                                                    preload="metadata" muted playsInline/>
+                                                                <div className="mp-video-thumb-overlay">
+                                                                    <div className="mp-video-play-btn">▶</div>
+                                                                </div>
+                                                                <div className="mp-video-thumb-label">영상 {vi + 1}</div>
+                                                            </div>
+                                                            <div className="mp-video-card-actions">
+                                                                <button className="mp-video-action-btn mp-video-action-play"
+                                                                    onClick={() => setModalVid({ url, idx: vi })}>
+                                                                    ▶ 재생
+                                                                </button>
+                                                                <a href={url} download={`signbridge_녹화_${vid}.webm`}
+                                                                    className="mp-video-action-btn mp-video-action-dl">
+                                                                    ⬇ 저장
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
                                             </div>
                                         </div>
                                     ))}
@@ -331,90 +390,110 @@ function PersonalMyPage({
                 </div>
             )}
 
-            {/* ══ 커뮤니티 탭 ══ */}
-            {activeTab === '커뮤니티' && showCmEdit && editingProfile && (
+            {/* 커뮤니티 탭 — Edit view */}
+            {activeTab === '커뮤니티' && showCmEdit && editingPost && (
                 <div className="tab-content" style={{padding:0}}>
                     <Registration
                         defaultName={displayName}
-                        initialData={editingProfile}
+                        initialData={editingPost}
+                        existingChatId={editingPost?.chatId || ''}
                         isEdit={true}
-                        onBack={() => { setShowCmEdit(false); setEditingProfile(null) }}
-                        onSubmit={handleCmEditSubmit}
+                        onBack={() => { setShowCmEdit(false); setEditingPost(null) }}
+                        onSubmit={async (form) => {
+                            try {
+                                const body = {
+                                    name: form.name || displayName,
+                                    userEmail,
+                                    role: form.role,
+                                    region: form.region,
+                                    intro: form.intro,
+                                    experience: form.experience,
+                                    speciality: form.speciality,
+                                    contactType: form.contactType,
+                                    contactValue: form.contactType === 'signbridge'
+                                        ? editingPost.chatId
+                                        : form.contactValue,
+                                    publicProfile: form.publicProfile,
+                                    certFileNames: (form.certFiles||[]).map(f=>f.name||f),
+                                }
+                                const res = await fetch(`/api/community/members/${editingPost.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(body),
+                                })
+                                const saved = await res.json()
+                                setMyPosts(prev => prev.map(p => p.id === saved.id ? saved : p))
+                                onCommunityProfileSave?.({
+                                    ...saved,
+                                    contact: { type: saved.contactType, value: saved.contactValue },
+                                    avatar: saved.name?.charAt(0) || '?',
+                                })
+                            } catch(e) {
+                                alert('수정에 실패했습니다.')
+                            }
+                            setShowCmEdit(false)
+                            setEditingPost(null)
+                        }}
                     />
                 </div>
             )}
 
+            {/* 커뮤니티 탭 — List view */}
             {activeTab === '커뮤니티' && !showCmEdit && (
                 <div className="tab-content">
-                    {myProfiles.length === 0 ? (
+                    {myPosts.length === 0 ? (
                         <div className="cm-mypage-empty">
                             <div style={{fontSize:40}}>🤟</div>
-                            <p style={{margin:'8px 0 4px',fontWeight:700,color:'#333'}}>커뮤니티 프로필이 없습니다</p>
+                            <p style={{margin:'8px 0 4px',fontWeight:700,color:'#333'}}>
+                                커뮤니티 게시물이 없습니다
+                            </p>
                             <p style={{fontSize:13,color:'#888',margin:0}}>
-                                커뮤니티 메뉴에서 등록하면 여기에 표시됩니다
+                                커뮤니티 메뉴에서 + 등록하기를 눌러 등록하세요
                             </p>
                         </div>
-                    ) : (
-                        <>
-                            <div style={{fontSize:12,fontWeight:700,color:'#6366f1',marginBottom:8,letterSpacing:'0.05em'}}>
-                                내 커뮤니티 프로필 ({myProfiles.length}개)
-                            </div>
-                            {myProfiles.map((profile, idx) => (
-                                <div key={profile.id ?? idx} className="cm-mypage-card" style={{marginBottom: idx < myProfiles.length-1 ? 14 : 0}}>
-                                    <div className="cm-mypage-card-top">
-                                        <div className="cm-mypage-avatar">
-                                            {profile.avatar || profile.name?.charAt(0) || '?'}
+                    ) : myPosts.map(post => (
+                        <div key={post.id} className="cm-mypage-card" style={{marginBottom:16}}>
+                            <div className="cm-mypage-card-top">
+                                <div className="cm-mypage-avatar">{post.name?.charAt(0) || '?'}</div>
+                                <div style={{flex:1}}>
+                                    <div className="cm-mypage-name">{post.name}</div>
+                                    {post.chatId && (
+                                        <div style={{fontSize:12,color:'#6366f1',fontWeight:600}}>
+                                            @{post.chatId}
                                         </div>
-                                        <div style={{flex:1}}>
-                                            <div className="cm-mypage-name">{profile.name}</div>
-                                            <div style={{display:'flex',gap:6,marginTop:4,flexWrap:'wrap'}}>
-                                                {profile.role   && <span className="cm-role-badge">{profile.role}</span>}
-                                                {profile.region && <span className="cm-region-badge">📍 {profile.region}</span>}
-                                                <span className="cm-region-badge">
-                                                    {profile.publicProfile === false ? '🔒 비공개' : '🌐 공개'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <button className="cm-mypage-edit-btn" style={{alignSelf:'flex-start'}}
-                                                onClick={() => { setEditingProfile(profile); setShowCmEdit(true) }}>
-                                            ✏️ 수정
-                                        </button>
+                                    )}
+                                    <div style={{display:'flex',gap:6,marginTop:4,flexWrap:'wrap'}}>
+                                        <span className="cm-role-badge">{post.role}</span>
+                                        <span className="cm-region-badge">📍 {post.region}</span>
+                                        <span className="cm-region-badge">
+                                            {post.publicProfile===false ? '🔒 비공개' : '🌐 공개'}
+                                        </span>
                                     </div>
-
-                                    {profile.intro && (
-                                        <div className="cm-mypage-intro-box">
-                                            <div className="cm-mypage-intro-label">자기소개</div>
-                                            <p className="cm-mypage-intro-text">{profile.intro}</p>
-                                        </div>
-                                    )}
-                                    {profile.experience && (
-                                        <div className="cm-mypage-intro-box">
-                                            <div className="cm-mypage-intro-label">경력 / 활동 이력</div>
-                                            <p className="cm-mypage-intro-text">{profile.experience}</p>
-                                        </div>
-                                    )}
-                                    {profile.speciality && (
-                                        <div className="cm-mypage-intro-box">
-                                            <div className="cm-mypage-intro-label">전문 분야</div>
-                                            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:2}}>
-                                                {profile.speciality.split(',').map((s,i) => (
-                                                    <span key={i} style={{
-                                                        background:'#f0fdf4',border:'1px solid #bbf7d0',
-                                                        borderRadius:20,padding:'3px 10px',
-                                                        fontSize:12,fontWeight:600,color:'#059669'
-                                                    }}>{s.trim()}</span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="cm-mypage-intro-box">
-                                        <div className="cm-mypage-intro-label">연락 방법</div>
-                                        <p className="cm-mypage-intro-text">
-                                            {profile.contact?.type === 'chat'  ? `💬 오픈채팅: ${profile.contact.value}` :
-                                                profile.contact?.type === 'phone' ? `📞 ${profile.contact.value}` :
-                                                    profile.contact?.type === 'email' ? `📧 ${profile.contact.value}` :
-                                                        profile.contactValue || '-'}
-                                        </p>
+                                </div>
+                            </div>
+                            {post.intro && (
+                                <div className="cm-mypage-intro-box">
+                                    <div className="cm-mypage-intro-label">자기소개</div>
+                                    <p className="cm-mypage-intro-text">{post.intro}</p>
+                                </div>
+                            )}
+                            {post.experience && (
+                                <div className="cm-mypage-intro-box">
+                                    <div className="cm-mypage-intro-label">경력</div>
+                                    <p className="cm-mypage-intro-text">{post.experience}</p>
+                                </div>
+                            )}
+                            {post.speciality && (
+                                <div className="cm-mypage-intro-box">
+                                    <div className="cm-mypage-intro-label">전문 분야</div>
+                                    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:2}}>
+                                        {post.speciality.split(',').map((s,i) => (
+                                            <span key={i} style={{
+                                                background:'#f0fdf4',border:'1px solid #bbf7d0',
+                                                borderRadius:20,padding:'3px 10px',
+                                                fontSize:12,fontWeight:600,color:'#059669'
+                                            }}>{s.trim()}</span>
+                                        ))}
                                     </div>
                                     {profile.chatId && (
                                         <div className="cm-mypage-intro-box">
@@ -423,13 +502,27 @@ function PersonalMyPage({
                                         </div>
                                     )}
                                 </div>
-                            ))}
-                        </>
-                    )}
+                            )}
+                            <div style={{display:'flex',gap:8,marginTop:12}}>
+                                <button
+                                    onClick={() => { setEditingPost(post); setShowCmEdit(true) }}
+                                    style={{flex:1,padding:'10px 0',background:'#6366f1',color:'#fff',
+                                        border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer'}}>
+                                    ✏️ 수정
+                                </button>
+                                <button
+                                    onClick={() => handleDeletePost(post)}
+                                    style={{flex:1,padding:'10px 0',background:'#ef4444',color:'#fff',
+                                        border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer'}}>
+                                    🗑 삭제
+                                </button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
 
-            {/* ══ 프로필 탭 ══ */}
+            {/* 프로필 탭 */}
             {!loading && activeTab === '프로필' && (
                 <div className="tab-content">
                     <div className="profile-grid">
@@ -471,7 +564,7 @@ function PersonalMyPage({
                 </div>
             )}
 
-            {/* ── 프로필 수정 모달 ── */}
+            {/* 프로필 수정 모달 */}
             {editMode && (
                 <div className="mp-modal-overlay" onClick={() => setEditMode(false)}>
                     <div className="mp-modal" onClick={e => e.stopPropagation()}>
@@ -481,6 +574,7 @@ function PersonalMyPage({
                         </div>
                         <div className="mp-modal-body">
                             <div className="mp-edit-form">
+                                <div className="mp-edit-section-label">기본 정보</div>
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">이름 <span style={{color:'#ef4444'}}>*</span></label>
                                     <input className="mp-edit-input" value={editName}
@@ -502,21 +596,29 @@ function PersonalMyPage({
                                         <option>기타</option>
                                     </select>
                                 </div>
-                                <div style={{marginTop:16,fontWeight:700,fontSize:13,color:'#555'}}>주소 정보</div>
+                                <div className="mp-edit-section-label" style={{marginTop:16}}>주소 정보</div>
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">주소</label>
-                                    <input className="mp-edit-input" value={editAddress}
-                                           onChange={e => setEditAddress(e.target.value)} placeholder="주소 입력"/>
+                                    <div style={{display:'flex', gap:8}}>
+                                        <input className="mp-edit-input" value={editAddress} readOnly
+                                            placeholder="주소 검색 버튼을 눌러주세요"
+                                            style={{flex:1, background:'#f9fafb', cursor:'pointer'}}
+                                            onClick={openAddressSearch}/>
+                                        <button className="mp-addr-search-btn" onClick={openAddressSearch} type="button">
+                                            🔍 검색
+                                        </button>
+                                    </div>
+                                    {editZonecode && (
+                                        <span style={{fontSize:11,color:'#6b7280',marginTop:4,display:'block'}}>
+                                            우편번호: {editZonecode}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">상세주소</label>
                                     <input className="mp-edit-input" value={editAddressDetail}
-                                           onChange={e => setEditAddressDetail(e.target.value)} placeholder="상세주소 입력"/>
-                                </div>
-                                <div className="mp-edit-field">
-                                    <label className="mp-edit-label">우편번호</label>
-                                    <input className="mp-edit-input" value={editZonecode}
-                                           onChange={e => setEditZonecode(e.target.value)} placeholder="우편번호 입력"/>
+                                        onChange={e => setEditAddressDetail(e.target.value)}
+                                        placeholder="상세주소 입력 (동/호수 등)"/>
                                 </div>
                                 {editError && <div className="mp-edit-error">⚠️ {editError}</div>}
                             </div>
@@ -542,8 +644,8 @@ function PersonalMyPage({
                         <div className="mp-modal-hd">
                             <span>🎬 영상 {modalVid.idx + 1} 재생</span>
                             <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                                <a href={modalVid.url} download={`signbridge_${Date.now()}.webm`}
-                                   className="mp-video-dl-btn" onClick={e => e.stopPropagation()}>
+                                <a href={modalVid.url} download={`signbridge_녹화_${Date.now()}.webm`}
+                                    className="mp-video-dl-btn" onClick={e => e.stopPropagation()}>
                                     ⬇ 다운로드
                                 </a>
                                 <button className="mp-modal-close" onClick={() => setModalVid(null)}>✕</button>
@@ -551,7 +653,7 @@ function PersonalMyPage({
                         </div>
                         <div className="mp-video-modal-body">
                             <video src={modalVid.url} controls autoPlay
-                                   className="mp-video-modal-player" playsInline/>
+                                className="mp-video-modal-player" playsInline/>
                         </div>
                     </div>
                 </div>
@@ -560,9 +662,6 @@ function PersonalMyPage({
     )
 }
 
-/* ══════════════════════════════════════════
-   기관 환영 배너
-══════════════════════════════════════════ */
 function OrgWelcomeHeader({ displayName, orgLabel, orgIcon, orgColor }) {
     const now     = new Date()
     const dateStr = now.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' })
@@ -593,16 +692,7 @@ function OrgWelcomeHeader({ displayName, orgLabel, orgIcon, orgColor }) {
     )
 }
 
-/* ══════════════════════════════════════════
-   메인 MyPage
-══════════════════════════════════════════ */
-export default function MyPage({
-                                   displayName = '',
-                                   orgType = '',
-                                   userEmail = '',
-                                   communityProfiles = [],
-                                   onCommunityProfilesChange,
-                               }) {
+export default function MyPage({ displayName = '', orgType = '', userEmail = '', communityProfile, onCommunityProfileSave, onProfileUpdate }) {
     const [view,        setView]        = useState(orgType || 'select')
     const [profileData, setProfileData] = useState(null)
     const [caseList,    setCaseList]    = useState([])
@@ -687,9 +777,12 @@ export default function MyPage({
                     displayName={profileData?.name || displayName}
                     profile={profileData}
                     userEmail={userEmail}
-                    onProfileUpdate={setProfileData}
-                    communityProfiles={communityProfiles}
-                    onCommunityProfilesChange={handleCommunityProfilesChange}
+                    communityProfile={communityProfile}
+                    onCommunityProfileSave={onCommunityProfileSave}
+                    onProfileUpdate={(updated) => {
+                        setProfileData(updated)
+                        onProfileUpdate?.(updated)
+                    }}
                 />
             </div>
         </div>
@@ -740,6 +833,30 @@ export default function MyPage({
             </div>
         </div>
     )
+
+    if (view === 'register_police') {
+        const RegisterPolice = require('../Register/RegisterPolice/RegisterPolice.jsx').default
+        return (
+            <div className="my-page">
+                <div className="view-wrap">
+                    <RegisterPolice messages={[]} videos={[]} onBack={() => setView('police')}
+                        userEmail={userEmail} displayName={profileData?.name || displayName}/>
+                </div>
+            </div>
+        )
+    }
+
+    if (view === 'register_immigration') {
+        const RegisterImmigration = require('../Register/RegisterImmigration/RegisterImmigration.jsx').default
+        return (
+            <div className="my-page">
+                <div className="view-wrap">
+                    <RegisterImmigration messages={[]} videos={[]} onBack={() => setView('immigration')}
+                        userEmail={userEmail} displayName={profileData?.name || displayName}/>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="my-page">

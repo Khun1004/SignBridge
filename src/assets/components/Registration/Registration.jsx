@@ -21,54 +21,67 @@ export default function Registration({
                                      }) {
     const [step, setStep] = useState(1)
 
-    const lockedChatId = isEdit ? (initialData?.chatId || '') : existingChatId
+    // chatId is ALWAYS locked when:
+    // 1. Editing (isEdit=true) — can never change after first registration
+    // 2. existingChatId is set (already registered before)
+    const lockedChatId = isEdit
+        ? (initialData?.chatId || existingChatId || '')
+        : existingChatId
+
+    const chatIdLocked = !!lockedChatId
 
     const [form, setForm] = useState(() => {
-        const base = {
-            name:         '',
-            chatId:       lockedChatId,
-            role:         '',
-            region:       '',
-            intro:        '',
-            experience:   '',
-            speciality:   '',
-            contactType:  'signbridge',
-            contactValue: lockedChatId,
-            certFiles:    [],
-            publicProfile: true,
-        }
         if (initialData) {
+            const chatId = initialData.chatId || lockedChatId || ''
             return {
-                ...base,
-                name:         initialData.name         || defaultName,
-                chatId:       initialData.chatId       || lockedChatId,
-                role:         initialData.role         || '',
-                region:       initialData.region       || '',
-                intro:        initialData.intro        || '',
-                experience:   initialData.experience   || '',
-                speciality:   initialData.speciality   || '',
-                contactType:  initialData.contactType  || initialData.contact?.type  || 'signbridge',
-                contactValue: initialData.contactValue || initialData.contact?.value || lockedChatId,
+                name:          initialData.name         || defaultName || '',
+                chatId,
+                role:          initialData.role         || '',
+                region:        initialData.region       || '',
+                intro:         initialData.intro        || '',
+                experience:    initialData.experience   || '',
+                speciality:    initialData.speciality   || '',
+                contactType:   initialData.contactType  || initialData.contact?.type  || 'signbridge',
+                contactValue:  initialData.contactValue || initialData.contact?.value || chatId,
+                certFiles:     [],
+                publicProfile: initialData.publicProfile !== undefined ? initialData.publicProfile : true,
             }
         }
-        return { ...base, name: defaultName }
+        return {
+            name:          defaultName || '',
+            chatId:        lockedChatId,
+            role:          '',
+            region:        '',
+            intro:         '',
+            experience:    '',
+            speciality:    '',
+            contactType:   'signbridge',
+            contactValue:  lockedChatId,
+            certFiles:     [],
+            publicProfile: true,
+        }
     })
 
     const [errors,       setErrors]       = useState({})
-    const [chatIdStatus, setChatIdStatus] = useState(lockedChatId ? 'locked' : null)
+    const [chatIdStatus, setChatIdStatus] = useState(chatIdLocked ? 'locked' : null)
     const [preview,      setPreview]      = useState([])
     const fileRef = useRef(null)
 
     const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
-    const chatIdLocked = !!lockedChatId
 
     const validateChatIdFormat = (id) => /^[\uAC00-\uD7A3a-zA-Z0-9\-_.]{4,20}$/.test(id)
 
     const checkChatId = async (id) => {
         if (!validateChatIdFormat(id)) { setChatIdStatus('invalid'); return }
+        // Skip check if same as locked chatId
+        if (id === lockedChatId) { setChatIdStatus('locked'); return }
         setChatIdStatus('checking')
         try {
-            const res  = await fetch(`/api/community/check-chat-id?chatId=${encodeURIComponent(id)}`)
+            // Pass email so backend skips the user's own existing chatId
+            const emailParam = typeof window !== 'undefined'
+                ? encodeURIComponent(localStorage.getItem('userEmail') || '')
+                : ''
+            const res  = await fetch(`/api/community/check-chat-id?chatId=${encodeURIComponent(id)}&email=${emailParam}`)
             const data = await res.json()
             setChatIdStatus(data.available ? 'ok' : 'taken')
         } catch {
@@ -102,6 +115,7 @@ export default function Registration({
             type: f.type.includes('pdf') ? 'pdf' : 'img',
         }))])
     }
+
     const removeFile = (i) => {
         setForm(f => ({ ...f, certFiles: f.certFiles.filter((_,j) => j !== i) }))
         setPreview(p => p.filter((_,j) => j !== i))
@@ -125,18 +139,17 @@ export default function Registration({
     }
     const validate3 = () => {
         const e = {}
-        if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
         if (!chatIdLocked) {
-            if (!validateChatIdFormat(form.chatId)) e.chatId = '올바른 형식이 아닙니다.'
-            if (chatIdStatus === 'taken')    e.chatId = '이미 사용 중인 ID입니다.'
-            if (chatIdStatus === 'checking') e.chatId = 'ID 확인 중입니다. 잠시 기다려 주세요.'
-            if (chatIdStatus === 'invalid')  e.chatId = '올바른 형식이 아닙니다.'
-            if (chatIdStatus === null && form.chatId.trim()) e.chatId = 'ID 중복 확인이 필요합니다.'
+            if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
+            else if (!validateChatIdFormat(form.chatId)) e.chatId = '올바른 형식이 아닙니다.'
+            else if (chatIdStatus === 'taken') e.chatId = '이미 사용 중인 ID입니다.'
+            else if (chatIdStatus === 'checking') e.chatId = 'ID 확인 중입니다.'
+            // If status is null but format is valid, allow through
         }
         if (form.contactType !== 'signbridge' && !form.contactValue.trim())
             e.contact = '연락처를 입력해 주세요.'
         setErrors(e)
-        return Object.keys(e).length === 0
+        return !Object.keys(e).length
     }
 
     const next = () => {
@@ -145,12 +158,9 @@ export default function Registration({
         setErrors({})
         setStep(s => s + 1)
     }
+
     const handleSubmit = () => {
-        if (validate3()) {
-            onSubmit({
-                ...form,
                 contactValue: form.contactType === 'signbridge' ? form.chatId : form.contactValue,
-            })
         }
     }
 
@@ -205,16 +215,7 @@ export default function Registration({
                             <select className={`reg-input${errors.role?' error':''}`}
                                     value={form.role} onChange={e => update('role', e.target.value)}>
                                 <option value="">선택하세요</option>
-                                {ROLE_OPTIONS.map(r => (
-                                    // 수정 모드가 아닐 때 이미 등록된 역할 비활성화
-                                    <option
-                                        key={r}
-                                        value={r}
-                                        disabled={!isEdit && disabledRoles.includes(r)}
-                                    >
-                                        {r}{!isEdit && disabledRoles.includes(r) ? ' (이미 등록됨)' : ''}
-                                    </option>
-                                ))}
+                                {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
                             {errors.role && <span className="reg-err">{errors.role}</span>}
                         </div>
@@ -223,7 +224,7 @@ export default function Registration({
                             <select className={`reg-input${errors.region?' error':''}`}
                                     value={form.region} onChange={e => update('region', e.target.value)}>
                                 <option value="">선택하세요</option>
-                                {REGION_OPTIONS.map(r => <option key={r}>{r}</option>)}
+                                {REGION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
                             {errors.region && <span className="reg-err">{errors.region}</span>}
                         </div>
@@ -339,9 +340,7 @@ export default function Registration({
                             <div className="reg-chatid-locked">
                                 <span className="reg-chatid-locked-at">@</span>
                                 <span className="reg-chatid-locked-value">{form.chatId}</span>
-                                <span className="reg-chatid-locked-badge">
-                                    {isEdit ? '🔒 변경 불가' : '✓ 이미 설정됨'}
-                                </span>
+                                <span className="reg-chatid-locked-badge">🔒 변경 불가</span>
                             </div>
                         ) : (
                             <>
@@ -402,7 +401,9 @@ export default function Registration({
                     </div>
                     <div className="reg-btn-row">
                         <button className="reg-btn-back-step" onClick={()=>{ setErrors({}); setStep(2) }}>← 이전</button>
-                        <button className="reg-btn-submit" onClick={handleSubmit}>{isEdit ? '✅ 수정 완료' : '✅ 등록 완료'}</button>
+                        <button className="reg-btn-submit" onClick={handleSubmit}>
+                            {isEdit ? '✅ 수정 완료' : '✅ 등록 완료'}
+                        </button>
                     </div>
                 </div>
             )}
