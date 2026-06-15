@@ -23,6 +23,7 @@ export default function Community({
     const [filterRole,     setFilterRole]     = useState('전체')
     const [filterRegion,   setFilterRegion]   = useState('전체')
     const [deleteConfirm,  setDeleteConfirm]  = useState(null)
+    const [searchQuery,    setSearchQuery]    = useState('')
     const [deleteLoading,  setDeleteLoading]  = useState(false)
 
     const loadMembers = async (role = '', region = '') => {
@@ -34,6 +35,7 @@ export default function Community({
             const data = await communityApi.getMembers(params)
             setMembers(Array.isArray(data) ? data : [])
         } catch (e) {
+            console.error('[Community] 목록 로드 실패:', e)
             setMembers([])
         } finally {
             setListLoading(false)
@@ -42,24 +44,19 @@ export default function Community({
 
     useEffect(() => { loadMembers(filterRole, filterRegion) }, [filterRole, filterRegion])
 
-    // ── Register — always creates NEW post ───────────────
     const handleRegisterClick = () => {
         if (!userEmail) { alert('등록하려면 먼저 로그인 해야 합니다.'); onLoginRequired?.(); return }
         setEditingProfile(null)
         setView('register')
     }
 
-    const registeredRoles = myProfiles.map(p => p.role)
-
     const handleEditClick = (profile) => {
         setEditingProfile(profile)
         setView('edit')
     }
 
-    // ── Edit specific post ────────────────────────────────
-    const handleEditPost = (post) => {
-        setView('edit')
-    // ── Submit (create or update) ─────────────────────────
+    const registeredRoles = myProfiles.map(p => p.role)
+
     const handleRegisterSubmit = async (form) => {
         try {
             const body = {
@@ -77,33 +74,17 @@ export default function Community({
                 publicProfile: form.publicProfile,
                 certFileNames: (form.certFiles || []).map(f => f.name || f),
             }
-
-            let saved
-            if (editingPost?.id) {
-                // Update existing post via PUT
-                const res = await fetch(`/api/community/members/${editingPost.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                })
-                saved = await res.json()
-            } else {
-                // Create new post via POST
-                saved = await communityApi.save(body)
-            }
-
+            const saved = await communityApi.save(body)
             const profileData = {
                 ...saved,
                 avatar:  saved.name?.charAt(0) || '?',
                 contact: { type: saved.contactType, value: saved.contactValue },
             }
-
             if (editingProfile?.id) {
                 onProfilesChange?.(myProfiles.map(p => p.id === editingProfile.id ? profileData : p))
             } else {
                 onProfilesChange?.([...myProfiles, profileData])
             }
-
             await loadMembers(filterRole, filterRegion)
         } catch (e) {
             console.error('[Community] 등록 실패:', e)
@@ -111,37 +92,41 @@ export default function Community({
         }
         setEditingProfile(null)
         setView('list')
-        setEditingPost(null)
     }
 
-    // ── Delete specific post ──────────────────────────────
     const handleDeleteConfirm = async () => {
         if (!deleteConfirm) return
         setDeleteLoading(true)
         try {
-            // deleteById: id와 email로 삭제
             await fetch(`/api/community/members/${deleteConfirm}?email=${encodeURIComponent(userEmail)}`, {
                 method: 'DELETE'
-            }).then(r => {
-                if (!r.ok) throw new Error('삭제 실패')
-            })
+            }).then(r => { if (!r.ok) throw new Error('삭제 실패') })
             onProfilesChange?.(myProfiles.filter(p => p.id !== deleteConfirm))
             await loadMembers(filterRole, filterRegion)
             setDeleteConfirm(null)
         } catch (e) {
-            alert('삭제에 실패했습니다. 다시 시도해 주세요.')
+            console.error('[Community] 삭제 실패:', e)
+            alert('삭제에 실패했습니다.')
         } finally {
             setDeleteLoading(false)
         }
     }
 
-    const handleCardClick = (member) => { setSelected(member); setView('detail') }
+    const handleCardClick = (member) => {
+        // 같은 사용자의 모든 프로필 묶기
+        const sameUserProfiles = members.filter(m => m.userEmail === member.userEmail)
+        setSelected(sameUserProfiles.length > 1 ? sameUserProfiles : member)
+        setView('detail')
+    }
     const handleStartChat = (room)   => { onChat?.(room); setView('list'); setSelected(null) }
+
+    // 이미 등록된 프로필이 있으면 기존 chatId 잠금
+    const existingChatId = myProfiles.length > 0 ? (myProfiles[0]?.chatId || '') : ''
 
     if (view === 'register') return (
         <Registration
             defaultName={displayName}
-            existingChatId={''}
+            existingChatId={existingChatId}
             disabledRoles={registeredRoles}
             onBack={() => setView('list')}
             onSubmit={handleRegisterSubmit}
@@ -159,40 +144,16 @@ export default function Community({
         />
     )
 
-    if (view === 'detail' && selected) {
-        const isMyPost = selected.userEmail === userEmail
-        return (
-            <>
-                <CommunityPersonalDetail
-                    member={selected}
-                    myEmail={userEmail}
-                    myName={displayName}
-                    onChat={handleStartChat}
-                    onBack={() => { setView('list'); setSelected(null) }}
-                    isMyProfile={isMyPost}
-                    onEdit={() => handleEditPost(selected)}
-                    onDelete={() => setDeleteConfirm(true)}
-                />
-                {deleteConfirm && (
-                    <div className="cm-modal-overlay" onClick={() => setDeleteConfirm(false)}>
-                        <div className="cm-modal" onClick={e => e.stopPropagation()}>
-                            <div className="cm-modal-icon">🗑</div>
-                            <div className="cm-modal-title">이 게시물을 삭제할까요?</div>
-                            <div className="cm-modal-desc">삭제하면 목록에서 사라지며 복구할 수 없습니다.</div>
-                            <div className="cm-modal-btns">
-                                <button className="cm-modal-cancel" onClick={() => setDeleteConfirm(false)}>취소</button>
-                                <button className="cm-modal-confirm" onClick={handleDeleteConfirm} disabled={deleteLoading}>
-                                    {deleteLoading ? '삭제 중...' : '삭제하기'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </>
-        )
-    }
+    if (view === 'detail' && selected) return (
+        <CommunityPersonalDetail
+            members={Array.isArray(selected) ? selected : [selected]}
+            myEmail={userEmail}
+            myName={displayName}
+            onChat={handleStartChat}
+            onBack={() => { setView('list'); setSelected(null) }}
+        />
+    )
 
-    // ── List view ─────────────────────────────────────────
     return (
         <div className="community-page">
             <div className="cm-header">
@@ -204,38 +165,7 @@ export default function Community({
                 <button className="cm-register-btn" onClick={handleRegisterClick}>+ 등록하기</button>
             </div>
 
-            {/* ── 내 프로필 배너 ── */}
-            {myProfiles.length > 0 && (
-                <div className="cm-my-profiles">
-                    <div className="cm-my-profiles-label">내 커뮤니티 프로필 ({myProfiles.length}개)</div>
-                    {myProfiles.map((profile, idx) => (
-                        <div key={profile.id ?? `profile-${idx}`} className="cm-my-banner">
-                            <div className="cm-my-banner-top">
-                                <div className="cm-my-banner-avatar">
-                                    {profile.avatar || profile.name?.charAt(0) || '?'}
-                                </div>
-                                <div className="cm-my-banner-info">
-                                    <div className="cm-my-banner-name">
-                                        {profile.name || displayName}
-                                        {profile.chatId && (
-                                            <span className="cm-my-banner-chatid">@{profile.chatId}</span>
-                                        )}
-                                    </div>
-                                    <div className="cm-my-banner-meta">
-                                        {profile.role   && <span className="cm-role-badge">{profile.role}</span>}
-                                        {profile.region && <span className="cm-region-badge">📍 {profile.region}</span>}
-                                    </div>
-                                </div>
-                                <div className="cm-my-banner-actions">
-                                    <button className="cm-edit-btn"   onClick={() => handleEditClick(profile)}>✏️ 수정</button>
-                                    <button className="cm-delete-btn" onClick={() => setDeleteConfirm(profile.id)}>🗑 삭제</button>
-                                </div>
-                            </div>
-                            {profile.intro && <div className="cm-my-banner-intro">{profile.intro}</div>}
-                        </div>
-                    ))}
-                </div>
-            )}
+
 
             {/* ── 삭제 확인 모달 ── */}
             {deleteConfirm && (
@@ -253,6 +183,22 @@ export default function Community({
                     </div>
                 </div>
             )}
+
+            {/* ── 검색바 ── */}
+            <div className="cm-search-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                    className="cm-search-input"
+                    placeholder="이름, 역할, 지역, 소개 검색..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                    <button className="cm-search-clear" onClick={() => setSearchQuery('')}>✕</button>
+                )}
+            </div>
 
             {/* ── 필터 ── */}
             <div className="cm-filters">
@@ -272,12 +218,19 @@ export default function Community({
                 </div>
             </div>
 
+            {/* ── 멤버 목록 ── */}
             <div className="cm-list">
                 {listLoading ? (
                     <div className="cm-empty">불러오는 중...</div>
                 ) : members.length === 0 ? (
                     <div className="cm-empty">조건에 맞는 멤버가 없습니다.</div>
-                ) : members.map((member, idx) => (
+                ) : members.filter(m =>
+                    !searchQuery ||
+                    m.name?.includes(searchQuery) ||
+                    m.role?.includes(searchQuery) ||
+                    m.region?.includes(searchQuery) ||
+                    m.intro?.includes(searchQuery)
+                ).map((member, idx) => (
                     <div className="cm-card" key={member.id ?? `member-${idx}`}
                          onClick={() => handleCardClick(member)}>
                         <div className="cm-card-avatar">

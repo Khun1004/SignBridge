@@ -813,3 +813,11 @@ button { cursor: pointer; font-family: inherit; border: none; outline: none; bac
 }
 .ai-chat-send:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
 .ai-chat-send:disabled { opacity: 0.35; cursor: not-allowed; }
+/* ════════════════════════════════════════════════════════
+   배경 black 버그 수정 — ChatRoom.css :root --bg 충돌 방지
+   App.css 맨 아래에 추가
+════════════════════════════════════════════════════════ */
+.home-page      { background: #f8f7f4 !important; }
+.tp             { background: #f0f2fa !important; }
+.my-page        { background: #f5f5f0 !important; }
+.community-page { background: #ffffff !important; }

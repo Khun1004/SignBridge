@@ -1,5 +1,5 @@
-import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
+import { Client } from '@stomp/stompjs'
 
 const DEFAULT_BASE_URL = 'http://localhost:8080'
 
@@ -12,7 +12,7 @@ class ChatService {
   }
 
   connect(baseUrl = DEFAULT_BASE_URL) {
-    if (this.client) return  // already connecting or connected
+    if (this.connected) return
 
     this.client = new Client({
       webSocketFactory: () => new SockJS(`${baseUrl}/ws-chat`),
@@ -24,41 +24,30 @@ class ChatService {
         this.pendingQueue.forEach(fn => fn())
         this.pendingQueue = []
       },
+
       onDisconnect: () => {
         console.log('[ChatService] Disconnected')
         this.connected = false
       },
+
       onStompError: (frame) => {
         console.error('[ChatService] STOMP error', frame)
       },
     })
+
     this.client.activate()
   }
 
   disconnect() {
     this.client?.deactivate()
-    this.client = null
     this.connected = false
   }
 
   // ── 방 구독 (기존) ──
   subscribeToRoom(roomId, onMessage) {
-    return this.subscribe(`/topic/room/${roomId}`, onMessage)
-  }
-
-  // Safe subscribe — queues if not yet connected
-  subscribe(topic, onMessage) {
-    if (this.connected && this.client) {
-      try {
-        const sub = this.client.subscribe(topic, (stompMsg) => {
-          try { onMessage(JSON.parse(stompMsg.body)) } catch(e) {
-            console.error('[ChatService] Parse error', e)
-          }
-        })
-        return () => { try { sub.unsubscribe() } catch(e) {} }
-      } catch(e) {
-        console.warn('[ChatService] subscribe failed, queuing', e)
-      }
+    if (!this.client) {
+      console.warn('[ChatService] Not connected yet')
+      return () => {}
     }
 
     const subscription = this.client.subscribe(
@@ -98,21 +87,15 @@ class ChatService {
     this._publish('/app/chat.delete', { id, roomId, type: 'DELETE' })
   }
 
-  markRead(roomId, readerEmail) {
-    this._publish('/app/chat.read', { roomId, senderEmail: readerEmail, type: 'READ' })
-  }
-
-  // Safe publish — queues if not yet connected
   _publish(destination, body) {
     const send = () => {
-      if (!this.client) return
-      try {
-        this.client.publish({ destination, body: JSON.stringify(body) })
-      } catch(e) {
-        console.error('[ChatService] Publish failed', e)
-      }
+      this.client.publish({
+        destination,
+        body: JSON.stringify(body),
+      })
     }
-    if (this.connected && this.client) {
+
+    if (this.connected) {
       send()
     } else {
       this.pendingQueue.push(send)
@@ -134,9 +117,9 @@ class ChatService {
 
   async createRoom(room, baseUrl = DEFAULT_BASE_URL) {
     const res = await fetch(`${baseUrl}/api/chat/rooms`, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(room),
+      body:    JSON.stringify(room),
     })
     if (!res.ok) throw new Error('Failed to create room')
     return res.json()

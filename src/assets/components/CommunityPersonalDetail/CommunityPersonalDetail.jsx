@@ -8,19 +8,12 @@ const CONTACT_LABEL = {
     email:      '📧 이메일',
 }
 
-export default function CommunityPersonalDetail({
-    member,
-    onBack,
-    myEmail = '',
-    myName = '',
-    onChat,
-    isMyProfile = false,  // true when viewing your own profile
-    onEdit,               // called when Edit button clicked
-    onDelete,             // called when Delete button clicked
-}) {
-    if (!member) return null
+export default function CommunityPersonalDetail({ members = [], onBack, myEmail = '', myName = '', onChat }) {
+    const [activeIdx, setActiveIdx] = useState(0)
 
-    const [loading, setLoading] = useState(false)
+    if (!members || members.length === 0) return null
+
+    const member = members[activeIdx]
 
     const contactType  = member.contactType  || member.contact?.type
     const contactValue = member.contactValue || member.contact?.value
@@ -32,10 +25,7 @@ export default function CommunityPersonalDetail({
     }
 
     const handleStartChat = async () => {
-        if (loading) return
-        setLoading(true)
         try {
-            // Fetch other person's account name from users API for accurate chat name
             const res = await fetch('/api/chat/rooms/direct', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -44,16 +34,14 @@ export default function CommunityPersonalDetail({
                     nameA:   myName,
                     emailB:  member.userEmail,
                     nameB:   member.name,
-                    avatarB: member.avatar || '', // ← 커뮤니티 프로필 아바타 이모지 전달
+                    avatarB: member.avatar || '',
                 }),
             })
             if (!res.ok) throw new Error('서버 오류')
             const room = await res.json()
-            onChat?.({ ...room, id: room.roomId || room.id })
+            onChat?.(room)
         } catch (e) {
             alert('채팅방을 만들 수 없습니다. 다시 시도해 주세요.')
-        } finally {
-            setLoading(false)
         }
     }
 
@@ -64,6 +52,7 @@ export default function CommunityPersonalDetail({
         <div className="cpd-page">
             <button className="cpd-back-btn" onClick={onBack}>← 커뮤니티로</button>
 
+            {/* ── 프로필 헤더 ── */}
             <div className="cpd-hero">
                 <div className="cpd-avatar">{member.avatar || member.name?.charAt(0)}</div>
                 <div className="cpd-hero-info">
@@ -81,10 +70,27 @@ export default function CommunityPersonalDetail({
                 </div>
             </div>
 
+            {/* ── 역할 탭 (프로필 2개 이상일 때) ── */}
+            {members.length > 1 && (
+                <div className="cpd-role-tabs">
+                    {members.map((m, i) => (
+                        <button
+                            key={m.id ?? i}
+                            className={`cpd-role-tab ${activeIdx === i ? 'active' : ''}`}
+                            onClick={() => setActiveIdx(i)}
+                        >
+                            {m.role}
+                            {m.region && <span className="cpd-role-tab-region">📍{m.region}</span>}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* ── 액션 버튼 ── */}
             {canChat && (
                 <div className="cpd-action-row">
-                    <button className="cpd-chat-btn" onClick={handleStartChat} disabled={loading}>
-                        {loading ? '⏳ 연결 중...' : '💬 채팅하기'}
+                    <button className="cpd-chat-btn" onClick={handleStartChat}>
+                        💬 채팅하기
                     </button>
                     {hasExternalContact && (
                         <button className="cpd-contact-btn-inline" onClick={handleContact}>
@@ -93,11 +99,13 @@ export default function CommunityPersonalDetail({
                     )}
                 </div>
             )}
-
             {!myEmail && (
-                <div className="cpd-login-hint">채팅을 시작하려면 로그인이 필요합니다.</div>
+                <div className="cpd-login-hint">
+                    채팅을 시작하려면 로그인이 필요합니다.
+                </div>
             )}
 
+            {/* ── 자기소개 ── */}
             <div className="cpd-section">
                 <div className="cpd-section-title">💬 자기소개</div>
                 <p className="cpd-text">{member.intro || '자기소개가 없습니다.'}</p>
@@ -147,20 +155,6 @@ export default function CommunityPersonalDetail({
                             {contactType === 'phone' ? '📞 전화하기' : '📧 이메일 보내기'}
                         </button>
                     )}
-                </div>
-            )}
-
-            {/* Edit / Delete — at the bottom, only for own profile */}
-            {isMyProfile && (
-                <div style={{display:'flex', gap:12, marginTop:32, paddingBottom:40}}>
-                    <button onClick={onEdit} style={{
-                        flex:1, padding:'14px 0', background:'#6366f1', color:'#fff',
-                        border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer'
-                    }}>✏️ 수정하기</button>
-                    <button onClick={onDelete} style={{
-                        flex:1, padding:'14px 0', background:'#ef4444', color:'#fff',
-                        border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer'
-                    }}>🗑 삭제하기</button>
                 </div>
             )}
         </div>

@@ -34,9 +34,12 @@ const MENUS = [
 ]
 
 const SAMPLE_NOTIFICATIONS = [
-    { id: 1, icon: '📋', text: '대화 기록 REC-002가 검토되었습니다.',       time: '5분 전',  unread: true  },
-    { id: 2, icon: '✅', text: 'IMM-2025-001 신청 처리가 완료되었습니다.',   time: '1시간 전', unread: true  },
-    { id: 3, icon: '⚠️', text: 'POL-2025-002 기록에 검토 요청이 있습니다.', time: '어제',    unread: false },
+    { id: 1, icon: '🎉', text: '수어 번역 정확도가 98%를 달성했습니다!',        time: '방금 전',  unread: true,  category: 'system'    },
+    { id: 2, icon: '📋', text: '대화 기록 REC-002가 검토되었습니다.',           time: '5분 전',  unread: true,  category: 'translate' },
+    { id: 3, icon: '✅', text: 'IMM-2025-001 신청 처리가 완료되었습니다.',      time: '1시간 전', unread: true,  category: 'system'    },
+    { id: 4, icon: '📚', text: '새로운 수어 단어 50개가 추가되었습니다.',        time: '3시간 전', unread: false, category: 'update'    },
+    { id: 5, icon: '🤝', text: '커뮤니티에 새 멤버가 가입했습니다.',            time: '어제',    unread: false, category: 'community' },
+    { id: 6, icon: '🤟', text: '실시간 번역 기능이 업데이트되었습니다.',         time: '2일 전',  unread: false, category: 'translate' },
 ]
 
 // ── 알림 드롭다운 (앱 Noti.tsx 기반 업그레이드) ──
@@ -179,22 +182,55 @@ function AiChatWindow({ onClose }) {
     }
 
     return (
-        <div className="notif-dropdown" ref={ref}>
-            <div className="notif-header">
-                <span className="notif-title">알림</span>
-                <button className="notif-mark-all" onClick={onMarkAll}>모두 읽음</button>
+        <div className="ai-chat-window">
+            <div className="ai-chat-header">
+                <div className="ai-chat-header-left">
+                    <div className="ai-chat-avatar">🤖</div>
+                    <div>
+                        <div className="ai-chat-title">AI 어시스턴트</div>
+                        <div className="ai-chat-subtitle">SignBridge · Claude</div>
+                    </div>
+                </div>
+                <button className="ai-chat-close" onClick={onClose}>✕</button>
             </div>
-            <div className="notif-list">
-                {notifications.map(n => (
-                    <div key={n.id} className={`notif-item ${n.unread ? 'unread' : ''}`}>
-                        <span className="notif-icon">{n.icon}</span>
-                        <div className="notif-body">
-                            <div className="notif-text">{n.text}</div>
-                            <div className="notif-time">{n.time}</div>
+
+            <div className="ai-chat-messages">
+                {messages.map((m, i) => (
+                    <div key={i} className={`ai-msg-row ${m.role === 'user' ? 'ai-msg-me' : 'ai-msg-them'}`}>
+                        {m.role === 'assistant' && <div className="ai-msg-av">🤖</div>}
+                        <div className={`ai-msg-bubble ${m.role === 'user' ? 'ai-bubble-me' : 'ai-bubble-them'}`}>
+                            {m.text}
                         </div>
-                        {n.unread && <div className="notif-dot" />}
                     </div>
                 ))}
+                {loading && (
+                    <div className="ai-msg-row ai-msg-them">
+                        <div className="ai-msg-av">🤖</div>
+                        <div className="ai-msg-bubble ai-bubble-them ai-typing">
+                            <span/><span/><span/>
+                        </div>
+                    </div>
+                )}
+                <div ref={bottomRef}/>
+            </div>
+
+            <div className="ai-chat-input-row">
+                <textarea
+                    ref={inputRef}
+                    className="ai-chat-input"
+                    placeholder="메시지를 입력하세요… (Enter 전송)"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={onKey}
+                    rows={1}
+                    disabled={loading}
+                />
+                <button className="ai-chat-send" onClick={send} disabled={!input.trim() || loading}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                </button>
             </div>
         </div>
     )
@@ -204,11 +240,14 @@ function AiChatWindow({ onClose }) {
 function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0 }) {
     const scrollTo = (dir) =>
         window.scrollTo({ top: dir === 'top' ? 0 : document.body.scrollHeight, behavior: 'smooth' })
+
     return (
         <div className="floating-sidebar">
             <button className="fsb-btn fsb-scroll" onClick={() => scrollTo('top')} title="맨 위로">
                 <span className="fsb-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 15l-6-6-6 6"/>
+                    </svg>
                 </span>
                 <span className="fsb-label">위로</span>
             </button>
@@ -229,23 +268,18 @@ function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0 }) {
                     </span>
                 )}
                 <span className="fsb-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
                 </span>
-                {chatUnread > 0 && (
-                    <span style={{
-                        position:'absolute', top:6, right:6,
-                        background:'#ef4444', color:'#fff',
-                        borderRadius:'50%', width:18, height:18,
-                        fontSize:11, fontWeight:700,
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                        lineHeight:1, border:'2px solid #fff',
-                    }}>{chatUnread > 99 ? '99+' : chatUnread}</span>
-                )}
                 <span className="fsb-label">채팅</span>
             </button>
+
             <button className="fsb-btn fsb-call" onClick={onCall} title="전화">
                 <span className="fsb-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.08 3.42a2 2 0 0 1 1.99-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.08 3.42a2 2 0 0 1 1.99-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/>
+                    </svg>
                 </span>
                 <span className="fsb-label">전화</span>
             </button>
@@ -253,13 +287,20 @@ function FloatingSidebar({ onChat, onCall, onAiChat, chatUnread = 0 }) {
             {/* AI 채팅 버튼 */}
             <button className="fsb-btn fsb-ai" onClick={onAiChat} title="AI 채팅">
                 <span className="fsb-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="14" rx="3"/><path d="M8 21h8M12 17v4"/><path d="M8 8h8M8 11h5"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="14" rx="3"/>
+                        <path d="M8 21h8M12 17v4"/>
+                        <path d="M8 8h8M8 11h5"/>
+                    </svg>
                 </span>
                 <span className="fsb-label">AI</span>
             </button>
+
             <button className="fsb-btn fsb-scroll" onClick={() => scrollTo('bottom')} title="맨 아래로">
                 <span className="fsb-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
                 </span>
                 <span className="fsb-label">아래</span>
             </button>
@@ -312,130 +353,121 @@ function SearchOverlay({ onClose, onGoDict }) {
     const reset = () => { setSearched(false); setResults([]); setQuery(''); setExpandedId(null); inputRef.current?.focus() }
     const removeRecent = (item, e) => { e.stopPropagation(); const next = recent.filter(r => r !== item); setRecent(next); localStorage.setItem(RECENT_KEY, JSON.stringify(next)) }
 
-    const inner = (
-        <div className="search-overlay-panel" onClick={e => e.stopPropagation()}>
-            {/* 입력 */}
-            <div className="so-input-wrap">
-                <span className="so-lead-icon">🔍</span>
-                <input
-                    ref={inputRef}
-                    className="so-input"
-                    placeholder="수어 단어를 검색하세요..."
-                    value={query}
-                    onChange={e => { setQuery(e.target.value); if (!e.target.value.trim()) { setSearched(false); setResults([]) } }}
-                    onKeyDown={e => { if (e.key === 'Enter') doSearch(query) }}
-                />
-                {query && <button className="so-clear" onClick={reset}>✕</button>}
-                <button className="so-search-btn" onClick={() => doSearch(query)}>검색</button>
-                <button className="so-close-btn" onClick={onClose}>✕ 닫기</button>
-            </div>
-
-            <div className="so-body">
-                {!searched && suggestions.length > 0 && (
-                    <div className="so-section">
-                        {suggestions.map(item => (
-                            <div key={item} className="so-sugg-row" onClick={() => doSearch(item)}>
-                                <span className="so-row-icon">🔍</span>
-                                <span className="so-row-text">{item}</span>
-                                <button className="so-fill-btn" onClick={e => { e.stopPropagation(); setQuery(item) }}>↙</button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {searched && (
-                    <>
-                        <div className="so-result-count">"{query}" 검색 결과 {results.length}개</div>
-                        {results.length > 0 ? results.map(item => (
-                            <div key={item.id} className="so-card">
-                                <div className="so-card-header" onClick={() => setExpandedId(v => v === item.id ? null : item.id)}>
-                                    <div className="so-card-left">
-                                        <span className="so-card-emoji">{item.emoji}</span>
-                                        <div>
-                                            <div className="so-card-word">{item.word}</div>
-                                            <span className="so-cat-badge">{item.category}</span>
-                                        </div>
-                                    </div>
-                                    <span className="so-chevron">{expandedId === item.id ? '▲' : '▼'}</span>
-                                </div>
-                                <div className="so-card-body">{item.description}</div>
-                                {expandedId === item.id && (
-                                    <div className="so-card-detail">
-                                        <div className="so-detail-divider"/>
-                                        <div className="so-detail-row"><div className="so-detail-icon-wrap">✋</div><div><div className="so-detail-label">손 모양</div><div className="so-detail-value">{item.handShape}</div></div></div>
-                                        <div className="so-detail-row"><div className="so-detail-icon-wrap">↔️</div><div><div className="so-detail-label">동작</div><div className="so-detail-value">{item.movement}</div></div></div>
-                                        <div className="so-detail-row"><div className="so-detail-icon-wrap">😊</div><div><div className="so-detail-label">표정</div><div className="so-detail-value">{item.expression}</div></div></div>
-                                        <div className="so-detail-row so-detail-row-accent"><div className="so-detail-icon-wrap so-detail-icon-accent">💡</div><div><div className="so-detail-label">학습 팁</div><div className="so-detail-value">{item.tips}</div></div></div>
-                                        <div className="so-related-wrap">
-                                            <div className="so-related-label">관련 단어</div>
-                                            <div className="so-related-tags">
-                                                {item.related.map(r => (
-                                                    <button key={r} className="so-related-tag" onClick={() => doSearch(r)}>{r}</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )) : (
-                            <div className="so-no-result">
-                                <div className="so-no-result-icon">🔍</div>
-                                <div className="so-no-result-title">"{query}" 검색 결과가 없습니다</div>
-                                <div className="so-no-result-sub">다른 단어로 검색하거나 수어 사전을 이용해 보세요</div>
-                                <button className="so-dict-btn" onClick={() => { onGoDict(query); onClose() }}>수어 사전으로 이동 →</button>
-                            </div>
-                        )}
-                        {results.length > 0 && (
-                            <div className="so-dict-banner" onClick={() => { onGoDict(query); onClose() }}>
-                                <div className="so-dict-banner-left">
-                                    <span>📖</span>
-                                    <div>
-                                        <div className="so-dict-banner-title">수어 사전</div>
-                                        <div className="so-dict-banner-sub">수어 사전에서도 더 많은 수어를 찾아보세요</div>
-                                    </div>
-                                </div>
-                                <span>›</span>
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {!searched && query.length === 0 && recent.length > 0 && (
-                    <div className="so-section">
-                        <div className="so-section-header">
-                            <span className="so-section-title">최근 검색어</span>
-                            <button className="so-clear-all" onClick={() => { setRecent([]); localStorage.removeItem(RECENT_KEY) }}>전체 삭제</button>
-                        </div>
-                        {recent.map(item => (
-                            <div key={item} className="so-recent-row" onClick={() => doSearch(item)}>
-                                <span className="so-row-icon">🕐</span>
-                                <span className="so-row-text">{item}</span>
-                                <button className="so-remove-btn" onClick={(e) => removeRecent(item, e)}>✕</button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {!searched && (
-                    <div className="so-quick-wrap">
-                        <div className="so-quick-title">자주 찾는 수어</div>
-                        <div className="so-quick-grid">
-                            {SIGN_DB.map(w => (
-                                <button key={w.id} className="so-quick-chip" onClick={() => doSearch(w.word)}>
-                                    <span className="so-quick-emoji">{w.emoji}</span>
-                                    <span className="so-quick-word">{w.word}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-
     return (
         <div className="search-overlay" onClick={onClose}>
-            {inner}
+            <div className="search-overlay-panel" onClick={e => e.stopPropagation()}>
+                <div className="so-input-wrap">
+                    <span className="so-lead-icon">🔍</span>
+                    <input
+                        ref={inputRef}
+                        className="so-input"
+                        placeholder="수어 단어를 검색하세요..."
+                        value={query}
+                        onChange={e => { setQuery(e.target.value); if (!e.target.value.trim()) { setSearched(false); setResults([]) } }}
+                        onKeyDown={e => { if (e.key === 'Enter') doSearch(query) }}
+                    />
+                    {query && <button className="so-clear" onClick={reset}>✕</button>}
+                    <button className="so-search-btn" onClick={() => doSearch(query)}>검색</button>
+                    <button className="so-close-btn" onClick={onClose}>✕ 닫기</button>
+                </div>
+                <div className="so-body">
+                    {!searched && suggestions.length > 0 && (
+                        <div className="so-section">
+                            {suggestions.map(item => (
+                                <div key={item} className="so-sugg-row" onClick={() => doSearch(item)}>
+                                    <span className="so-row-icon">🔍</span>
+                                    <span className="so-row-text">{item}</span>
+                                    <button className="so-fill-btn" onClick={e => { e.stopPropagation(); setQuery(item) }}>↙</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {searched && (
+                        <>
+                            <div className="so-result-count">"{query}" 검색 결과 {results.length}개</div>
+                            {results.length > 0 ? results.map(item => (
+                                <div key={item.id} className="so-card">
+                                    <div className="so-card-header" onClick={() => setExpandedId(v => v === item.id ? null : item.id)}>
+                                        <div className="so-card-left">
+                                            <span className="so-card-emoji">{item.emoji}</span>
+                                            <div>
+                                                <div className="so-card-word">{item.word}</div>
+                                                <span className="so-cat-badge">{item.category}</span>
+                                            </div>
+                                        </div>
+                                        <span className="so-chevron">{expandedId === item.id ? '▲' : '▼'}</span>
+                                    </div>
+                                    <div className="so-card-body">{item.description}</div>
+                                    {expandedId === item.id && (
+                                        <div className="so-card-detail">
+                                            <div className="so-detail-divider"/>
+                                            <div className="so-detail-row"><div className="so-detail-icon-wrap">✋</div><div><div className="so-detail-label">손 모양</div><div className="so-detail-value">{item.handShape}</div></div></div>
+                                            <div className="so-detail-row"><div className="so-detail-icon-wrap">↔️</div><div><div className="so-detail-label">동작</div><div className="so-detail-value">{item.movement}</div></div></div>
+                                            <div className="so-detail-row"><div className="so-detail-icon-wrap">😊</div><div><div className="so-detail-label">표정</div><div className="so-detail-value">{item.expression}</div></div></div>
+                                            <div className="so-detail-row so-detail-row-accent"><div className="so-detail-icon-wrap so-detail-icon-accent">💡</div><div><div className="so-detail-label">학습 팁</div><div className="so-detail-value">{item.tips}</div></div></div>
+                                            <div className="so-related-wrap">
+                                                <div className="so-related-label">관련 단어</div>
+                                                <div className="so-related-tags">
+                                                    {item.related.map(r => (
+                                                        <button key={r} className="so-related-tag" onClick={() => doSearch(r)}>{r}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )) : (
+                                <div className="so-no-result">
+                                    <div className="so-no-result-icon">🔍</div>
+                                    <div className="so-no-result-title">"{query}" 검색 결과가 없습니다</div>
+                                    <div className="so-no-result-sub">다른 단어로 검색하거나 수어 사전을 이용해 보세요</div>
+                                    <button className="so-dict-btn" onClick={() => { onGoDict(query); onClose() }}>수어 사전으로 이동 →</button>
+                                </div>
+                            )}
+                            {results.length > 0 && (
+                                <div className="so-dict-banner" onClick={() => { onGoDict(query); onClose() }}>
+                                    <div className="so-dict-banner-left">
+                                        <span>📖</span>
+                                        <div>
+                                            <div className="so-dict-banner-title">수어 사전</div>
+                                            <div className="so-dict-banner-sub">더 많은 수어를 찾아보세요</div>
+                                        </div>
+                                    </div>
+                                    <span>›</span>
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {!searched && query.length === 0 && recent.length > 0 && (
+                        <div className="so-section">
+                            <div className="so-section-header">
+                                <span className="so-section-title">최근 검색어</span>
+                                <button className="so-clear-all" onClick={() => { setRecent([]); localStorage.removeItem(RECENT_KEY) }}>전체 삭제</button>
+                            </div>
+                            {recent.map(item => (
+                                <div key={item} className="so-recent-row" onClick={() => doSearch(item)}>
+                                    <span className="so-row-icon">🕐</span>
+                                    <span className="so-row-text">{item}</span>
+                                    <button className="so-remove-btn" onClick={(e) => removeRecent(item, e)}>✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {!searched && (
+                        <div className="so-quick-wrap">
+                            <div className="so-quick-title">자주 찾는 수어</div>
+                            <div className="so-quick-grid">
+                                {SIGN_DB.map(w => (
+                                    <button key={w.id} className="so-quick-chip" onClick={() => doSearch(w.word)}>
+                                        <span className="so-quick-emoji">{w.emoji}</span>
+                                        <span className="so-quick-word">{w.word}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     )
 }
@@ -491,7 +523,6 @@ export default function App() {
             setDisplayName(savedName);
             setOrgType(savedType || '');
             setLoggedIn(true);
-            loadProfile(savedEmail)
         }
     }, []);
 
@@ -505,12 +536,12 @@ export default function App() {
     useEffect(() => {
         chatService.connect('http://localhost:8080')
         // 새 메시지 수신 시 채팅창이 닫혀 있으면 뱃지 증가
-        const unsub = chatService.onMessage((msg) => {
+        const unsub = chatService.onMessage?.((msg) => {
             if (!showChatRef.current && msg?.senderEmail !== userEmailRef.current) {
                 setChatUnreadCount(c => c + 1)
             }
         })
-        return () => { chatService.disconnect(); unsub() }
+        return () => { chatService.disconnect(); unsub?.() }
     }, [])
 
     // ── 로그인 시 내 프로필 로드 ──
@@ -568,7 +599,8 @@ export default function App() {
         const type = orgType || 'personal'
         setRegisterScreen(`register_${type}`)
     }
-    }
+    const handleBackToConv  = () => setRegisterScreen(null)
+    const handleLogoClick   = () => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('home'); setQuery('') }
 
     const handleLogin = (name, type, email) => {
         setDisplayName(name);
@@ -579,7 +611,6 @@ export default function App() {
         localStorage.setItem('orgType', type || '');
         setLoggedIn(true);
         setAuthModal(null);
-        loadProfile(email)
     }
 
     const handleSignup = (name, type) => {
@@ -681,6 +712,7 @@ export default function App() {
                         <img src={SignBridgeLogo} alt="SignBridge" className="nav-logo-icon" />
                         <span className="nav-logo-text">SignBridge</span>
                     </div>
+
                     <div className="nav-actions">
                         <button className="search-form search-form-btn" onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setShowNotiPage(false); setShowSearchPage(true) }}>
                             <span className="search-input-placeholder">수어 검색...</span>
@@ -702,7 +734,7 @@ export default function App() {
                         {loggedIn ? (
                             <div className="nav-user-group">
                                 <button className="my-btn"
-                                    onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('my') }}>
+                                        onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab('my') }}>
                                     <div className="my-avatar">{displayName.charAt(0)}</div>
                                     <span>{navLabel}</span>
                                 </button>
@@ -716,12 +748,13 @@ export default function App() {
                         )}
                     </div>
                 </div>
+
                 <div className="navbar-bottom">
                     <nav className="navbar-bottom-inner">
                         {MENUS.map(m => (
                             <button key={m.id}
-                                className={`nav-menu-btn ${(isNormalTab && tab === m.id) || (showAbout && m.id === 'about') ? 'active' : ''}`}
-                                onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab(m.id); setQuery('') }}>
+                                    className={`nav-menu-btn ${(isNormalTab && tab === m.id) || (showAbout && m.id === 'about') ? 'active' : ''}`}
+                                    onClick={() => { setShowConv(false); setRegisterScreen(null); setShowDemo(false); setShowAbout(false); setTab(m.id); setQuery('') }}>
                                 {m.label}
                             </button>
                         ))}
@@ -729,8 +762,10 @@ export default function App() {
                 </div>
             </header>}
 
+            {/* ── 본문 ── */}
             <main className="main-content">{renderMain()}</main>
 
+            {/* ── 푸터 ── */}
             <footer className="footer">
                 <span className="footer-logo"><img src={SignBridgeLogo} alt="SignBridge" className="footer-logo-icon" />SignBridge</span>
                 <span>© 2025 SignBridge Team · AI 수어 번역 시스템</span>
@@ -749,7 +784,6 @@ export default function App() {
 
             {showChat && createPortal(
                 <ChatRoom
-                    visible={showChat}
                     onClose={() => { setShowChat(false); setChatInitialRoom(null) }}
                     myEmail={userEmail}
                     myName={displayName}
@@ -759,6 +793,7 @@ export default function App() {
                 document.body
             )}
 
+            {/* AI 채팅 창 */}
             {showAiChat && (
                 <AIChat
                     onClose={() => setShowAiChat(false)}
@@ -767,6 +802,7 @@ export default function App() {
                 />
             )}
 
+            {/* 로그인 모달 */}
             {authModal === 'login' && (
                 <LoginPage
                     displayName={displayName}
@@ -777,6 +813,7 @@ export default function App() {
                 />
             )}
 
+            {/* 회원가입 모달 */}
             {authModal === 'signup' && (
                 <SignupPage
                     onSignup={handleSignup}

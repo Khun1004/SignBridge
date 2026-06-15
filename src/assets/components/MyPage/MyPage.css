@@ -2,7 +2,6 @@
 
 :root {
   --personal:    #2563eb;
-  --bg:          #f5f5f0;  /* ChatRoom.css의 dark --bg 덮어쓰기 */
   --immig:       #7c3aed;
   --police:      #dc2626;
   --bg:          #f5f5f0;
@@ -24,13 +23,9 @@
 
 .my-page {
   min-height: 100vh;
-  background: #f5f5f0 !important;
+  background: #f5f5f0;
   font-family: var(--body);
 }
-.my-page * { --bg: #f5f5f0; }
-.select-screen { background: #f5f5f0 !important; }
-.view-wrap     { background: #f5f5f0 !important; }
-.mp-personal   { background: #f5f5f0 !important; }
 
 /* ══════════════════════════════
    선택 화면

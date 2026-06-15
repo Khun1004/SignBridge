@@ -10,15 +10,7 @@ const CONTACT_TYPES = [
     { id:'email',      label:'📧 이메일',           placeholder:'example@email.com' },
 ]
 
-export default function Registration({
-                                         onBack,
-                                         onSubmit,
-                                         defaultName = '',
-                                         initialData = null,
-                                         isEdit = false,
-                                         existingChatId = '',
-                                         disabledRoles = [],   // ← 이미 등록된 역할 목록
-                                     }) {
+export default function Registration({ onBack, onSubmit, defaultName = '', initialData = null, isEdit = false, existingChatId = '', disabledRoles = [] }) {
     const [step, setStep] = useState(1)
 
     const lockedChatId = isEdit ? (initialData?.chatId || '') : existingChatId
@@ -61,20 +53,17 @@ export default function Registration({
     const fileRef = useRef(null)
 
     const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
     const chatIdLocked = !!lockedChatId
 
     const validateChatIdFormat = (id) => /^[\uAC00-\uD7A3a-zA-Z0-9\-_.]{4,20}$/.test(id)
 
     const checkChatId = async (id) => {
         if (!validateChatIdFormat(id)) { setChatIdStatus('invalid'); return }
-        // Skip check if same as locked chatId
         if (id === lockedChatId) { setChatIdStatus('locked'); return }
         setChatIdStatus('checking')
         try {
-            // Pass email so backend skips the user's own existing chatId
-            const emailParam = typeof window !== 'undefined'
-                ? encodeURIComponent(localStorage.getItem('userEmail') || '')
-                : ''
+            const emailParam = encodeURIComponent(localStorage.getItem('userEmail') || '')
             const res  = await fetch(`/api/community/check-chat-id?chatId=${encodeURIComponent(id)}&email=${emailParam}`)
             const data = await res.json()
             setChatIdStatus(data.available ? 'ok' : 'taken')
@@ -120,10 +109,6 @@ export default function Registration({
         if (!form.name.trim()) e.name   = '이름을 입력해 주세요.'
         if (!form.role)        e.role   = '역할을 선택해 주세요.'
         if (!form.region)      e.region = '지역을 선택해 주세요.'
-        // 수정 모드가 아닐 때만 중복 역할 체크
-        if (!isEdit && form.role && disabledRoles.includes(form.role)) {
-            e.role = `'${form.role}' 역할은 이미 등록되어 있습니다.`
-        }
         setErrors(e); return !Object.keys(e).length
     }
     const validate2 = () => {
@@ -133,13 +118,11 @@ export default function Registration({
     }
     const validate3 = () => {
         const e = {}
-        if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
         if (!chatIdLocked) {
             if (!form.chatId.trim()) e.chatId = '채팅 ID를 입력해 주세요.'
             else if (!validateChatIdFormat(form.chatId)) e.chatId = '올바른 형식이 아닙니다.'
             else if (chatIdStatus === 'taken') e.chatId = '이미 사용 중인 ID입니다.'
             else if (chatIdStatus === 'checking') e.chatId = 'ID 확인 중입니다.'
-            // If status is null but format is valid, allow through
         }
         if (form.contactType !== 'signbridge' && !form.contactValue.trim())
             e.contact = '연락처를 입력해 주세요.'
@@ -155,8 +138,11 @@ export default function Registration({
     }
 
     const handleSubmit = () => {
-                contactValue: form.contactType === 'signbridge' ? form.chatId : form.contactValue,
-        }
+        if (!validate3()) return
+        onSubmit?.({
+            ...form,
+            contactValue: form.contactType === 'signbridge' ? form.chatId : form.contactValue,
+        })
     }
 
     const STEPS = ['기본 정보', '자세한 소개', '연락처']
@@ -211,13 +197,8 @@ export default function Registration({
                                     value={form.role} onChange={e => update('role', e.target.value)}>
                                 <option value="">선택하세요</option>
                                 {ROLE_OPTIONS.map(r => (
-                                    // 수정 모드가 아닐 때 이미 등록된 역할 비활성화
-                                    <option
-                                        key={r}
-                                        value={r}
-                                        disabled={!isEdit && disabledRoles.includes(r)}
-                                    >
-                                        {r}{!isEdit && disabledRoles.includes(r) ? ' (이미 등록됨)' : ''}
+                                    <option key={r} value={r} disabled={disabledRoles.includes(r)}>
+                                        {r}{disabledRoles.includes(r) ? ' (이미 등록됨)' : ''}
                                     </option>
                                 ))}
                             </select>
@@ -243,17 +224,6 @@ export default function Registration({
                             ))}
                         </div>
                     </div>
-
-                    {/* 이미 등록된 역할 안내 */}
-                    {!isEdit && disabledRoles.length > 0 && (
-                        <div className="reg-disabled-roles-notice">
-                            <span>이미 등록된 역할: </span>
-                            {disabledRoles.map(r => (
-                                <span key={r} className="reg-disabled-role-badge">{r}</span>
-                            ))}
-                        </div>
-                    )}
-
                     <button className="reg-btn-next" onClick={next}>다음 →</button>
                 </div>
             )}

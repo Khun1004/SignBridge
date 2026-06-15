@@ -1,16 +1,11 @@
-import { useEffect, useState } from 'react'
-import {
-    communityApi,
-    conversationApi,
-    immigrationApi,
-    myPageApi,
-    personalApi,
-    policeApi
-} from '../../../assets/components/api/api.jsx'
-import ImmigrationCasePage from '../My/ImmigrationCasePage/ImmigrationCasePage.jsx'
-import PoliceCasePage from '../My/PoliceCasePage/PoliceCasePage.jsx'
-import Registration from '../Registration/Registration.jsx'
+import { useState, useEffect } from 'react'
 import './MyPage.css'
+import Registration from '../Registration/Registration.jsx'
+import ImmigrationCasePage from '../My/ImmigrationCasePage/ImmigrationCasePage.jsx'
+import PoliceCasePage      from '../My/PoliceCasePage/PoliceCasePage.jsx'
+import {
+    myPageApi, immigrationApi, policeApi, personalApi, conversationApi, communityApi
+} from '../../../assets/components/api/api.jsx'
 
 /* ══════════════════════════════════════════
    상수
@@ -82,8 +77,10 @@ function PersonalMyPage({
 
     // ── 커뮤니티 프로필 state (prop으로 초기화) ──
     const [myProfiles,    setMyProfiles]    = useState(communityProfiles || [])
-    const [showCmEdit,    setShowCmEdit]    = useState(false)
-    const [editingProfile, setEditingProfile] = useState(null)
+    const [showCmEdit,      setShowCmEdit]      = useState(false)
+    const [editingProfile,  setEditingProfile]  = useState(null)
+    const [deletingProfile, setDeletingProfile] = useState(null)
+    const [deleteLoading,   setCmDeleteLoading] = useState(false)
 
     // communityProfiles prop 변경 시 내부 state 동기화
     useEffect(() => {
@@ -130,7 +127,7 @@ function PersonalMyPage({
                 addressDetail:   editAddressDetail.trim(),
                 zonecode:        editZonecode.trim(),
             })
-            const updated = {
+            onProfileUpdate?.({
                 ...profile,
                 name:            editName.trim(),
                 disabilityGrade: editGrade.trim(),
@@ -138,8 +135,7 @@ function PersonalMyPage({
                 address:         editAddress.trim(),
                 addressDetail:   editAddressDetail.trim(),
                 zonecode:        editZonecode.trim(),
-            }
-            onProfileUpdate?.(updated)
+            })
             setEditMode(false)
         } catch (e) {
             setEditError(`저장 실패: ${e.message}`)
@@ -167,29 +163,29 @@ function PersonalMyPage({
         }
     }
 
-    const handleDeletePost = async (post) => {
-        if (!window.confirm('이 게시물을 삭제할까요?')) return
-        try {
-            const res = await fetch(
-                `/api/community/members/${post.id}?email=${encodeURIComponent(userEmail)}`,
-                { method: 'DELETE' }
-            )
-            if (!res.ok) throw new Error('삭제 실패')
-            const remaining = myPosts.filter(p => p.id !== post.id)
-            setMyPosts(remaining)
-            if (remaining.length === 0) {
-                setMyProfile(null)
-                onCommunityProfileSave?.(null)
-            }
-        } catch(e) {
-            alert('삭제에 실패했습니다.')
-        }
-    }
-
     const name   = profile?.name    || displayName || '사용자'
     const email  = profile?.email   || userEmail   || '-'
     const joined = profile?.joinedAt
         ? new Date(profile.joinedAt).toLocaleDateString('ko-KR') : '-'
+
+    // 커뮤니티 삭제
+    const handleCmDelete = async () => {
+        if (!deletingProfile) return
+        setCmDeleteLoading(true)
+        try {
+            await fetch(`/api/community/members/${deletingProfile.id}?email=${encodeURIComponent(userEmail)}`, {
+                method: 'DELETE'
+            }).then(r => { if (!r.ok) throw new Error('삭제 실패') })
+            const updated = myProfiles.filter(p => p.id !== deletingProfile.id)
+            setMyProfiles(updated)
+            onCommunityProfilesChange?.(updated)
+            setDeletingProfile(null)
+        } catch (e) {
+            alert('삭제에 실패했습니다.')
+        } finally {
+            setCmDeleteLoading(false)
+        }
+    }
 
     // 커뮤니티 수정 제출
     const handleCmEditSubmit = async (form) => {
@@ -228,6 +224,8 @@ function PersonalMyPage({
 
     return (
         <div className="mp-personal">
+
+            {/* ── 프로필 히어로 ── */}
             <div className="mp-profile-hero">
                 <div className="mp-avatar">{name.charAt(0)}</div>
                 <div className="mp-hero-info">
@@ -249,6 +247,7 @@ function PersonalMyPage({
                 </div>
             </div>
 
+            {/* ── 탭 ── */}
             <div className="my-tabs">
                 {TABS.map(t => (
                     <button key={t}
@@ -366,17 +365,14 @@ function PersonalMyPage({
                 </div>
             )}
 
-            {/* 커뮤니티 탭 — List view */}
             {activeTab === '커뮤니티' && !showCmEdit && (
                 <div className="tab-content">
                     {myProfiles.length === 0 ? (
                         <div className="cm-mypage-empty">
                             <div style={{fontSize:40}}>🤟</div>
-                            <p style={{margin:'8px 0 4px',fontWeight:700,color:'#333'}}>
-                                커뮤니티 게시물이 없습니다
-                            </p>
+                            <p style={{margin:'8px 0 4px',fontWeight:700,color:'#333'}}>커뮤니티 프로필이 없습니다</p>
                             <p style={{fontSize:13,color:'#888',margin:0}}>
-                                커뮤니티 메뉴에서 + 등록하기를 눌러 등록하세요
+                                커뮤니티 메뉴에서 등록하면 여기에 표시됩니다
                             </p>
                         </div>
                     ) : (
@@ -400,10 +396,25 @@ function PersonalMyPage({
                                                 </span>
                                             </div>
                                         </div>
-                                        <button className="cm-mypage-edit-btn" style={{alignSelf:'flex-start'}}
-                                                onClick={() => { setEditingProfile(profile); setShowCmEdit(true) }}>
-                                            ✏️ 수정
-                                        </button>
+                                        <div style={{display:'flex', gap:8, alignSelf:'flex-start'}}>
+                                            <button className="cm-mypage-edit-btn"
+                                                    onClick={() => { setEditingProfile(profile); setShowCmEdit(true) }}>
+                                                ✏️ 수정
+                                            </button>
+                                            <button
+                                                onClick={() => setDeletingProfile(profile)}
+                                                style={{
+                                                    border:'1.5px solid #fca5a5', background:'#fff',
+                                                    color:'#ef4444', borderRadius:10, padding:'10px 14px',
+                                                    fontSize:13, fontWeight:700, cursor:'pointer',
+                                                    fontFamily:'inherit', transition:'all 0.15s'
+                                                }}
+                                                onMouseEnter={e=>e.currentTarget.style.background='#fef2f2'}
+                                                onMouseLeave={e=>e.currentTarget.style.background='#fff'}
+                                            >
+                                                🗑 삭제
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {profile.intro && (
@@ -454,6 +465,25 @@ function PersonalMyPage({
                 </div>
             )}
 
+            {/* ── 커뮤니티 삭제 확인 모달 ── */}
+            {deletingProfile && (
+                <div className="mp-modal-overlay" onClick={() => setDeletingProfile(null)}>
+                    <div className="mp-del-modal" onClick={e => e.stopPropagation()}>
+                        <div className="mp-del-icon">🗑️</div>
+                        <p className="mp-del-msg">
+                            <strong>{deletingProfile.role}</strong> 프로필을 삭제할까요?<br/>
+                            <span style={{fontSize:12, color:'#9ca3af'}}>삭제 후 복구할 수 없습니다.</span>
+                        </p>
+                        <div className="mp-del-actions">
+                            <button className="mp-del-cancel" onClick={() => setDeletingProfile(null)}>취소</button>
+                            <button className="mp-del-ok" onClick={handleCmDelete} disabled={deleteLoading}>
+                                {deleteLoading ? '삭제 중...' : '삭제하기'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ══ 프로필 탭 ══ */}
             {!loading && activeTab === '프로필' && (
                 <div className="tab-content">
@@ -496,7 +526,7 @@ function PersonalMyPage({
                 </div>
             )}
 
-            {/* 프로필 수정 모달 */}
+            {/* ── 프로필 수정 모달 ── */}
             {editMode && (
                 <div className="mp-modal-overlay" onClick={() => setEditMode(false)}>
                     <div className="mp-modal" onClick={e => e.stopPropagation()}>
