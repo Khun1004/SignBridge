@@ -60,21 +60,17 @@ export default function SearchPage({ onBack, onGoDict }) {
     }
 
     return (
-        <div className="sp-page">
-            <div className="sp-card-wrap">
-                {/* ── 페이지 헤더 ── */}
-                <div className="sp-header">
-                    <button className="sp-back-btn" onClick={onBack}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+        <div className="sp-page" onClick={onBack}>
+            <div className="sp-card-wrap" onClick={e => e.stopPropagation()}>
+                {/* ── 상단 바 ── */}
+                <div className="sp-topbar">
+                    <button className="sp-back" onClick={onBack}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M15 18l-6-6 6-6"/>
                         </svg>
                         뒤로
                     </button>
-                    <span className="sp-header-title">수어 검색</span>
-                </div>
 
-                {/* ── 상단 바 ── */}
-                <div className="sp-topbar">
                     <div className="sp-input-wrap">
                         <svg className="sp-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>

@@ -19,6 +19,7 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
         else if (contactType === 'chat') window.open(contactValue, '_blank')
     }
 
+    // Start a SignBridge chat with this member
     const handleStartChat = async () => {
         try {
             const res = await fetch('/api/chat/rooms/direct', {
@@ -29,7 +30,6 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                     nameA:   myName,
                     emailB:  member.userEmail,
                     nameB:   member.name,
-                    avatarB: member.avatar || '', // ← 커뮤니티 프로필 아바타 이모지 전달
                 }),
             })
             if (!res.ok) throw new Error('서버 오류')
@@ -41,12 +41,15 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
     }
 
     const canChat = myEmail && member.userEmail && myEmail !== member.userEmail
+
+    // Decide if we should show a contact action button (non-signbridge types)
     const hasExternalContact = contactValue && contactType && contactType !== 'signbridge'
 
     return (
         <div className="cpd-page">
             <button className="cpd-back-btn" onClick={onBack}>← 커뮤니티로</button>
 
+            {/* Profile header */}
             <div className="cpd-hero">
                 <div className="cpd-avatar">{member.avatar || member.name?.charAt(0)}</div>
                 <div className="cpd-hero-info">
@@ -64,6 +67,7 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 </div>
             </div>
 
+            {/* Action buttons row — chat + optional external contact */}
             {canChat && (
                 <div className="cpd-action-row">
                     <button className="cpd-chat-btn" onClick={handleStartChat}>
@@ -82,11 +86,13 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 </div>
             )}
 
+            {/* 자기소개 */}
             <div className="cpd-section">
                 <div className="cpd-section-title">💬 자기소개</div>
                 <p className="cpd-text">{member.intro || '자기소개가 없습니다.'}</p>
             </div>
 
+            {/* 경력 */}
             {member.experience && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">📌 경력 / 활동 이력</div>
@@ -94,6 +100,7 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 </div>
             )}
 
+            {/* 전문 분야 */}
             {member.speciality && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">🎯 전문 분야</div>
@@ -105,6 +112,7 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 </div>
             )}
 
+            {/* 자격증 */}
             {member.certFiles?.length > 0 && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">📄 자격증 / 증명서</div>
@@ -119,6 +127,7 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                 </div>
             )}
 
+            {/* 연락 방법 — shown for non-signbridge types, but action button is now in the top row */}
             {hasExternalContact && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">📞 연락 방법</div>
@@ -126,6 +135,7 @@ export default function CommunityPersonalDetail({ member, onBack, myEmail = '', 
                         <span>{CONTACT_LABEL[contactType] || '연락처'}</span>
                         <span className="cpd-contact-val">{contactValue}</span>
                     </div>
+                    {/* Button also shown here for users not logged in */}
                     {!canChat && (
                         <button className="cpd-contact-btn" onClick={handleContact}>
                             {contactType === 'phone' ? '📞 전화하기' : '📧 이메일 보내기'}

@@ -1,10 +1,14 @@
-/* ── 페이지 레이아웃 ── */
+/* ── 오버레이 배경 ── */
 .sp-page {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 27, 75, 0.35);
+    backdrop-filter: blur(4px);
+    z-index: 300;
     display: flex;
+    align-items: flex-start;
     justify-content: center;
-    padding: 28px 24px 40px;
-    min-height: calc(100vh - 120px);
-    background: #f8f9ff;
+    padding: 80px 20px 20px;
     animation: sp-fade-in 0.18s ease;
 }
 @keyframes sp-fade-in {
@@ -16,51 +20,18 @@
 .sp-card-wrap {
     background: #fff;
     border-radius: 20px;
-    box-shadow: 0 8px 40px rgba(99,102,241,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 24px 80px rgba(99,102,241,0.18), 0 4px 16px rgba(0,0,0,0.10);
     width: 100%;
-    max-width: 900px;
-    height: fit-content;
+    max-width: 620px;
+    max-height: calc(100vh - 120px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     animation: sp-slide-up 0.2s cubic-bezier(.4,0,.2,1);
 }
 @keyframes sp-slide-up {
-    from { opacity: 0; transform: translateY(12px); }
+    from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
-}
-
-
-/* ── 페이지 헤더 ── */
-.sp-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 20px 14px;
-    border-bottom: 1.5px solid #f0f0ff;
-    background: #fff;
-}
-.sp-back-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: none;
-    border: 1.5px solid #e0e7ff;
-    border-radius: 8px;
-    padding: 7px 13px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #6366f1;
-    font-family: inherit;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.13s, border-color 0.13s;
-}
-.sp-back-btn:hover { background: #eef2ff; border-color: #6366f1; }
-.sp-header-title {
-    font-size: 17px;
-    font-weight: 800;
-    color: #1e1b4b;
 }
 
 /* ── 상단 바 ── */
@@ -313,12 +284,7 @@
 }
 .sp-chip:hover { background: #eef2ff; border-color: #6366f1; color: #6366f1; }
 
-/* ── sp-body 높이 제한 해제 ── */
-.sp-body {
-    max-height: none;
-}
-
 /* ── 반응형 ── */
 @media (max-width: 600px) {
-    .sp-page { padding: 20px 12px 24px; }
+    .sp-page { padding: 70px 12px 12px; }
 }

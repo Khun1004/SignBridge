@@ -383,23 +383,6 @@
     white-space: nowrap;
 }
 
-/* ── 내 프로필 여러 개 영역 ── */
-.cm-my-profiles {
-    margin-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.cm-my-profiles-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: #6366f1;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-bottom: 2px;
-    padding-left: 2px;
-}
-
 /* ── 반응형 ── */
 @media (max-width: 600px) {
     .community-page { padding: 24px 16px 60px; }

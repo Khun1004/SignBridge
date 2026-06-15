@@ -189,8 +189,8 @@ export const communityApi = {
     }),
 
     /** 삭제 */
-    delete: (email) =>
-        request(`/community/members?email=${encodeURIComponent(email)}`, {
+    delete: (id, email) =>
+        request(`/community/members/${id}?email=${encodeURIComponent(email)}`, {
             method: 'DELETE',
         }),
 
