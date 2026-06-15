@@ -63,7 +63,6 @@ export default function CommunityPersonalDetail({
         <div className="cpd-page">
             <button className="cpd-back-btn" onClick={onBack}>← 커뮤니티로</button>
 
-            {/* Profile header */}
             <div className="cpd-hero">
                 <div className="cpd-avatar">{member.avatar || member.name?.charAt(0)}</div>
                 <div className="cpd-hero-info">
@@ -99,13 +98,11 @@ export default function CommunityPersonalDetail({
                 <div className="cpd-login-hint">채팅을 시작하려면 로그인이 필요합니다.</div>
             )}
 
-            {/* 자기소개 */}
             <div className="cpd-section">
                 <div className="cpd-section-title">💬 자기소개</div>
                 <p className="cpd-text">{member.intro || '자기소개가 없습니다.'}</p>
             </div>
 
-            {/* 경력 */}
             {member.experience && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">📌 경력 / 활동 이력</div>
@@ -113,7 +110,6 @@ export default function CommunityPersonalDetail({
                 </div>
             )}
 
-            {/* 전문 분야 */}
             {member.speciality && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">🎯 전문 분야</div>
@@ -125,7 +121,6 @@ export default function CommunityPersonalDetail({
                 </div>
             )}
 
-            {/* 자격증 */}
             {member.certFiles?.length > 0 && (
                 <div className="cpd-section">
                     <div className="cpd-section-title">📄 자격증 / 증명서</div>

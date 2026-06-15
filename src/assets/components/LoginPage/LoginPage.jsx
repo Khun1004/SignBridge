@@ -3,8 +3,6 @@ import './LoginPage.css'
 import SignBridgeLogo from '../../SignBridge.png'
 import { authApi } from '../../../assets/components/api/api.jsx';
 
-// displayName : 개인=이름, 기관=기관명 (SignupPage 완료 후 전달받거나 API 응답값 사용)
-// orgType     : 'personal' | 'immigration' | 'airport' | 'hospital' | 'police' | ''
 export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayName = '', orgType = '' }) {
     const [form,    setForm]    = useState({ email: '', password: '' })
     const [error,   setError]   = useState('')
@@ -12,16 +10,12 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
 
     const isOrg = orgType && orgType !== 'personal'
 
-
-
-    // 환영 문구 설정
     const welcomeMsg = displayName
         ? isOrg
             ? `${displayName} 환영합니다.`
             : `${displayName}님, 환영합니다.`
         : 'SignBridge에 오신 것을 환영합니다.'
 
-    // ── 한글 orgType → 영문 키 정규화 (DB가 한글로 저장된 경우 대비) ──
     const normalizeOrgType = (raw) => {
         const map = {
             '개인':              'personal',
@@ -42,11 +36,11 @@ export default function LoginPage({ onLogin, onClose, onSwitchToSignup, displayN
         try {
             const data = await authApi.login(form);
 
-            // orgType이 한글로 오더라도 영문 키로 정규화
             const normalizedType = normalizeOrgType(data.orgType)
             console.log('[Login] orgType raw:', data.orgType, '→ normalized:', normalizedType)
 
-            onLogin(data.name, normalizedType, data.email);
+            // ── data 전체를 4번째 인자로 전달 → App.jsx의 userProfile에 저장됨 ──
+            onLogin(data.name, normalizedType, data.email, data);
             onClose();
         } catch (err) {
             setError(err.message);

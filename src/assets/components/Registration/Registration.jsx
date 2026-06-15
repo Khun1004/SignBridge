@@ -10,7 +10,15 @@ const CONTACT_TYPES = [
     { id:'email',      label:'📧 이메일',           placeholder:'example@email.com' },
 ]
 
-export default function Registration({ onBack, onSubmit, defaultName = '', initialData = null, isEdit = false, existingChatId = '' }) {
+export default function Registration({
+                                         onBack,
+                                         onSubmit,
+                                         defaultName = '',
+                                         initialData = null,
+                                         isEdit = false,
+                                         existingChatId = '',
+                                         disabledRoles = [],   // ← 이미 등록된 역할 목록
+                                     }) {
     const [step, setStep] = useState(1)
 
     // chatId is ALWAYS locked when:
@@ -118,6 +126,10 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
         if (!form.name.trim()) e.name   = '이름을 입력해 주세요.'
         if (!form.role)        e.role   = '역할을 선택해 주세요.'
         if (!form.region)      e.region = '지역을 선택해 주세요.'
+        // 수정 모드가 아닐 때만 중복 역할 체크
+        if (!isEdit && form.role && disabledRoles.includes(form.role)) {
+            e.role = `'${form.role}' 역할은 이미 등록되어 있습니다.`
+        }
         setErrors(e); return !Object.keys(e).length
     }
     const validate2 = () => {
@@ -136,7 +148,6 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
         }
         if (form.contactType !== 'signbridge' && !form.contactValue.trim())
             e.contact = '연락처를 입력해 주세요.'
-
         setErrors(e)
         return !Object.keys(e).length
     }
@@ -228,6 +239,17 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                             ))}
                         </div>
                     </div>
+
+                    {/* 이미 등록된 역할 안내 */}
+                    {!isEdit && disabledRoles.length > 0 && (
+                        <div className="reg-disabled-roles-notice">
+                            <span>이미 등록된 역할: </span>
+                            {disabledRoles.map(r => (
+                                <span key={r} className="reg-disabled-role-badge">{r}</span>
+                            ))}
+                        </div>
+                    )}
+
                     <button className="reg-btn-next" onClick={next}>다음 →</button>
                 </div>
             )}
@@ -309,13 +331,11 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
             {step === 3 && (
                 <div className="reg-card">
                     <div className="reg-section-title">📞 연락처</div>
-
                     <div className="reg-field">
                         <label className="reg-label">
                             채팅 ID <span className="reg-req">*</span>
                             {!chatIdLocked && <span className="reg-label-hint"> — 다른 사용자가 나를 찾을 때 사용하는 고유 ID</span>}
                         </label>
-
                         {chatIdLocked ? (
                             <div className="reg-chatid-locked">
                                 <span className="reg-chatid-locked-at">@</span>
@@ -339,7 +359,6 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                             </>
                         )}
                     </div>
-
                     <div className="reg-field">
                         <label className="reg-label">연락 방법 <span className="reg-req">*</span></label>
                         <div className="reg-contact-types">
@@ -365,7 +384,6 @@ export default function Registration({ onBack, onSubmit, defaultName = '', initi
                         )}
                         {errors.contact && <span className="reg-err">{errors.contact}</span>}
                     </div>
-
                     <div className="reg-summary">
                         <div className="reg-summary-title">📋 등록 내용 확인</div>
                         {[

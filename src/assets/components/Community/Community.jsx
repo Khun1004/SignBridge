@@ -26,10 +26,13 @@ export default function Community({
     const [deleteConfirm, setDeleteConfirm]= useState(false)
     const [deleteLoading, setDeleteLoading]= useState(false)
 
-    const loadMembers = async (role='', region='') => {
+    const loadMembers = async (role = '', region = '') => {
         setListLoading(true)
         try {
-            const data = await communityApi.getMembers({ role, region })
+            const params = {}
+            if (role   && role   !== '전체') params.role   = role
+            if (region && region !== '전체') params.region = region
+            const data = await communityApi.getMembers(params)
             setMembers(Array.isArray(data) ? data : [])
         } catch (e) {
             setMembers([])
@@ -60,8 +63,8 @@ export default function Community({
     // ── Submit (create or update) ─────────────────────────
     const handleRegisterSubmit = async (form) => {
         try {
-            const certFileNames = (form.certFiles || []).map(f => f.name || f)
             const body = {
+                ...(editingProfile?.id ? { id: editingProfile.id } : {}),
                 name:          form.name || displayName,
                 chatId:        form.chatId,
                 userEmail,
@@ -73,7 +76,7 @@ export default function Community({
                 contactType:   form.contactType,
                 contactValue:  form.contactValue,
                 publicProfile: form.publicProfile,
-                certFileNames,
+                certFileNames: (form.certFiles || []).map(f => f.name || f),
             }
 
             let saved
@@ -92,14 +95,21 @@ export default function Community({
 
             const profileData = {
                 ...saved,
-                contact: { type: saved.contactType, value: saved.contactValue },
                 avatar:  saved.name?.charAt(0) || '?',
+                contact: { type: saved.contactType, value: saved.contactValue },
             }
-            onProfileSave?.(profileData)
+
+            if (editingProfile?.id) {
+                onProfilesChange?.(myProfiles.map(p => p.id === editingProfile.id ? profileData : p))
+            } else {
+                onProfilesChange?.([...myProfiles, profileData])
+            }
+
             await loadMembers(filterRole, filterRegion)
         } catch (e) {
             alert('등록에 실패했습니다. 다시 시도해 주세요.')
         }
+        setEditingProfile(null)
         setView('list')
         setEditingPost(null)
     }
@@ -127,8 +137,8 @@ export default function Community({
         }
     }
 
-    const handleCardClick  = (member) => { setSelected(member); setView('detail') }
-    const handleStartChat  = (room)   => { onChat?.(room); setView('list'); setSelected(null) }
+    const handleCardClick = (member) => { setSelected(member); setView('detail') }
+    const handleStartChat = (room)   => { onChat?.(room); setView('list'); setSelected(null) }
 
     // ── Views ─────────────────────────────────────────────
     if (view === 'register') {
@@ -231,8 +241,8 @@ export default function Community({
                                 {member.chatId && <span className="cm-card-chatid"> @{member.chatId}</span>}
                             </div>
                             <div className="cm-card-meta">
-                                <span className="cm-role-badge">{member.role}</span>
-                                <span className="cm-region-badge">📍 {member.region}</span>
+                                {member.role   && <span className="cm-role-badge">{member.role}</span>}
+                                {member.region && <span className="cm-region-badge">📍 {member.region}</span>}
                             </div>
                             <div className="cm-card-intro">{member.intro}</div>
                         </div>

@@ -1,5 +1,5 @@
-import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 
 const DEFAULT_BASE_URL = 'http://localhost:8080'
 

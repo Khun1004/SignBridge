@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import './App.css'
 import SignBridgeLogo from './assets/SignBridge.png'
-import { commonApi } from './assets/components/api/api.jsx';
+import { commonApi, communityApi, myPageApi } from './assets/components/api/api.jsx';
 import About            from './assets/components/About/About.jsx'
 import ConversationPage from './assets/components/ConversationPage/ConversationPage.jsx'
 import Practice         from './assets/components/Practice/Practice.jsx'
@@ -131,7 +132,7 @@ export default function App() {
     const [showConv,       setShowConv]       = useState(false)
     const [registerScreen, setRegisterScreen] = useState(null)
     const [chatInitialRoom, setChatInitialRoom] = useState(null)
-
+    // 인증 상태
     const [authModal,    setAuthModal]    = useState(null)
     const [loggedIn,     setLoggedIn]     = useState(false)
     const [displayName,  setDisplayName]  = useState('')
@@ -140,7 +141,9 @@ export default function App() {
     const [communityProfile, setCommunityProfile] = useState(null)
     const [userProfile,  setUserProfile]  = useState(null)
 
+    // 알림 상태
     const [notifs,     setNotifs]     = useState(SAMPLE_NOTIFICATIONS)
+    const [showNotifs, setShowNotifs] = useState(false)
     const unreadCount = notifs.filter(n => n.unread).length
 
     const [showChat,    setShowChat]    = useState(false)
@@ -170,10 +173,50 @@ export default function App() {
         }
     }, []);
 
+    // showChat을 ref로 유지 — useEffect 재구독 없이 최신 값 참조
+    const showChatRef = useRef(showChat)
+    useEffect(() => { showChatRef.current = showChat }, [showChat])
+
+    const userEmailRef = useRef(userEmail)
+    useEffect(() => { userEmailRef.current = userEmail }, [userEmail])
+
     useEffect(() => {
         chatService.connect('http://localhost:8080')
-        return () => chatService.disconnect()
+        // 새 메시지 수신 시 채팅창이 닫혀 있으면 뱃지 증가
+        const unsub = chatService.onMessage((msg) => {
+            if (!showChatRef.current && msg?.senderEmail !== userEmailRef.current) {
+                setChatUnreadCount(c => c + 1)
+            }
+        })
+        return () => { chatService.disconnect(); unsub() }
     }, [])
+
+    // ── 로그인 시 내 프로필 로드 ──
+    useEffect(() => {
+        if (!userEmail) { setUserProfile(null); return }
+        myPageApi.getProfile(userEmail)
+            .then(data => { if (data) setUserProfile(data) })
+            .catch(() => {})
+    }, [userEmail])
+
+    // ── 로그인 시 커뮤니티 프로필 자동 로드 ──
+    useEffect(() => {
+        if (!userEmail) return
+        fetch(`/api/community/members/me?email=${encodeURIComponent(userEmail)}`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setCommunityProfiles(data.map(p => ({
+                        ...p,
+                        avatar: p.name?.charAt(0) || '?',
+                        contact: { type: p.contactType, value: p.contactValue },
+                    })))
+                } else {
+                    setCommunityProfiles([])
+                }
+            })
+            .catch(() => {})
+    }, [userEmail])
 
     const handleSearch = (e) => {
         e.preventDefault()
@@ -238,6 +281,8 @@ export default function App() {
             .forEach(k => localStorage.removeItem(k))
     }
 
+    const handleMarkAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))
+
     const handleQuickChat = () => {
         if (!loggedIn) { setAuthModal('login') }
         else { setShowChat(true) }
@@ -249,14 +294,13 @@ export default function App() {
         setShowChat(true)
     }
 
-    const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
-    const handleQuickAiChat = () => setShowAiChat(v => !v)
-
-    // ── 커뮤니티에서 채팅 시작 ──
     const handleCommunityChat = (room) => {
         setChatInitialRoom(room)
         setShowChat(true)
     }
+
+    const handleQuickCall   = () => alert('전화 연결 기능은 준비 중입니다.')
+    const handleQuickAiChat = () => setShowAiChat(v => !v)
 
     const renderMain = () => {
         if (registerScreen === 'register_personal')
@@ -346,23 +390,6 @@ export default function App() {
                 </div>
                 <div className="navbar-bottom">
                     <nav className="navbar-bottom-inner">
-                        {/* ← 뒤로가기 버튼 */}
-                        {(showConv || registerScreen || showDemo || showAbout) && (
-                            <button
-                                className="nav-back-btn"
-                                onClick={() => {
-                                    if (registerScreen) { setRegisterScreen(null); return }
-                                    if (showConv)  { setShowConv(false); setTab('trans'); return }
-                                    if (showDemo)  { setShowDemo(false); setTab('home'); return }
-                                    if (showAbout) { setShowAbout(false); setTab('home'); return }
-                                }}
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                                    <path d="M15 18l-6-6 6-6"/>
-                                </svg>
-                                뒤로
-                            </button>
-                        )}
                         {MENUS.map(m => (
                             <button key={m.id}
                                 className={`nav-menu-btn ${(isNormalTab && tab === m.id) || (showAbout && m.id === 'about') ? 'active' : ''}`}
@@ -372,7 +399,7 @@ export default function App() {
                         ))}
                     </nav>
                 </div>
-            </header>
+            </header>}
 
             <main className="main-content">{renderMain()}</main>
 

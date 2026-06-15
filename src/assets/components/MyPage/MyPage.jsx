@@ -234,9 +234,7 @@ function PersonalMyPage({ displayName, profile, userEmail, communityProfile, onC
                             <span className="mp-hero-stat-lbl">등록 기록</span>
                         </div>
                     </div>
-                    <button className="mp-edit-profile-btn" onClick={openEdit}>
-                        ✏️ 프로필 수정
-                    </button>
+                    <button className="mp-edit-profile-btn" onClick={openEdit}>✏️ 프로필 수정</button>
                 </div>
             </div>
 
@@ -244,8 +242,7 @@ function PersonalMyPage({ displayName, profile, userEmail, communityProfile, onC
                 {TABS.map(t => (
                     <button key={t}
                             className={`my-tab ${activeTab === t ? 'active' : ''}`}
-                            onClick={() => setActiveTab(t)}
-                    >{t}</button>
+                            onClick={() => setActiveTab(t)}>{t}</button>
                 ))}
             </div>
 
@@ -275,11 +272,16 @@ function PersonalMyPage({ displayName, profile, userEmail, communityProfile, onC
                                         </button>
                                     </div>
                                 </div>
-                                <div className="record-info">
-                                    <span>👤 {c.name || '-'}</span>
-                                    <span>📅 {c.createdAt || '-'}</span>
-                                    <span>💬 {c.messageCount || 0}개 메시지</span>
-                                    {c.videoIds?.length > 0 && <span>🎬 영상 {c.videoIds.length}개</span>}
+                            </div>
+                            <div className="record-info">
+                                <span>👤 {c.name || '-'}</span>
+                                <span>📅 {c.createdAt || '-'}</span>
+                                <span>💬 {c.messageCount || 0}개 메시지</span>
+                                {c.videoIds?.length > 0 && <span>🎬 영상 {c.videoIds.length}개</span>}
+                            </div>
+                            {c.memo && (
+                                <div className="record-preview">
+                                    <span className="sign-chip personal-chip">{c.memo}</span>
                                 </div>
                                 {c.memo && (
                                     <div className="record-preview">
@@ -343,11 +345,48 @@ function PersonalMyPage({ displayName, profile, userEmail, communityProfile, onC
                                                 })}
                                             </div>
                                         </div>
-                                    )
-                                })()}
-                            </div>
-                        ))
-                    )}
+                                    ))}
+                                </div>
+                            )}
+                            {(() => {
+                                const allVids = c.videoIds?.length > 0
+                                    ? c.videoIds : c.videoId ? [c.videoId] : []
+                                if (allVids.length === 0) return null
+                                return (
+                                    <div className="mp-video-section">
+                                        <div className="mp-video-section-hd">
+                                            🎬 녹화 영상
+                                            <span className="mp-video-section-count">{allVids.length}개</span>
+                                        </div>
+                                        <div className="mp-video-grid">
+                                            {allVids.map((vid, vi) => {
+                                                const url = conversationApi.getVideoUrl(vid)
+                                                return (
+                                                    <div key={vid} className="mp-video-card">
+                                                        <div className="mp-video-thumb"
+                                                             onClick={() => setModalVid({ url, idx: vi })}>
+                                                            <video src={url} className="mp-video-thumb-player"
+                                                                   preload="metadata" muted playsInline/>
+                                                            <div className="mp-video-thumb-overlay">
+                                                                <div className="mp-video-play-btn">▶</div>
+                                                            </div>
+                                                            <div className="mp-video-thumb-label">영상 {vi+1}</div>
+                                                        </div>
+                                                        <div className="mp-video-card-actions">
+                                                            <button className="mp-video-action-btn mp-video-action-play"
+                                                                    onClick={() => setModalVid({ url, idx: vi })}>▶ 재생</button>
+                                                            <a href={url} download={`signbridge_${vid}.webm`}
+                                                               className="mp-video-action-btn mp-video-action-dl">⬇ 저장</a>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )
+                            })()}
+                        </div>
+                    ))}
                 </div>
             )}
 
@@ -456,6 +495,12 @@ function PersonalMyPage({ displayName, profile, userEmail, communityProfile, onC
                                             }}>{s.trim()}</span>
                                         ))}
                                     </div>
+                                    {profile.chatId && (
+                                        <div className="cm-mypage-intro-box">
+                                            <div className="cm-mypage-intro-label">커뮤니티 ID</div>
+                                            <p className="cm-mypage-intro-text">@{profile.chatId}</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             <div style={{display:'flex',gap:8,marginTop:12}}>
@@ -514,9 +559,7 @@ function PersonalMyPage({ displayName, profile, userEmail, communityProfile, onC
                         </div>
                     </div>
                     <div style={{display:'flex',justifyContent:'center',marginTop:12}}>
-                        <button className="mp-edit-profile-btn" onClick={openEdit}>
-                            ✏️ 프로필 수정하기
-                        </button>
+                        <button className="mp-edit-profile-btn" onClick={openEdit}>✏️ 프로필 수정하기</button>
                     </div>
                 </div>
             )}
@@ -535,12 +578,12 @@ function PersonalMyPage({ displayName, profile, userEmail, communityProfile, onC
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">이름 <span style={{color:'#ef4444'}}>*</span></label>
                                     <input className="mp-edit-input" value={editName}
-                                        onChange={e => setEditName(e.target.value)} placeholder="이름 입력"/>
+                                           onChange={e => setEditName(e.target.value)} placeholder="이름 입력"/>
                                 </div>
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">장애 등급</label>
                                     <input className="mp-edit-input" value={editGrade}
-                                        onChange={e => setEditGrade(e.target.value)} placeholder="예: 청각장애 1급"/>
+                                           onChange={e => setEditGrade(e.target.value)} placeholder="예: 청각장애 1급"/>
                                 </div>
                                 <div className="mp-edit-field">
                                     <label className="mp-edit-label">주로 사용하는 수어</label>
@@ -693,6 +736,10 @@ export default function MyPage({ displayName = '', orgType = '', userEmail = '',
 
     const meta = ORG_META[view] || {}
 
+    const handleCommunityProfilesChange = (updated) => {
+        onCommunityProfilesChange?.(updated)
+    }
+
     if (view === 'select') return (
         <div className="my-page">
             <div className="select-screen">
@@ -759,7 +806,6 @@ export default function MyPage({ displayName = '', orgType = '', userEmail = '',
                     }}
                     cases={caseList}
                     loading={loading}
-                    onRegister={() => setView('register_immigration')}
                 />
             </div>
         </div>
@@ -783,7 +829,6 @@ export default function MyPage({ displayName = '', orgType = '', userEmail = '',
                     }}
                     cases={caseList}
                     loading={loading}
-                    onRegister={() => setView('register_police')}
                 />
             </div>
         </div>
