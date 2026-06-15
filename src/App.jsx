@@ -574,6 +574,21 @@ export default function App() {
             setDisplayName(savedName);
             setOrgType(savedType || '');
             setLoggedIn(true);
+
+            // ✅ 현재 로그인 이메일과 다른 이메일로 저장된 deletedAt 키 정리
+            // (다른 계정으로 테스트 후 남은 잔여 데이터 제거)
+            Object.keys(localStorage)
+                .filter(k => k.startsWith('sb_deleted_at_') && !k.endsWith(`_${savedEmail}`))
+                .forEach(k => localStorage.removeItem(k))
+
+            // sb_deleted_rooms도 현재 계정 기준으로만 유효하므로
+            // 다른 계정 로그인 시 초기화
+            const lastEmail = localStorage.getItem('sb_last_email')
+            if (lastEmail && lastEmail !== savedEmail) {
+                localStorage.removeItem('sb_deleted_rooms')
+                localStorage.removeItem('sb_blocked')
+            }
+            localStorage.setItem('sb_last_email', savedEmail)
         }
     }, []);
 

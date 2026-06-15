@@ -152,13 +152,116 @@ function WhoReacted({ reactions, nameMap, onClose }) {
 }
 
 /* ── MemberPanel ── */
-function MemberPanel({ roomId, myEmail, myName, onClose }) {
-    const members=load(membersKey(roomId),[])
-    const all=members.find(m=>m.email===myEmail)?members:[{email:myEmail,name:myName,role:'나'},...members]
+function MemberPanel({ roomId, myEmail, myName, myNickname, messages=[], onClose, onChatWith }) {
+    const [selected, setSelected] = useState(null)
+
+    // ✅ localStorage 저장된 멤버 + 메시지 발신자 합산 (중복 제거)
+    const savedMembers = load(membersKey(roomId), [])
+    const seen = new Set()
+    const participantsFromMsgs = []
+
+    // 저장된 멤버 먼저
+    savedMembers.forEach(m => {
+        if (m.email && !seen.has(m.email)) {
+            seen.add(m.email)
+            participantsFromMsgs.push({ email: m.email, name: m.name || m.email.split('@')[0] })
+        }
+    })
+    // 메시지 발신자 추가
+    messages.forEach(m => {
+        const email = m.senderEmail || m.email
+        const name  = m.senderName  || m.name || email?.split('@')[0] || '?'
+        if (email && !seen.has(email)) {
+            seen.add(email)
+            participantsFromMsgs.push({ email, name })
+        }
+    })
+    // 내가 없으면 맨 앞에 추가
+    if (!seen.has(myEmail)) participantsFromMsgs.unshift({ email: myEmail, name: myName })
+
+    if (selected) return (
+        <div className="cw-member-panel nd" style={{maxHeight:280}}>
+            {/* 프로필 헤더 + < 뒤로가기 */}
+            <div className="cw-member-hd">
+                <button className="cw-member-close nd" onClick={()=>setSelected(null)} style={{marginRight:6}}>
+                    <IconChevronLeft/>
+                </button>
+                <span className="cw-member-title">{selected.name}</span>
+                <button className="cw-member-close nd" onClick={onClose}><IconX/></button>
+            </div>
+            {/* 아바타 */}
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 0 8px',gap:4}}>
+                <Avatar name={selected.name} size={56}/>
+                <div style={{fontSize:14,fontWeight:700,color:'var(--text-1)'}}>{selected.name}</div>
+                {selected.email===myEmail && myNickname && myNickname!==selected.name && (
+                    <div style={{fontSize:12,color:'var(--pu)',fontWeight:600}}>닉네임: {myNickname}</div>
+                )}
+                <div style={{fontSize:11,color:'var(--text-3)'}}>{selected.email}</div>
+            </div>
+            {/* 액션 버튼 — 본인이면 숨김 */}
+            {selected.email !== myEmail && (
+                <div style={{display:'flex',justifyContent:'center',gap:24,padding:'8px 16px 16px'}}>
+                    <button className="nd" onClick={()=>{
+                        onChatWith?.(selected)
+                        onClose()
+                    }} style={{
+                        display:'flex',flexDirection:'column',alignItems:'center',gap:4,
+                        background:'none',border:'none',cursor:'pointer',
+                    }}>
+                        <div style={{
+                            width:44,height:44,borderRadius:'50%',
+                            background:'rgba(108,99,255,0.1)',
+                            display:'flex',alignItems:'center',justifyContent:'center',
+                        }}>
+                            <IconChat/>
+                        </div>
+                        <span style={{fontSize:11,color:'var(--text-2)',fontWeight:600}}>메시지</span>
+                    </button>
+                    <button className="nd" onClick={()=>alert('전화 기능은 준비 중입니다.')} style={{
+                        display:'flex',flexDirection:'column',alignItems:'center',gap:4,
+                        background:'none',border:'none',cursor:'pointer',
+                    }}>
+                        <div style={{
+                            width:44,height:44,borderRadius:'50%',
+                            background:'rgba(16,185,129,0.1)',
+                            display:'flex',alignItems:'center',justifyContent:'center',
+                            color:'#10b981',
+                        }}>
+                            <IconPhone/>
+                        </div>
+                        <span style={{fontSize:11,color:'var(--text-2)',fontWeight:600}}>전화</span>
+                    </button>
+                </div>
+            )}
+            {selected.email === myEmail && (
+                <div style={{textAlign:'center',padding:'8px 0 16px',fontSize:12,color:'var(--text-3)'}}>내 프로필입니다</div>
+            )}
+        </div>
+    )
+
     return (
         <div className="cw-member-panel nd">
-            <div className="cw-member-hd"><span className="cw-member-title">참여자 {all.length}명</span><button className="cw-member-close nd" onClick={onClose}><IconX/></button></div>
-            <div className="cw-member-list">{all.map(m=>(<div key={m.email} className="cw-member-row"><Avatar name={m.name||m.email} size={34}/><div className="cw-member-info"><span className="cw-member-name">{m.name||m.email}</span>{m.role&&<span className="cw-member-role">{m.role}</span>}</div>{m.email===myEmail&&<span className="cw-member-me">나</span>}</div>))}</div>
+            <div className="cw-member-hd">
+                <span className="cw-member-title">참여자 {participantsFromMsgs.length}명</span>
+                <button className="cw-member-close nd" onClick={onClose}><IconX/></button>
+            </div>
+            <div className="cw-member-list">
+                {participantsFromMsgs.map(m=>(
+                    <div key={m.email} className="cw-member-row"
+                         onClick={()=>setSelected(m)}
+                         style={{cursor:'pointer'}}>
+                        <Avatar name={m.name||m.email} size={34}/>
+                        <div className="cw-member-info">
+                            <span className="cw-member-name">{m.name||m.email}</span>
+                            <span className="cw-member-role" style={{fontSize:10,color:'var(--text-3)'}}>{m.email}</span>
+                        </div>
+                        {m.email===myEmail
+                            ? <span className="cw-member-me">나</span>
+                            : <span style={{fontSize:11,color:'var(--text-3)'}}>›</span>
+                        }
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }
@@ -323,8 +426,8 @@ function ImagePreview({ file, dataUrl, onSend, onCancel }) {
 /* ═══════════════════════════════════════════
    CHAT WINDOW
 ═══════════════════════════════════════════ */
-function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGroup=false, allRooms=[], starred=[], onStarChange, isDeleted=false }) {
-    const chatDisplayName = myNickname || myName
+function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGroup=false, allRooms=[], starred=[], onStarChange, isDeleted=false, onChatWith }) {
+    const chatDisplayName = myName  // 항상 이름 사용 (닉네임 X)
     const [messages,setMessages]=useState([])
     const [hoveredMsgId,setHoveredMsgId]=useState(null)
     const hoverTimer=useRef(null)
@@ -466,7 +569,28 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
                     <div className="cw-header-left">
                         <button className="cw-hback nd" onClick={onClose}><IconChevronLeft/></button>
                         <div className="cw-av-wrap"><Avatar name={room.name} photo={room.avatar||room.name?.charAt(0).toUpperCase()} size={42} radius="50%"/><span className="cw-av-status"/></div>
-                        <div><div className="cw-hname">{room.name}{isGroup&&<span className="cw-group-badge">그룹</span>}</div><div className="cw-hsub">{isGroup?`${fmtMembers(room.memberCount)}명 참여 중`:room.sub||'온라인'}</div></div>
+                        <div>
+                            <div className="cw-hname">{room.name}{isGroup&&<span className="cw-group-badge">그룹</span>}</div>
+                            <div className="cw-hsub">
+                                {isGroup
+                                    ? (()=>{
+                                        const saved = load(membersKey(room.id),[])
+                                        const senderEmails = new Set(messages.map(m=>m.senderEmail||m.email).filter(Boolean))
+                                        saved.forEach(m=>senderEmails.add(m.email))
+                                        const cnt = senderEmails.size
+                                        return cnt > 0 ? `${cnt}명 참여 중` : '참여자 없음'
+                                    })()
+                                    : (() => {
+                                        // participants에서 상대방 이메일 추출
+                                        if(room.participants) {
+                                            const other = room.participants.split(',').map(e=>e.trim()).find(e=>e!==myEmail)
+                                            if(other) return other
+                                        }
+                                        return room.sub || '온라인'
+                                    })()
+                                }
+                            </div>
+                        </div>
                     </div>
                     <div className="cw-header-actions nd">
                         <button className="cw-hbtn nd" title="영상통화"><IconVideo/></button>
@@ -477,7 +601,7 @@ function ChatWindow({ room, myEmail, myName, myNickname, myPhoto, onClose, isGro
                     </div>
                 </div>
                 {showSearch&&<MsgSearchPanel messages={messages} onJump={jumpToMsg} onClose={()=>setShowSearch(false)}/>}
-                {showMembers&&<MemberPanel roomId={room.id} myEmail={myEmail} myName={myName} onClose={()=>setShowMembers(false)}/>}
+                {showMembers&&<MemberPanel roomId={room.id} myEmail={myEmail} myName={myName} myNickname={myNickname} messages={messages} onChatWith={onChatWith} onClose={()=>setShowMembers(false)}/>}
                 <PinnedBar pinned={pinned} onJump={()=>jumpToMsg(pinned.id)} onUnpin={unpinMessage}/>
                 <div className="cw-messages" onClick={closePopover}>
                     {loading?(<div className="cw-empty"><div className="cw-empty-hint">불러오는 중...</div></div>)
@@ -563,14 +687,14 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
     useEffect(()=>{ onOpenRoomsChange?.(openRooms.map(r=>r.id)) },[openRooms])
     const handleSelectRoom=(room)=>{ openChat(room); onRoomRead?.(room.id) }
 
-    // ── 방 목록 로드 — 삭제된 방도 포함해서 가져옴 (filteredRooms에서 숨김) ──
+    // ── 방 목록 로드 ──
     const loadRooms = useCallback(()=>{
         if(!myEmail) return
         fetch(`/api/chat/rooms?email=${encodeURIComponent(myEmail)}`)
             .then(r=>r.json())
-            .then(data=>{
+            .then(async data=>{
                 if(!Array.isArray(data)) return
-                setRooms(data.map(r=>{
+                const mapped = data.map(r=>{
                     const id=r.roomId||r.id
                     let name=r.name
                     if(!r.isGroup&&r.participants){
@@ -578,7 +702,21 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                         if(r.name===myEmail||r.name==='') name=others[0]||r.name
                     }
                     return {...r,id,name}
+                })
+                // lastMsg 없는 방은 최신 메시지 1개 직접 조회
+                const filled = await Promise.all(mapped.map(async r=>{
+                    if(r.lastMsg) return r
+                    try {
+                        const res = await fetch(`/api/chat/rooms/${r.id}/messages`)
+                        const msgs = await res.json()
+                        if(Array.isArray(msgs)&&msgs.length>0){
+                            const last=msgs[msgs.length-1]
+                            return {...r, lastMsg: last.text||(last.fileName?`📎 ${last.fileName}`:''), lastAt: last.sentAt||r.lastAt}
+                        }
+                    } catch(e){}
+                    return r
                 }))
+                setRooms(filled)
             })
             .catch(err=>console.error('Failed to load rooms:',err))
     },[myEmail])
@@ -642,17 +780,30 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
     const muteRoom=(id)=>setRooms(prev=>prev.map(r=>r.id===id?{...r,muted:!r.muted}:r))
     const markRead=(id)=>setRooms(prev=>prev.map(r=>r.id===id?{...r,unread:0}:r))
     const blockRoom=(id)=>{ setBlocked(prev=>{ const u=[...prev,id]; save(BLOCKED_KEY,u); return u }); confirmDeleteRoom(id) }
-    const joinGroup=(gid)=>{ setJoinedGroups(prev=>{ const u=[...prev,gid]; save('sb_joined_groups',u); return u }); setPreviewRoom(null) }
-    const leaveGroup=(gid)=>{ setJoinedGroups(prev=>{ const u=prev.filter(id=>id!==gid); save('sb_joined_groups',u); return u }); setOpenRooms(prev=>prev.filter(r=>r.id!==gid)) }
+    const [officialCounts,setOfficialCounts]=useState(()=>load('sb_official_counts',{}))
+    const joinGroup=(gid)=>{
+        setJoinedGroups(prev=>{const u=[...prev,gid];save('sb_joined_groups',u);return u})
+        setOfficialCounts(prev=>{const next={...prev,[gid]:(prev[gid]||0)+1};save('sb_official_counts',next);return next})
+        // ✅ 참여 시 내 정보를 그룹 멤버 목록에 저장
+        const existing = load(membersKey(gid), [])
+        if (!existing.find(m=>m.email===myEmail)) {
+            save(membersKey(gid), [...existing, {email:myEmail, name:myName||nickname}])
+        }
+        setPreviewRoom(null)
+    }
+    const leaveGroup=(gid)=>{
+        setJoinedGroups(prev=>{const u=prev.filter(id=>id!==gid);save('sb_joined_groups',u);return u})
+        setOfficialCounts(prev=>{const next={...prev,[gid]:Math.max((prev[gid]||0)-1,0)};save('sb_official_counts',next);return next})
+        setOpenRooms(prev=>prev.filter(r=>r.id!==gid))
+    }
 
     const unreadTotal=rooms.filter(r=>!deletedRooms.includes(r.id)&&!blocked.includes(r.id)).reduce((s,r)=>s+(r.unread||0)+(unreadByRoom[r.id]||0),0)
 
-    // ── filteredRooms: 삭제된 방 숨김, 차단 숨김 ──
+    // ── filteredRooms: 차단된 방만 숨김, 삭제된 방은 lastMsg만 교체 ──
     const filteredRooms=rooms.filter(r=>{
         if(blocked.includes(r.id)) return false
-        if(deletedRooms.includes(r.id)) return false
         const matchS=r.name?.includes(search)||(r.lastMsg||'').includes(search)
-        const totalUnread=(r.unread||0)+(unreadByRoom[r.id]||0)
+        const totalUnread=deletedRooms.includes(r.id)?0:((r.unread||0)+(unreadByRoom[r.id]||0))
         const matchF=chatFilter==='all'||(chatFilter==='unread'&&totalUnread>0)
         return matchS&&matchF
     })
@@ -732,7 +883,11 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                                                 <div className="ci-room-info">
                                                     <div className="ci-room-top"><span className="ci-room-name">{room.name}</span><span className="ci-room-time">{fmtRecent(room.lastAt)}</span></div>
                                                     <div className="ci-room-bottom">
-                                                        <span className="ci-room-last">{room.lastMsg||'대화를 시작하세요'}</span>
+                                                        <span className="ci-room-last" style={deletedRooms.includes(room.id)?{color:'#aaa',fontStyle:'italic'}:{}}>
+                                                            {deletedRooms.includes(room.id)
+                                                                ? '대화를 시작하세요'
+                                                                : (room.lastMsg || '대화를 시작하세요')}
+                                                        </span>
                                                         {totalUnread>0&&<span className="ci-unread-badge">{totalUnread>99?'99+':totalUnread}</span>}
                                                     </div>
                                                 </div>
@@ -750,7 +905,7 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                     {tab==='groups'&&(
                         <div className="ci-pane">
                             <div className="ci-pane-hd" onMouseDown={onMouseDown}><div className="ci-pane-hd-avatar nd" onClick={()=>setShowPhotoModal(true)}>{photo?<span style={{fontSize:22}}>{photo}</span>:<span style={{fontSize:18,fontWeight:700,color:'#8a6c2a'}}>{displayName.charAt(0)}</span>}</div><span className="ci-pane-title">공개 그룹</span><button className="ci-pane-close nd" onClick={onClose}>✕</button></div>
-                            <div className="ci-pane-scroll nd"><div className="ci-section-label" style={{paddingTop:14}}>공식 채팅방</div>{OFFICIAL_ROOMS.map(room=>(<OfficialRoomBanner key={room.id} room={room} joined={joinedGroups.includes(room.id)} onJoin={()=>joinGroup(room.id)} onLeave={()=>leaveGroup(room.id)} onOpen={()=>openChat(room,true)} onPreview={()=>setPreviewRoom(room)}/>))}<div className="ci-groups-hint">참여한 그룹 채팅은 여기에서 열 수 있어요.</div></div>
+                            <div className="ci-pane-scroll nd"><div className="ci-section-label" style={{paddingTop:14}}>공식 채팅방</div>{OFFICIAL_ROOMS.map(room=>(<OfficialRoomBanner key={room.id} room={{...room,memberCount:(room.memberCount||0)+(officialCounts[room.id]||0)}} joined={joinedGroups.includes(room.id)} onJoin={()=>joinGroup(room.id)} onLeave={()=>leaveGroup(room.id)} onOpen={()=>openChat(room,true)} onPreview={()=>setPreviewRoom(room)}/>))}<div className="ci-groups-hint">참여한 그룹 채팅은 여기에서 열 수 있어요.</div></div>
                         </div>
                     )}
 
@@ -783,7 +938,7 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
             </div>
 
             {showPhotoModal&&<ProfileEditModal nickname={nickname} photo={photo} myName={myName} onSave={handleProfileSave} onClose={()=>setShowPhotoModal(false)}/>}
-            {previewRoom&&<GroupPreviewModal room={previewRoom} onJoin={()=>{joinGroup(previewRoom.id);openChat(previewRoom,true)}} onClose={()=>setPreviewRoom(null)}/>}
+            {previewRoom&&<GroupPreviewModal room={{...previewRoom,memberCount:(previewRoom.memberCount||0)+(officialCounts[previewRoom.id]||0)}} onJoin={()=>{joinGroup(previewRoom.id);openChat(previewRoom,true)}} onClose={()=>setPreviewRoom(null)}/>}
 
             {/* 대화 삭제 확인 모달 */}
             {deleteConfirmId&&(
@@ -809,6 +964,29 @@ export default function ChatRoom({ onClose, myEmail='', myName='', profile=null,
                             allRooms={rooms} starred={starred}
                             isDeleted={deletedRooms.includes(room.id)}
                             onStarChange={(next)=>{ setStarred(next); save(starredKey,next) }}
+                            onChatWith={(member)=>{
+                                // 그룹 참여자와 1:1 채팅방 열기
+                                fetch('/api/chat/rooms/direct', {
+                                    method:'POST',
+                                    headers:{'Content-Type':'application/json'},
+                                    body:JSON.stringify({
+                                        emailA: myEmail,
+                                        nameA:  nickname || myName,
+                                        emailB: member.email,
+                                        nameB:  member.name,
+                                    })
+                                })
+                                    .then(r=>r.json())
+                                    .then(newRoom=>{
+                                        const id = newRoom.roomId || newRoom.id
+                                        const normalized = {...newRoom, id, name: member.name}
+                                        // 목록에 추가
+                                        setRooms(prev => prev.find(r=>r.id===id) ? prev : [normalized,...prev])
+                                        // 채팅창 열기
+                                        setOpenRooms(prev => prev.find(r=>r.id===id) ? prev : [...prev, normalized])
+                                    })
+                                    .catch(()=>alert('채팅방을 만들 수 없습니다.'))
+                            }}
                             onClose={()=>setOpenRooms(prev=>prev.filter(r=>r.id!==room.id))}/>
             ))}
         </>
